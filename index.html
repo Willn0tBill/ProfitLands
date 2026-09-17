@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10131a" />
+  <title>ProfitLands — V1</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">$</div>
+        <div>
+          <h1>ProfitLands</h1>
+          <p>Build. Invest. Compete.</p>
+        </div>
+      </div>
+      <div class="mode-pill"><span id="modeName">Standard</span><span class="dot"></span><span id="dayLabel">Day 1</span></div>
+    </header>
+
+    <main>
+      <section id="homeScreen" class="screen active">
+        <div class="hero">
+          <div>
+            <span class="eyebrow">PROFITLANDS V1</span>
+            <h2>Start with $1,000.<br /><span>Build an empire.</span></h2>
+            <p>Buy stocks, build businesses, collect property, and make your money work for you. Every day gives you a limited number of actions.</p>
+          </div>
+          <div class="hero-coin">$</div>
+        </div>
+
+        <div class="mode-grid">
+          <button class="mode-card" data-mode="fast"><span>⚡</span><strong>Fast</strong><small>5 min days · 4 actions</small></button>
+          <button class="mode-card selected" data-mode="standard"><span>◆</span><strong>Standard</strong><small>15 min days · 6 actions</small></button>
+          <button class="mode-card" data-mode="long"><span>◷</span><strong>Long</strong><small>1 hour days · 10 actions</small></button>
+          <button class="mode-card" data-mode="persistent"><span>∞</span><strong>Persistent</strong><small>24 hour days · 12 actions</small></button>
+        </div>
+
+        <button id="startGame" class="primary-button">Start ProfitLands <span>→</span></button>
+        <p class="local-note">V1 is a local prototype. Your game is saved in this browser.</p>
+      </section>
+
+      <section id="gameScreen" class="screen">
+        <div class="game-head">
+          <div>
+            <span class="eyebrow">YOUR EMPIRE</span>
+            <h2>Day <span id="gameDay">1</span></h2>
+          </div>
+          <div class="timer-box"><small>DAY ENDS IN</small><strong id="timer">15:00</strong></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><small>CASH</small><strong id="cash">$1,000</strong></div>
+          <div class="stat"><small>NET WORTH</small><strong id="netWorth">$1,000</strong></div>
+          <div class="stat"><small>DAILY INCOME</small><strong id="dailyIncome">$0</strong></div>
+          <div class="stat"><small>ACTIONS</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></div>
+        </div>
+
+        <div id="eventBanner" class="event-banner hidden"></div>
+
+        <div class="dashboard-grid">
+          <div class="panel market-panel">
+            <div class="panel-head"><div><span class="eyebrow">MARKET</span><h3>Stocks</h3></div><span class="live-tag">LIVE</span></div>
+            <div id="stockList" class="stock-list"></div>
+          </div>
+
+          <div class="panel actions-panel">
+            <div class="panel-head"><div><span class="eyebrow">YOUR EMPIRE</span><h3>Build</h3></div></div>
+            <div class="action-list">
+              <button class="action-button" data-action="business"><span>🏢</span><div><b>Build a business</b><small>Turn cash into daily income</small></div><em>$500</em></button>
+              <button class="action-button" data-action="property"><span>🏠</span><div><b>Buy property</b><small>Slow growth, steady value</small></div><em>$750</em></button>
+              <button class="action-button" data-action="research"><span>🔬</span><div><b>Research</b><small>Reveal tomorrow's market trend</small></div><em>$150</em></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-grid">
+          <div class="panel holdings-panel"><div class="panel-head"><div><span class="eyebrow">PORTFOLIO</span><h3>Your Holdings</h3></div></div><div id="holdings"></div></div>
+          <div class="panel news-panel"><div class="panel-head"><div><span class="eyebrow">PROFITLANDS NEWS</span><h3>Latest</h3></div></div><div id="newsFeed"></div></div>
+        </div>
+
+        <button id="endDay" class="end-day">End Day <span>→</span></button>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
