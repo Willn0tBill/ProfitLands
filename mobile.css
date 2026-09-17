@@ -36,3 +36,13 @@ img,svg,video{max-width:100%;height:auto}
   .type-card,.mode-card,.business-card,.stock,.action-button,.business-choice,.upgrade-button,.small-button,.end-day,.chain-button{min-height:44px}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+
+/* Modal layering and scroll fix: dialogs must sit above the persistent game HUD. */
+.modal{z-index:100}
+.modal-card{z-index:101}
+body:has(.modal:not(.hidden)){overflow:hidden}
+@media(max-width:600px){
+  .modal{z-index:100;padding:8px max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-left));padding-top:max(8px,env(safe-area-inset-top));padding-bottom:max(8px,env(safe-area-inset-bottom));}
+  .modal-card,.modal-card.wide{position:relative;z-index:101;margin:0;width:100%;max-height:calc(100dvh - max(16px,env(safe-area-inset-top) + env(safe-area-inset-bottom)));}
+}
