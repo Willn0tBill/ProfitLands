@@ -19,9 +19,43 @@
   function settings(){const p=window.profitlandsProfile||{};open(`<div class="auth-view"><span class="eyebrow">ACCOUNT SETTINGS</span><h2>Your ProfitLands identity</h2><div class="settings-grid"><div><label class="auth-label">PLAYER NAME</label><input id="setPlayer" class="auth-input" maxlength="24" value="${esc(p.playerName||'')}"></div><div><label class="auth-label">COMPANY NAME</label><input id="setCompany" class="auth-input" maxlength="40" value="${esc(p.companyName||'')}"></div></div><div id="setError" class="auth-error"></div><div class="auth-buttons"><button class="primary-button" id="saveSettings">Save Changes</button><button class="secondary-button" id="signOutButton">Sign Out</button></div></div>`);$('saveSettings').onclick=async()=>{const n=clean($('setPlayer').value),c=clean($('setCompany').value),problem=invalidName(n)||validCompany(c);if(problem){$('setError').textContent=problem;return}try{await saveProfile(currentUser.uid,{playerName:n,companyName:c});window.profitlandsProfile={playerName:n,companyName:c};state.playerName=n;state.companyName=c;localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile));save();close();refresh();render()}catch(e){$('setError').textContent=errorText(e)}};$('signOutButton').onclick=()=>auth.signOut()}
   function saveProfile(uid,data){return db.collection('users').doc(uid).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}
   async function loadCloud(){if(!currentUser||!db)return;loadingCloud=true;try{const p=await db.collection('users').doc(currentUser.uid).get();if(p.exists){window.profitlandsProfile=p.data();state.playerName=p.data().playerName||'';state.companyName=p.data().companyName||'';localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile))}const ref=db.collection('users').doc(currentUser.uid).collection('saves').doc(`${state.mode}-${state.playType}`),snap=await ref.get();if(snap.exists){Object.assign(state,snap.data().state||{});state.started=false;localStorage.setItem('profitlands-v2',JSON.stringify(state))}}catch(e){console.warn('Cloud load failed',e)}loadingCloud=false;render();refresh()}
-  async function cloudSave(){if(!currentUser||!db||loadingCloud)return;try{await db.collection('users').doc(currentUser.uid).collection('saves').doc(`${state.mode}-${state.playType}`).set({state:JSON.parse(JSON.stringify(state)),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}catch(e){console.warn('Cloud save failed',e)}}
-  const cloudSaveLater=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,350)};
+  let lastCloudSignature='';
+  function cloudSignature(){
+    try{
+      const copy=JSON.parse(JSON.stringify(state));
+      delete copy.timeLeft;
+      return JSON.stringify(copy);
+    }catch(e){return ''}
+  }
+  async function cloudSave(force=false){
+    if(!currentUser||!db||loadingCloud)return false;
+    const signature=cloudSignature();
+    if(!force && signature && signature===lastCloudSignature)return true;
+    try{
+      const saveId=state.mode+'-'+state.playType;
+      const payload={
+        state:JSON.parse(JSON.stringify(state)),
+        mode:state.mode,
+        playType:state.playType,
+        day:state.day,
+        playerName:state.playerName||(window.profitlandsProfile?.playerName||''),
+        companyName:state.companyName||(window.profitlandsProfile?.companyName||''),
+        saveVersion:1,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await db.collection('users').doc(currentUser.uid).collection('saves').doc(saveId).set(payload,{merge:true});
+      lastCloudSignature=signature;
+      return true;
+    }catch(e){
+      console.error('Cloud save failed:',e);
+      return false;
+    }
+  }
+  const cloudSaveLater=()=>{
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>cloudSave(false),1000);
+  };
   function refresh(){styles();const top=document.querySelector('.topbar');if(!top)return;let box=$('profitlandsAccountActions');if(!box){box=document.createElement('div');box.id='profitlandsAccountActions';box.className='account-actions';top.appendChild(box)}if(!currentUser){box.innerHTML='<button class="account-chip" id="plSignIn">Sign In</button><button class="account-chip" id="plCreate">Create Account</button>';$('plSignIn').onclick=signIn;$('plCreate').onclick=create}else{const p=window.profitlandsProfile||{};box.innerHTML=`<button class="account-chip" id="plAccount">${esc(p.playerName||'Account')}</button>`;$('plAccount').onclick=settings}}
-  function install(){styles();if(!configured){refresh();const n=document.querySelector('.local-note');if(n){n.textContent='Firebase is not connected yet — add your Web App config in firebase-config.js.';n.classList.add('firebase-status','bad')}return}try{firebase.initializeApp(CONFIG);auth=firebase.auth();db=firebase.firestore();const oldSave=window.save;if(oldSave&&!oldSave.__firebaseWrapped){const wrapped=function(){oldSave();cloudSaveLater()};wrapped.__firebaseWrapped=true;window.save=wrapped}document.addEventListener('click',e=>{if(e.target.closest('#startGame')&&!currentUser){e.preventDefault();e.stopImmediatePropagation();signIn()}},true);auth.onAuthStateChanged(async u=>{currentUser=u;if(u){await loadCloud();refresh();if($('homeScreen')?.classList.contains('active'))setTimeout(welcome,120)}else refresh()});window.profitlandsFirebase={signIn,create,settings,cloudSave}}catch(e){console.error(e);const n=document.querySelector('.local-note');if(n){n.textContent='Firebase could not initialize. Check firebase-config.js.';n.classList.add('firebase-status','bad')}}}
+  function install(){styles();if(!configured){refresh();const n=document.querySelector('.local-note');if(n){n.textContent='Firebase is not connected yet — add your Web App config in firebase-config.js.';n.classList.add('firebase-status','bad')}return}try{firebase.initializeApp(CONFIG);auth=firebase.auth();db=firebase.firestore();const oldSave=window.save;if(oldSave&&!oldSave.__firebaseWrapped){const wrapped=function(){oldSave();cloudSaveLater()};wrapped.__firebaseWrapped=true;window.save=wrapped}document.addEventListener('click',e=>{if(e.target.closest('#startGame')&&!currentUser){e.preventDefault();e.stopImmediatePropagation();signIn()}},true);auth.onAuthStateChanged(async u=>{currentUser=u;if(u){await loadCloud();refresh();await cloudSave(true);if($('homeScreen')?.classList.contains('active'))setTimeout(welcome,120)}else{lastCloudSignature='';refresh()}});window.profitlandsFirebase={signIn,create,settings,cloudSave}}catch(e){console.error(e);const n=document.querySelector('.local-note');if(n){n.textContent='Firebase could not initialize. Check firebase-config.js.';n.classList.add('firebase-status','bad')}}}
   window.addEventListener('load',install);
 })();
