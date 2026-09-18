@@ -58,3 +58,29 @@ body:has(#gameScreen.active) .app-shell{padding-top:0}
   .game-hud{padding-top:6px;padding-bottom:8px}
   .game-hud .stats-grid{margin-bottom:10px}
 }
+
+
+/* HUD stability: prevent horizontal drift/clipping and keep the grouped HUD inside the game column. */
+html,body{overflow-x:hidden!important}
+#gameScreen{min-width:0;width:100%;overflow:visible}
+.game-hud{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  left:auto;
+  right:auto;
+}
+.game-hud .stats-grid,
+.game-hud .game-head{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.game-hud .game-head{display:flex;justify-content:space-between}
+.game-hud .game-center-controls{flex:0 0 auto}
+.game-hud .game-controls{flex:0 0 auto}
+@media(max-width:850px){
+  .game-hud .game-head{display:grid}
+}
