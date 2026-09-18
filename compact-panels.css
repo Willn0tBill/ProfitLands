@@ -60,3 +60,33 @@ body:has(#gameScreen.active) #gameScreen .game-head{
   body:has(#gameScreen.active) .topbar{padding-bottom:10px}
   body:has(#gameScreen.active) #gameScreen .game-head{padding:14px 10px 12px}
 }
+
+
+/* In-game HUD: hide the marketing/navigation bar and keep only the playable HUD visible. */
+body:has(#gameScreen.active) .topbar{display:none!important}
+body:has(#gameScreen.active) .app-shell{padding-top:0}
+body:has(#gameScreen.active) #gameScreen{padding-top:0}
+body:has(#gameScreen.active) #gameScreen .stats-grid{
+  position:sticky;
+  top:0;
+  z-index:50;
+  margin-top:0;
+  padding-top:10px;
+  padding-bottom:8px;
+  background:#0b0e13;
+}
+body:has(#gameScreen.active) #gameScreen .game-head{
+  position:sticky;
+  top:98px;
+  z-index:49;
+  margin-top:0;
+  background:#0b0e13;
+  border-bottom:1px solid #202a34;
+}
+@media(max-width:600px){
+  body:has(#gameScreen.active) #gameScreen .stats-grid{
+    padding-top:6px;
+    padding-bottom:6px;
+  }
+  body:has(#gameScreen.active) #gameScreen .game-head{top:84px}
+}
