@@ -84,3 +84,13 @@ html,body{overflow-x:hidden!important}
 @media(max-width:850px){
   .game-hud .game-head{display:grid}
 }
+
+
+/* Final HUD order: empire controls first, stats immediately underneath. */
+.game-hud{display:flex;flex-direction:column;align-items:stretch}
+.game-hud .game-head{order:1}
+.game-hud .stats-grid{order:2}
+.game-hud .game-head{margin-bottom:14px}
+@media(max-width:600px){
+  .game-hud .game-head{margin-bottom:10px}
+}
