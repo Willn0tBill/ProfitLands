@@ -37,3 +37,26 @@
   .game-center-controls .timer-box strong{font-size:23px}
   .end-day-compact{font-size:11px;padding:9px 10px!important}
 }
+
+
+/* Connected game HUD: the brand bar and empire controls are one continuous top section. */
+body:has(#gameScreen.active) .topbar{
+  margin-bottom:0;
+  padding-bottom:14px;
+  border-bottom:1px solid #202a34;
+}
+body:has(#gameScreen.active) #gameScreen{
+  padding-top:0;
+}
+body:has(#gameScreen.active) #gameScreen .game-head{
+  margin-top:0;
+  padding:18px 16px 14px;
+  border:1px solid #202a34;
+  border-top:0;
+  border-radius:0 0 18px 18px;
+  background:#0d1218;
+}
+@media(max-width:600px){
+  body:has(#gameScreen.active) .topbar{padding-bottom:10px}
+  body:has(#gameScreen.active) #gameScreen .game-head{padding:14px 10px 12px}
+}
