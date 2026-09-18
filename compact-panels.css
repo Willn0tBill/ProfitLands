@@ -133,7 +133,8 @@ body:has(#gameScreen.active) #gameScreen{padding-top:190px!important}
 }
 
 
-/* Gameplay HUD: normal document flow. It moves away with the page when scrolling. */
+
+/* Gameplay HUD: always visible while playing, with content scrolling underneath it. */
 body:has(#gameScreen.active) #gameScreen{
   overflow:visible!important;
   transform:none!important;
@@ -141,29 +142,34 @@ body:has(#gameScreen.active) #gameScreen{
   padding-top:0!important;
 }
 body:has(#gameScreen.active) .game-hud{
-  position:relative!important;
-  top:auto!important;
-  left:auto!important;
-  right:auto!important;
-  width:100%;
-  max-width:100%;
-  margin:0;
-  padding:10px 0;
-  box-sizing:border-box;
-  z-index:1;
-  background:#0b0e13;
-  border-bottom:1px solid #202a34;
+  position:fixed!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  width:100vw!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:10px 16px!important;
+  box-sizing:border-box!important;
+  z-index:9999!important;
+  background:#0b0e13!important;
+  border-bottom:1px solid #202a34!important;
 }
 body:has(#gameScreen.active) .game-hud .game-head,
 body:has(#gameScreen.active) .game-hud .stats-grid{
-  width:100%;
-  max-width:1200px;
-  margin-left:auto;
-  margin-right:auto;
-  box-sizing:border-box;
+  width:min(1200px,100%)!important;
+  max-width:1200px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  box-sizing:border-box!important;
 }
-body:has(#gameScreen.active) .game-hud .game-head{margin-bottom:14px}
-body:has(#gameScreen.active) .game-hud .stats-grid{margin-bottom:0}
+body:has(#gameScreen.active) .game-hud .game-head{margin-bottom:14px!important}
+body:has(#gameScreen.active) .game-hud .stats-grid{margin-bottom:0!important}
+/* Keep the first game content below the two-row HUD. */
+body:has(#gameScreen.active) #eventBanner{
+  margin-top:188px!important;
+}
 @media(max-width:600px){
-  body:has(#gameScreen.active) .game-hud{padding:6px 10px 8px}
+  body:has(#gameScreen.active) .game-hud{padding:6px 10px 8px!important}
+  body:has(#gameScreen.active) #eventBanner{margin-top:285px!important}
 }
