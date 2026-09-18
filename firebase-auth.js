@@ -92,7 +92,7 @@
     const saved=window.profitlandsLastCloudSave;
     const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
-    const data=saved?.hasSave?saved:(localState&&localState.day>1?{...localState,hasSave:true,localOnly:true}:null);
+    const data=saved?.hasSave?saved:(localState&&(localState.started||localState.day>1)?{...localState,hasSave:true,localOnly:true}:null);
     if(!data){box?.remove();return}
     if(!box){box=document.createElement('div');box.id='profitlandsResumeCard';box.className='panel';const target=home.querySelector('.home-content')||home;target.insertBefore(box,target.firstChild)}
     const s=data.state||data;
@@ -100,7 +100,7 @@
     box.innerHTML='<span class="eyebrow">SAVED GAME</span><h3>Continue your last empire</h3><p class="modal-sub">'+(data.localOnly?'Saved on this device':'Saved to your account')+' · '+(s.mode||'Standard')+' · '+(s.playType==='multi'?'Multiplayer':'Singleplayer')+' · Day '+(s.day||1)+'</p><div class="auth-buttons"><button class="primary-button" id="resumeLastGame">Continue Game <span>→</span></button><button class="secondary-button" id="discardResume">Start New Game</button></div>';
     box.querySelector('#resumeLastGame').onclick=()=>{
       Object.assign(state,s);
-      if(!state.dayEndsAt||state.dayEndsAt<Date.now())state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;
+      state.timeLeft=Math.max(0,Number(state.timeLeft)||0);state.dayEndsAt=Date.now()+(state.timeLeft||MODES[state.mode]?.daySeconds||900)*1000;
       window.resumeProfitLands?.();
       box.remove();
     };
