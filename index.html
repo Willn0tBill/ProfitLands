@@ -40,10 +40,13 @@
     </main>
   </div>
   <div id="businessModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="businessModal">×</button><span class="eyebrow">BUSINESS MARKET</span><h2>Choose a business</h2><p class="modal-sub">Every business has different economics, upgrade paths, risks, and chain potential.</p><div id="businessChoices" class="business-choices"></div></div></div>
-  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal">×</button><div id="manageContent"></div></div></div>\n  <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game options will live here as ProfitLands grows.</p><div class="settings-list"><div class="setting-row"><div><b>Audio</b><small>Sound effects and game audio · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Music</b><small>Background music · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Company Changes</b><small>Change your company identity and other profile options.</small></div><span>PROFILE</span></div><div class="setting-row"><div><b>More Game Options</b><small>Additional gameplay and display settings can be added here later.</small></div><span>SOON</span></div></div></div></div>
+  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal">×</button><div id="manageContent"></div></div></div>\n  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="tradeModal">×</button><div id="tradeContent"></div></div></div>
+  <div id="endGameModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="endGameModal">×</button><div id="endGameContent"></div></div></div>
+  <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game options will live here as ProfitLands grows.</p><div class="settings-list"><div class="setting-row"><div><b>Audio</b><small>Sound effects and game audio · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Music</b><small>Background music · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Company Changes</b><small>Change your company identity and other profile options.</small></div><span>PROFILE</span></div><div class="setting-row"><div><b>More Game Options</b><small>Additional gameplay and display settings can be added here later.</small></div><span>SOON</span></div></div></div></div>
   <div id="toast" class="toast"></div>
 
   <!-- Firebase Web SDK. Firebase Auth + Firestore are used for accounts and private cloud saves. -->
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -55,6 +58,7 @@
   <script src="player-system.js"></script>
   <script src="modal-dismiss.js"></script>
   <script src="mobile-fixes.js"></script>
+  <script src="crazygames.js"></script>
   <script src="firebase-auth.js"></script>
 </body>
 </html>
