@@ -1,13 +1,13 @@
 /* ProfitLands business/location + UI polish layer */
 (function(){
   const LOCATIONS=[
-    {id:'downtown',name:'Downtown',icon:'🏙️',demand:1.22,rent:1.30,desc:'Huge customer traffic, but expensive to operate.'},
-    {id:'suburbs',name:'Suburbs',icon:'🏘️',demand:0.94,rent:0.82,desc:'Steady local demand with lower operating costs.'},
-    {id:'tourist',name:'Tourist District',icon:'🌴',demand:1.35,rent:1.42,desc:'Very high demand with very high operating costs.'},
-    {id:'university',name:'University District',icon:'🎓',demand:1.14,rent:0.98,desc:'Strong demand from students and young customers.'},
-    {id:'waterfront',name:'Waterfront',icon:'🌊',demand:1.18,rent:1.18,desc:'Popular destination with above-average costs.'},
-    {id:'tech',name:'Tech District',icon:'💻',demand:1.10,rent:1.08,desc:'Strong demand for modern services and products.'},
-    {id:'industrial',name:'Industrial Park',icon:'🏭',demand:0.88,rent:0.68,desc:'Lower customer traffic, but very cheap space.'}
+    {id:'downtown',name:'Downtown',icon:'🏙️',demand:1.22,rent:1.65,desc:'Huge customer traffic, but expensive to operate.'},
+    {id:'suburbs',name:'Suburbs',icon:'🏘️',demand:0.94,rent:1.05,desc:'Steady local demand with lower operating costs.'},
+    {id:'tourist',name:'Tourist District',icon:'🌴',demand:1.35,rent:1.85,desc:'Very high demand with very high operating costs.'},
+    {id:'university',name:'University District',icon:'🎓',demand:1.14,rent:1.20,desc:'Strong demand from students and young customers.'},
+    {id:'waterfront',name:'Waterfront',icon:'🌊',demand:1.18,rent:1.50,desc:'Popular destination with above-average costs.'},
+    {id:'tech',name:'Tech District',icon:'💻',demand:1.10,rent:1.35,desc:'Strong demand for modern services and products.'},
+    {id:'industrial',name:'Industrial Park',icon:'🏭',demand:0.88,rent:0.82,desc:'Lower customer traffic, but very cheap space.'}
   ];
   const moneyFmt=n=>money(n);
   function normalize(){state.businesses=state.businesses||[];state.businesses.forEach(b=>{if(!Array.isArray(b.locations)||!b.locations.length)b.locations=[{id:'downtown',name:'Downtown',icon:'🏙️',demand:1.22,rent:1.30,basePopularity:b.popularity||55}];b.chainCount=Math.max(0,b.locations.length-1);b.locations.forEach(l=>{if(l.basePopularity==null)l.basePopularity=b.popularity||55})})}
