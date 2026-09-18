@@ -134,6 +134,16 @@ body:has(#gameScreen.active) .game-hud .stats-grid{
   box-sizing:border-box!important;
 }
 body:has(#gameScreen.active) .game-hud .game-head{
+  justify-content:center!important;
+  text-align:center;
+}
+body:has(#gameScreen.active) .game-hud .game-head > div:first-child,
+body:has(#gameScreen.active) .game-hud .game-controls{
+  position:absolute;
+}
+body:has(#gameScreen.active) .game-hud .game-head > div:first-child{left:0;}
+body:has(#gameScreen.active) .game-hud .game-controls{right:0;}
+body:has(#gameScreen.active) .game-hud .game-head{
   order:1;
   margin-bottom:14px!important;
 }
