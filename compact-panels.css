@@ -39,54 +39,22 @@
 }
 
 
-/* Connected game HUD: the brand bar and empire controls are one continuous top section. */
-body:has(#gameScreen.active) .topbar{
-  margin-bottom:0;
-  padding-bottom:14px;
-  border-bottom:1px solid #202a34;
-}
-body:has(#gameScreen.active) #gameScreen{
-  padding-top:0;
-}
-body:has(#gameScreen.active) #gameScreen .game-head{
-  margin-top:0;
-  padding:18px 16px 14px;
-  border:1px solid #202a34;
-  border-top:0;
-  border-radius:0 0 18px 18px;
-  background:#0d1218;
-}
-@media(max-width:600px){
-  body:has(#gameScreen.active) .topbar{padding-bottom:10px}
-  body:has(#gameScreen.active) #gameScreen .game-head{padding:14px 10px 12px}
-}
 
-
-/* In-game HUD: hide the marketing/navigation bar and keep only the playable HUD visible. */
+/* In-game HUD: use the proven compact header styling, but keep the entire HUD together while scrolling. */
 body:has(#gameScreen.active) .topbar{display:none!important}
 body:has(#gameScreen.active) .app-shell{padding-top:0}
-body:has(#gameScreen.active) #gameScreen{padding-top:0}
-body:has(#gameScreen.active) #gameScreen .stats-grid{
+.game-hud{
   position:sticky;
   top:0;
   z-index:50;
-  margin-top:0;
+  background:#0b0e13;
   padding-top:10px;
-  padding-bottom:8px;
-  background:#0b0e13;
-}
-body:has(#gameScreen.active) #gameScreen .game-head{
-  position:sticky;
-  top:98px;
-  z-index:49;
-  margin-top:0;
-  background:#0b0e13;
+  padding-bottom:10px;
   border-bottom:1px solid #202a34;
 }
+.game-hud .stats-grid{margin-bottom:14px}
+.game-hud .game-head{margin-bottom:0}
 @media(max-width:600px){
-  body:has(#gameScreen.active) #gameScreen .stats-grid{
-    padding-top:6px;
-    padding-bottom:6px;
-  }
-  body:has(#gameScreen.active) #gameScreen .game-head{top:84px}
+  .game-hud{padding-top:6px;padding-bottom:8px}
+  .game-hud .stats-grid{margin-bottom:10px}
 }
