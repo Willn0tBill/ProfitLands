@@ -123,13 +123,11 @@ body:has(#gameScreen.active) .game-hud .stats-grid{
 }
 body:has(#gameScreen.active) .game-hud .game-head{margin-bottom:14px}
 body:has(#gameScreen.active) .game-hud .stats-grid{margin-bottom:0}
-body:has(#gameScreen.active) #eventBanner{
-  padding-top:190px;
-}
+body:has(#gameScreen.active) #gameScreen{padding-top:190px!important}
 @media(max-width:600px){
   body:has(#gameScreen.active) .game-hud{
     padding-left:10px;
     padding-right:10px;
   }
-  body:has(#gameScreen.active) #eventBanner{padding-top:300px}
+  body:has(#gameScreen.active) #gameScreen{padding-top:300px!important}
 }
