@@ -1,0 +1,9 @@
+/* Ensure the top-right game controls remain reachable on touch devices. */
+.game-controls{position:relative;z-index:30;pointer-events:auto}
+#endGame,#openSettings{position:relative;z-index:31;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:600px){
+  .game-head{position:relative;z-index:20}
+  .game-controls{margin-left:0;flex-shrink:0}
+  .game-controls .small-button{min-width:70px;min-height:44px;padding:9px 8px}
+  #endGame{min-width:78px}
+}
