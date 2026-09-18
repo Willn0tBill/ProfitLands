@@ -94,3 +94,42 @@ html,body{overflow-x:hidden!important}
 @media(max-width:600px){
   .game-hud .game-head{margin-bottom:10px}
 }
+
+
+/* Keep the gameplay HUD pinned to the browser viewport while the game content scrolls. */
+body:has(#gameScreen.active) #gameScreen{
+  overflow:visible!important;
+  transform:none!important;
+  contain:none!important;
+}
+body:has(#gameScreen.active) .game-hud{
+  position:fixed!important;
+  top:0;
+  left:0;
+  right:0;
+  width:100vw;
+  max-width:none;
+  margin:0;
+  padding:10px max(16px,calc((100vw - 1200px)/2)) 10px;
+  box-sizing:border-box;
+  z-index:1000;
+}
+body:has(#gameScreen.active) .game-hud .game-head,
+body:has(#gameScreen.active) .game-hud .stats-grid{
+  width:100%;
+  max-width:1200px;
+  margin-left:auto;
+  margin-right:auto;
+}
+body:has(#gameScreen.active) .game-hud .game-head{margin-bottom:14px}
+body:has(#gameScreen.active) .game-hud .stats-grid{margin-bottom:0}
+body:has(#gameScreen.active) #eventBanner{
+  padding-top:190px;
+}
+@media(max-width:600px){
+  body:has(#gameScreen.active) .game-hud{
+    padding-left:10px;
+    padding-right:10px;
+  }
+  body:has(#gameScreen.active) #eventBanner{padding-top:300px}
+}
