@@ -60,7 +60,7 @@
     const top=document.querySelector('.topbar');
     if(!top)return;
     let box=$('profitlandsAccountActions');
-    if(window.profitlandsCrazyGames?.enabled){box?.remove();return}
+    if(window.profitLandsPlatform?.externalAuthDisabled){box?.remove();return}
     if(!box){
       box=document.createElement('div');
       box.id='profitlandsAccountActions';
@@ -91,7 +91,7 @@
       db=firebase.firestore();
       window.profitlandsSaveHook=()=>cloudSaveLater();
       document.addEventListener('click',e=>{
-        if(window.profitlandsCrazyGames?.enabled)return;
+        if(window.profitLandsPlatform?.externalAuthDisabled)return;
         if(e.target.closest('#startGame')&&!currentUser){
           e.preventDefault();
           e.stopImmediatePropagation();
@@ -104,7 +104,7 @@
           await loadCloud();
           refresh();
           await cloudSave(true);
-          if(!window.profitlandsCrazyGames?.enabled&&$('homeScreen')?.classList.contains('active'))setTimeout(welcome,120)
+          if(!window.profitLandsPlatform?.externalAuthDisabled&&$('homeScreen')?.classList.contains('active'))setTimeout(welcome,120)
         }else{
           lastCloudSignature='';
           refresh()
