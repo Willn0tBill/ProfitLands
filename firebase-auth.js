@@ -18,7 +18,34 @@
   function welcome(){const p=window.profitlandsProfile||{};open(`<div class="auth-view welcome-card"><span class="eyebrow">WELCOME BACK</span><h2>Continue as ${esc(p.playerName||'Player')}?</h2><div class="welcome-profile"><strong>${esc(p.playerName||'Player')}</strong><small>${esc(p.companyName||'Your Company')}</small></div><div class="auth-buttons"><button class="primary-button" id="continueAccount">Continue as ${esc(p.playerName||'Player')} <span>→</span></button><button class="secondary-button" id="notYou">Not you?</button></div></div>`);$('continueAccount').onclick=close;$('notYou').onclick=()=>{auth.signOut();signIn()}}
   function settings(){const p=window.profitlandsProfile||{};open(`<div class="auth-view"><span class="eyebrow">ACCOUNT SETTINGS</span><h2>Your ProfitLands identity</h2><div class="settings-grid"><div><label class="auth-label">PLAYER NAME</label><input id="setPlayer" class="auth-input" maxlength="24" value="${esc(p.playerName||'')}"></div><div><label class="auth-label">COMPANY NAME</label><input id="setCompany" class="auth-input" maxlength="40" value="${esc(p.companyName||'')}"></div></div><div id="setError" class="auth-error"></div><div class="auth-buttons"><button class="primary-button" id="saveSettings">Save Changes</button><button class="secondary-button" id="signOutButton">Sign Out</button></div></div>`);$('saveSettings').onclick=async()=>{const n=clean($('setPlayer').value),c=clean($('setCompany').value),problem=invalidName(n)||validCompany(c);if(problem){$('setError').textContent=problem;return}try{await saveProfile(currentUser.uid,{playerName:n,companyName:c});window.profitlandsProfile={playerName:n,companyName:c};state.playerName=n;state.companyName=c;localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile));save();close();refresh();render()}catch(e){$('setError').textContent=errorText(e)}};$('signOutButton').onclick=()=>auth.signOut()}
   function saveProfile(uid,data){return db.collection('users').doc(uid).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}
-  async function loadCloud(){if(!currentUser||!db)return;loadingCloud=true;try{const p=await db.collection('users').doc(currentUser.uid).get();if(p.exists){window.profitlandsProfile=p.data();state.playerName=p.data().playerName||'';state.companyName=p.data().companyName||'';localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile))}const ref=db.collection('users').doc(currentUser.uid).collection('saves').doc(`${state.mode}-${state.playType}`),snap=await ref.get();if(snap.exists){Object.assign(state,snap.data().state||{});state.started=false;localStorage.setItem('profitlands-v2',JSON.stringify(state))}}catch(e){console.warn('Cloud load failed',e)}loadingCloud=false;render();refresh()}
+  function localSaveExists(){try{return !!localStorage.getItem('profitlands-v2')}catch(e){return false}}
+  function saveLastGameMeta(savedState){return {mode:savedState.mode,playType:savedState.playType,day:savedState.day,cash:savedState.cash,netWorth:typeof netWorth==='function'?netWorth():0,started:savedState.started!==false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}}
+  async function loadCloud(){
+    if(!currentUser||!db)return;
+    loadingCloud=true;
+    try{
+      const p=await db.collection('users').doc(currentUser.uid).get();
+      if(p.exists){window.profitlandsProfile=p.data();state.playerName=p.data().playerName||'';state.companyName=p.data().companyName||'';localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile))}
+      const lastRef=db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game');
+      const lastSnap=await lastRef.get();
+      if(lastSnap.exists && lastSnap.data().state){
+        const cloudState=lastSnap.data().state;
+        Object.assign(state,cloudState);
+        state.started=false;
+        localStorage.setItem('profitlands-v2',JSON.stringify(state));
+        window.profitlandsLastCloudSave={...lastSnap.data(),hasSave:true};
+      }else if(localSaveExists()){
+        const local=JSON.parse(localStorage.getItem('profitlands-v2'));
+        window.profitlandsLastCloudSave={...saveLastGameMeta(local),state:local,hasSave:true,localOnly:true};
+        await db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game').set({state:local,...saveLastGameMeta(local),saveVersion:2},{merge:true});
+      }else{
+        window.profitlandsLastCloudSave={hasSave:false};
+      }
+    }catch(e){console.warn('Cloud load failed',e);window.profitlandsLastCloudSave={hasSave:false,error:true}}
+    loadingCloud=false;
+    render();
+    refresh();
+  }
   let lastCloudSignature='';
   function cloudSignature(){
     try{
@@ -32,18 +59,21 @@
     const signature=cloudSignature();
     if(!force && signature && signature===lastCloudSignature)return true;
     try{
+      const snapshotState=JSON.parse(JSON.stringify(state));
       const saveId=state.mode+'-'+state.playType;
       const payload={
-        state:JSON.parse(JSON.stringify(state)),
+        state:snapshotState,
         mode:state.mode,
         playType:state.playType,
         day:state.day,
         playerName:state.playerName||(window.profitlandsProfile?.playerName||''),
         companyName:state.companyName||(window.profitlandsProfile?.companyName||''),
-        saveVersion:1,
+        saveVersion:2,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('users').doc(currentUser.uid).collection('saves').doc(saveId).set(payload,{merge:true});
+      await db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game').set({...payload,started:snapshotState.started!==false},{merge:true});
+      window.profitlandsLastCloudSave={...payload,hasSave:true};
       lastCloudSignature=signature;
       return true;
     }catch(e){
@@ -55,10 +85,32 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(()=>cloudSave(false),1000);
   };
+  function renderResumeCard(){
+    const home=document.getElementById('homeScreen');
+    if(!home)return;
+    let box=document.getElementById('profitlandsResumeCard');
+    const saved=window.profitlandsLastCloudSave;
+    const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
+    let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
+    const data=saved?.hasSave?saved:(localState&&localState.day>1?{...localState,hasSave:true,localOnly:true}:null);
+    if(!data){box?.remove();return}
+    if(!box){box=document.createElement('div');box.id='profitlandsResumeCard';box.className='panel';const target=home.querySelector('.home-content')||home;target.insertBefore(box,target.firstChild)}
+    const s=data.state||data;
+    const nw=Number(data.netWorth||s.cash||0);
+    box.innerHTML='<span class="eyebrow">SAVED GAME</span><h3>Continue your last empire</h3><p class="modal-sub">'+(data.localOnly?'Saved on this device':'Saved to your account')+' · '+(s.mode||'Standard')+' · '+(s.playType==='multi'?'Multiplayer':'Singleplayer')+' · Day '+(s.day||1)+'</p><div class="auth-buttons"><button class="primary-button" id="resumeLastGame">Continue Game <span>→</span></button><button class="secondary-button" id="discardResume">Start New Game</button></div>';
+    box.querySelector('#resumeLastGame').onclick=()=>{
+      Object.assign(state,s);
+      if(!state.dayEndsAt||state.dayEndsAt<Date.now())state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;
+      window.resumeProfitLands?.();
+      box.remove();
+    };
+    box.querySelector('#discardResume').onclick=()=>box.remove();
+  }
   function refresh(){
     styles();
     const top=document.querySelector('.topbar');
     if(!top)return;
+    renderResumeCard();
     let box=$('profitlandsAccountActions');
     if(window.profitLandsPlatform?.externalAuthDisabled){box?.remove();return}
     if(!box){
