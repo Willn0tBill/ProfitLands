@@ -107,6 +107,7 @@ $('endGame').onclick=()=>{
   toast('Game saved. You can continue your empire later.');
  };
 };
+window.state=state;window.save=save;window.toast=toast;window.timerHandle=timerHandle;
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
 if(state.started){syncTime();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');const selected=document.querySelector(`[data-mode="${state.mode}"]`);if(selected){document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));selected.classList.add('selected')}const type=document.querySelector(`[data-type="${state.playType}"]`);if(type){document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));type.classList.add('selected')}render();startTimer()}
