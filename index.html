@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="performance-motion.css" />
   <link rel="stylesheet" href="mobile.css" />
   <link rel="stylesheet" href="mobile-controls.css" />
+  <link rel="stylesheet" href="top-stats.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -34,7 +35,24 @@
       </section>
       <section id="gameScreen" class="screen">
         <div class="game-head"><div><span class="eyebrow">YOUR EMPIRE</span><h2>Day <span id="gameDay">1</span></h2><div id="goalStatus" class="goal-status">$1T Empire Goal</div></div><div class="timer-box"><small>DAY ENDS IN</small><strong id="timer">15:00</strong></div><div class="game-controls"><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div></div>
-        <div class="stats-grid"><div class="stat"><small>CASH</small><strong id="cash">$1,000</strong></div><div class="stat"><small>NET WORTH</small><strong id="netWorth">$1,000</strong></div><div class="stat"><small>TODAY'S PROFIT</small><strong id="dailyIncome">$0</strong></div><div class="stat"><small>ACTIONS</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></div></div>
+        <div class="stats-grid">
+          <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>CASH</small><strong id="cash">$1,000</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Cash?</b>Money you can spend right now. Buying businesses, upgrades, property, or stocks uses cash. Daily income can add to it.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="networth" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>NET WORTH</small><strong id="netWorth">$1,000</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Net Worth?</b>The estimated total value of your empire: cash, stocks, businesses, and property. This is what counts toward the $1 trillion goal.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="profit" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>TODAY'S PROFIT</small><strong id="dailyIncome">$0</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Today's Profit?</b>The money your businesses and property earned or lost during the most recently completed day. Day 1 starts at $0.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="actions" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>ACTIONS</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the day ends.</div></div>
+          </div>
+        </div>
         <div id="eventBanner" class="event-banner hidden"></div>
         <div class="dashboard-grid"><div class="panel business-panel"><div class="panel-head"><div><span class="eyebrow">COMPANIES</span><h3>Your Businesses</h3></div><button id="openBusinessShop" class="small-button">+ Buy Business</button></div><div id="businessList" class="business-list"></div></div><div class="panel market-panel"><div class="panel-head"><div><span class="eyebrow">MARKET</span><h3>Stocks</h3></div><span class="live-tag">LIVE</span></div><div id="stockList" class="stock-list"></div></div></div>
         <div class="bottom-grid"><div class="panel actions-panel"><div class="panel-head"><div><span class="eyebrow">YOUR EMPIRE</span><h3>Other Investments</h3></div></div><div class="action-list"><button class="action-button" data-action="property"><span>🏠</span><div><b>Buy property</b><small>Steady value and rental income</small></div><em>$750</em></button><button class="action-button" data-action="research"><span>🔬</span><div><b>Research the market</b><small>Reveal a trend for tomorrow</small></div><em>$150</em></button></div></div><div class="panel holdings-panel"><div class="panel-head"><div><span class="eyebrow">PORTFOLIO</span><h3>Your Holdings</h3></div></div><div id="holdings"></div></div></div>
@@ -68,6 +86,7 @@
   <script src="modal-dismiss.js"></script>
   <script src="mobile-fixes.js"></script>
   <script src="mobile-controls.js"></script>
+  <script src="top-stats.js"></script>
   <script src="crazygames.js"></script>
   <script src="firebase-auth.js"></script>
 </body>
