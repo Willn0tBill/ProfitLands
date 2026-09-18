@@ -22,7 +22,7 @@ let dayEnding=false;
 function syncTime(){if(!state.started||!state.dayEndsAt)return;state.timeLeft=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));}
 const $=id=>document.getElementById(id);
 function money(n){if(Math.abs(n)>=1e12)return '$'+(n/1e12).toFixed(2)+'T';if(Math.abs(n)>=1e9)return '$'+(n/1e9).toFixed(2)+'B';if(Math.abs(n)>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return '$'+Math.round(n).toLocaleString();return '$'+Math.round(n).toLocaleString()}
-function save(){localStorage.setItem('profitlands-v2',JSON.stringify(state))}
+function save(){if(!window.profitlandsCrazyGames?.dataReady)localStorage.setItem('profitlands-v2',JSON.stringify(state));try{window.profitlandsSaveHook?.()}catch(e){console.warn('Save hook failed',e)}}
 function load(){const raw=localStorage.getItem('profitlands-v2');if(!raw)return;try{const saved=JSON.parse(raw);Object.assign(state,saved)}catch(e){localStorage.removeItem('profitlands-v2')}}
 function resetForMode(mode,type){state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
@@ -109,4 +109,4 @@ $('endGame').onclick=()=>{
 };
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
-if(state.started){syncTime();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');const selected=document.querySelector(`[data-mode="${state.mode}"]`);if(selected){document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));selected.classList.add('selected')}const type=document.querySelector(`[data-type="${state.playType}"]`);if(type){document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));type.classList.add('selected')}render();startTimer()}
+if(!window.profitlandsCrazyGames?.enabled && state.started){syncTime();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');const selected=document.querySelector(`[data-mode="${state.mode}"]`);if(selected){document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));selected.classList.add('selected')}const type=document.querySelector(`[data-type="${state.playType}"]`);if(type){document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));type.classList.add('selected')}render();startTimer()}
