@@ -1,27 +1,28 @@
-/* ProfitLands CrazyGames SDK integration */
+/* Optional platform adapter. ProfitLands core does not depend on CrazyGames. */
 (function(){
+  const base={name:'web',enabled:false,dataReady:false,save(state){try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}},load(){try{const raw=localStorage.getItem('profitlands-v2');return raw?JSON.parse(raw):null}catch(e){return null}},gameplayStart(){},gameplayStop(){}};
+  window.profitLandsPlatform=base;
   const isCG=/(^|\\.)crazygames\\./i.test(location.hostname);
-  const cg={enabled:isCG,dataReady:false,gameplayStart(){try{window.CrazyGames?.SDK?.game?.gameplayStart?.()}catch(e){}},gameplayStop(){try{window.CrazyGames?.SDK?.game?.gameplayStop?.()}catch(e){}}};
-  window.profitlandsCrazyGames=cg;
+  if(!isCG)return;
+  const cg={...base,name:'crazygames',enabled:true,dataReady:false};
+  window.profitLandsPlatform=cg;
   async function boot(){
-    if(!isCG)return;
     try{
       if(!window.CrazyGames?.SDK)return;
       await window.CrazyGames.SDK.init();
-      cg.dataReady=!!window.CrazyGames.SDK.data;
-      if(cg.dataReady){
-        const raw=window.CrazyGames.SDK.data.getItem('profitlands-v2');
-        if(raw){try{Object.assign(state,JSON.parse(raw));}catch(e){console.warn('CrazyGames save read failed',e)}}
-        else {const old=localStorage.getItem('profitlands-v2');if(old)window.CrazyGames.SDK.data.setItem('profitlands-v2',old)}
+      const sdk=window.CrazyGames.SDK;
+      cg.dataReady=!!sdk.data;
+      if(sdk.data){
+        const raw=await sdk.data.getItem('profitlands-v2');
+        if(raw){try{const saved=JSON.parse(raw);Object.assign(state,saved)}catch(e){console.warn('Platform save read failed',e)}}
+        cg.save=s=>{try{sdk.data.setItem('profitlands-v2',JSON.stringify(s))}catch(e){console.warn('Platform save failed',e)}};
       }
-      try{
-        const user=await window.CrazyGames.SDK.user?.getUser?.();
-        if(user?.username){state.playerName=user.username;if(!state.companyName)state.companyName=user.username+' Company';}
-      }catch(e){}
-      window.profitlandsSaveHook=()=>{try{window.CrazyGames.SDK.data?.setItem('profitlands-v2',JSON.stringify(state))}catch(e){console.warn('CrazyGames save failed',e)}};
-      if(window.render)render();
-      if(!state.started)window.startProfitLands?.();else{state.started=true;render();startTimer?.();cg.gameplayStart()}
-    }catch(e){console.warn('CrazyGames SDK initialization failed',e);if(!state.started)window.startProfitLands?.()}
+      cg.gameplayStart=()=>{try{sdk.game.gameplayStart()}catch(e){}};
+      cg.gameplayStop=()=>{try{sdk.game.gameplayStop()}catch(e){}};
+      try{const user=await sdk.user.getUser();if(user?.username){state.playerName=user.username;if(!state.companyName)state.companyName=user.username+' Company'}}catch(e){}
+      render();
+      if(state.started){startTimer();cg.gameplayStart()}
+    }catch(e){console.warn('CrazyGames integration unavailable:',e)}
   }
   window.addEventListener('load',boot,{once:true});
 })();
