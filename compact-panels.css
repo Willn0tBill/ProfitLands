@@ -132,7 +132,8 @@ body:has(#gameScreen.active) #gameScreen{padding-top:190px!important}
   body:has(#gameScreen.active) #gameScreen{padding-top:300px!important}
 }
 
-/* Gameplay HUD: it travels with the page and sticks only when it reaches the top. */
+
+/* Gameplay HUD: normal document flow. It moves away with the page when scrolling. */
 body:has(#gameScreen.active) #gameScreen{
   overflow:visible!important;
   transform:none!important;
@@ -140,14 +141,16 @@ body:has(#gameScreen.active) #gameScreen{
   padding-top:0!important;
 }
 body:has(#gameScreen.active) .game-hud{
-  position:sticky!important;
-  top:0;
+  position:relative!important;
+  top:auto!important;
+  left:auto!important;
+  right:auto!important;
   width:100%;
   max-width:100%;
   margin:0;
   padding:10px 0;
   box-sizing:border-box;
-  z-index:1000;
+  z-index:1;
   background:#0b0e13;
   border-bottom:1px solid #202a34;
 }
