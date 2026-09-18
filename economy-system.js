@@ -259,18 +259,20 @@
   function bankruptcyModal(index){
     const b=state.businesses[index];if(!b)return;
     const m=makeModal(),t=BUSINESS_TYPES.find(x=>x.id===b.type);
-    m.querySelector('.economy-modal-content').innerHTML='<span class="eyebrow">FINANCIAL RECOVERY</span><h2>'+t.icon+' Financial recovery required</h2><p class="modal-sub">'+b.name+' has reached its maximum loss threshold of '+money(b.originalCost)+'. This is the largest company in your empire, so your empire has entered financial recovery. You can continue temporarily, or file for bankruptcy and rebuild from $100.</p><div class="bankruptcy-actions"><button class="secondary-button" id="continueRisk">Continue Temporarily</button><button class="primary-button danger-primary" id="fileBankruptcy">Begin Financial Recovery</button></div>';
+    const liquidationValue=Math.max(0,businessValue2(b)+Math.min(0,b.financialBalance||0));
+    const recoveryPayout=Math.round(liquidationValue*.05);
+    m.querySelector('.economy-modal-content').innerHTML='<span class="eyebrow">FINANCIAL RECOVERY</span><h2>'+t.icon+' Financial recovery required</h2><p class="modal-sub">'+b.name+' has reached its maximum loss threshold of '+money(b.originalCost)+'. This is the largest company in your empire, so your empire has entered financial recovery.</p><div class="recovery-summary"><div><small>ESTIMATED LIQUIDATION VALUE</small><b>'+money(liquidationValue)+'</b></div><div><small>ESTIMATED OWNER RECOVERY</small><b>'+money(recoveryPayout)+'</b></div></div><p class="tutorial-tip">The recovery amount is variable, not a fixed $100. ProfitLands estimates owner recovery at 5% of the business\'s remaining liquidation value. This is a game approximation; real bankruptcy outcomes can vary and creditors may receive the proceeds first.</p><div class="bankruptcy-actions"><button class="secondary-button" id="continueRisk">Continue Temporarily</button><button class="primary-button danger-primary" id="fileBankruptcy">File for Bankruptcy</button></div>';
     m.classList.remove('hidden');
     document.getElementById('continueRisk').onclick=()=>{b.financialBalance-=Math.round(b.originalCost*.15);m.classList.add('hidden');save();render()};
     document.getElementById('fileBankruptcy').onclick=()=>{
-      state.cash=100;
+      state.cash=recoveryPayout;
       state.businesses=[];
       Object.keys(state.stocks||{}).forEach(id=>{state.stocks[id].shares=0});
       state.property=0;
       state.majorCompanies=[];
       state.loans=[];
       state.bankruptcyCount++;
-      state.news.push('Bankruptcy Filed — the company has been liquidated and operations have been reset. You have $100 available to begin rebuilding.');
+      state.news.push('Bankruptcy Filed — the company has been liquidated and operations have been reset. Owner recovery: '+money(recoveryPayout)+'.');
       m.classList.add('hidden');save();render();
     };
   }
