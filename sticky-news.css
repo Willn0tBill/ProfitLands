@@ -4,3 +4,12 @@
 .modal{z-index:1000!important}
 .modal-card{z-index:1001!important}
 body:has(.modal:not(.hidden)){overflow:hidden}
+
+/* Gameplay HUD mode: once the game is active, the landing-page header must not remain above or behind the fixed gameplay HUD. */
+body:has(#gameScreen.active) .topbar{display:none!important}
+body:has(#gameScreen.active) .app-shell{padding-top:0!important}
+body:has(#gameScreen.active) main{margin:0!important}
+body:has(#gameScreen.active) #gameScreen{margin:0!important}
+/* Keep the first normal-flow gameplay panel below the fixed header + stat cards. */
+body:has(#gameScreen.active) #gameScreen{padding-top:170px!important}
+@media(max-width:600px){body:has(#gameScreen.active) #gameScreen{padding-top:178px!important}}
