@@ -18,3 +18,22 @@
 @media(prefers-reduced-motion:reduce){
  .panel-toggle-arrow,.panel-body{transition:none}
 }
+/* Header layout: keep countdown centered and put End Day beside it. */
+.game-head{position:relative;align-items:center}
+.game-center-controls{display:flex;align-items:center;justify-content:center;gap:10px}
+.game-center-controls .timer-box{min-width:150px;text-align:center}
+.game-center-controls .timer-box small{display:block}
+.end-day-compact{width:auto!important;margin:0!important;white-space:nowrap;min-height:44px}
+.end-day-compact span{float:none;margin-left:8px}
+@media(max-width:850px){
+  .game-center-controls{gap:7px}
+  .game-center-controls .timer-box{min-width:125px}
+}
+@media(max-width:600px){
+  .game-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+  .game-center-controls{grid-column:1/-1;grid-row:2;justify-content:center;margin-top:8px}
+  .game-controls{grid-column:2;grid-row:1;align-self:center}
+  .game-center-controls .timer-box{min-width:105px}
+  .game-center-controls .timer-box strong{font-size:23px}
+  .end-day-compact{font-size:11px;padding:9px 10px!important}
+}
