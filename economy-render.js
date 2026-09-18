@@ -1,0 +1,40 @@
+/* ProfitLands economy-aware business and finance rendering */
+(function(){
+  if(typeof state==='undefined'||!window.ProfitLandsEconomy)return;
+  const RISK=window.ProfitLandsEconomy.RISK||{};
+  const locs=window.ProfitLandsEconomy.LOCS||{};
+  const moneyF=n=>money(n);
+  function riskLabel(b){const r=RISK[b.type]||{econ:1,cost:1,weather:.7,vol:.15};const score=(r.econ+r.cost+r.weather+r.vol*2)/4;return score<.85?'Low':score<1.1?'Moderate':score<1.35?'High':score<1.65?'Very High':'Extreme'}
+  function profit(b){return window.businessDailyProfit?window.businessDailyProfit(b):0}
+  function renderBusinesses(){
+    const box=document.getElementById('businessList');if(!box)return;
+    if(!state.businesses.length){box.innerHTML='<div class="empty">No businesses yet. Buy one to start building your empire.</div>';return}
+    box.innerHTML=state.businesses.map((b,i)=>{
+      const t=BUSINESS_TYPES.find(x=>x.id===b.type),p=profit(b),r=riskLabel(b),bal=b.financialBalance||0,limit=-(b.originalCost||t.cost);
+      return '<div class="business-card" data-business="'+i+'"><div class="business-top"><div><div class="business-name">'+t.icon+' '+b.name+'</div><div class="business-type">'+t.name+' · Level '+b.level+' · '+(b.locations?.length||b.chainCount+1)+' location'+((b.locations?.length||b.chainCount+1)===1?'':'s')+'</div></div><div class="business-profit '+(p<0?'danger':'')+'">'+(p>=0?'+':'')+moneyF(p)+'/day</div></div><div class="business-meta"><div class="mini-stat"><small>POPULARITY</small><b>'+Math.round(b.popularity||55)+'%</b><div class="popbar"><i style="width:'+Math.max(0,Math.min(100,b.popularity||55))+'%"></i></div></div><div class="mini-stat"><small>RISK</small><b>'+r+'</b></div><div class="mini-stat"><small>BUSINESS BALANCE</small><b class="'+(bal<0?'danger':'')+'">'+moneyF(bal)+'</b></div><div class="mini-stat"><small>STATUS</small><b class="'+(b.bankruptcyPending?'danger':p<0?'danger':'good')+'">'+(b.bankruptcyPending?'BANKRUPTCY':p<0?'LOSS':'PROFIT')+'</b></div></div></div>'
+    }).join('');
+    document.querySelectorAll('.business-card').forEach(el=>el.onclick=()=>window.openManage?.(Number(el.dataset.business)));
+  }
+  function renderHoldings(){
+    const box=document.getElementById('holdings');if(!box)return;const items=[];
+    STOCKS.forEach(s=>{const h=state.stocks?.[s.id];if(h?.shares)items.push('<div class="holding"><div><b>'+s.ticker+'</b><small>'+h.shares+' share'+(h.shares===1?'':'s')+'</small></div><strong>'+moneyF(h.shares*s.price)+'</strong></div>')});
+    if(state.businesses.length)items.push('<div class="holding"><div><b>Businesses</b><small>'+state.businesses.length+' companies · '+state.businesses.reduce((n,b)=>n+(b.locations?.length||b.chainCount+1),0)+' locations</small></div><strong>'+moneyF(state.businesses.reduce((n,b)=>n+window.businessValue(b),0))+'</strong></div>');
+    if(state.majorCompanies?.length)items.push('<div class="holding"><div><b>Major Corporations</b><small>'+state.majorCompanies.length+' corporate tier'+(state.majorCompanies.length===1?'':'s')+'</small></div><strong>'+moneyF(state.majorCompanies.reduce((n,c)=>n+(c.value||0),0))+'</strong></div>');
+    if(state.property)items.push('<div class="holding"><div><b>Property</b><small>'+state.property+' owned</small></div><strong>'+moneyF(state.property*750)+'</strong></div>');
+    const debt=(state.loans||[]).reduce((n,l)=>n+(l.balance||0),0);if(debt)items.push('<div class="holding"><div><b>Debt</b><small>Outstanding loans</small></div><strong class="danger">-'+moneyF(debt)+'</strong></div>');
+    box.innerHTML=items.length?items.join(''):'<div class="empty">Nothing here yet. Start building your empire.</div>';
+  }
+  function renderFinance(){
+    const box=document.getElementById('financeInfo');if(!box)return;const p=state.businesses.reduce((s,b)=>s+profit(b),0)+((state.majorCompanies||[]).reduce((s,c)=>s+(c.lastProfit||0),0));const debt=(state.loans||[]).reduce((s,l)=>s+(l.balance||0),0);
+    box.innerHTML='<div class="finance-row"><span>Business profit today</span><b class="'+(p>=0?'good':'danger')+'">'+(p>=0?'+':'')+moneyF(p)+'</b></div><div class="finance-row"><span>Businesses</span><b>'+state.businesses.length+'</b></div><div class="finance-row"><span>Major corporations</span><b>'+((state.majorCompanies||[]).length)+'</b></div><div class="finance-row"><span>Total locations</span><b>'+state.businesses.reduce((n,b)=>n+(b.locations?.length||b.chainCount+1),0)+'</b></div><div class="finance-row"><span>Debt</span><b class="'+(debt?'danger':'good')+'">'+moneyF(debt)+'</b></div><div class="finance-row"><span>Financial status</span><b class="'+(state.penaltyDays?'danger':'good')+'">'+(state.penaltyDays?'LEGAL RECOVERY PERIOD':p<0?'UNDER PRESSURE':'HEALTHY')+'</b></div><div class="finance-row"><span>Empire goal</span><b>'+moneyF(1e12)+'</b></div>';
+  }
+  function openManage(index){
+    const b=state.businesses[index];if(!b)return;const t=BUSINESS_TYPES.find(x=>x.id===b.type),p=profit(b),r=RISK[b.type]||{econ:1,cost:1,weather:.7,vol:.15};
+    const upgradeCost=Math.round(t.cost*(1+b.level*.75)),marketingCost=Math.round(t.cost*.65*(b.marketing+1)),efficiencyCost=Math.round(t.cost*.7*(b.efficiency+1)),chainCost=Math.round(t.cost*10*(1+((b.locations?.length||1)-1)*.35)),bal=b.financialBalance||0,limit=-(b.originalCost||t.cost);
+    const c=document.getElementById('manageContent');c.innerHTML='<div class="manage-head"><div><span class="eyebrow">COMPANY MANAGEMENT</span><h2>'+t.icon+' '+b.name+'</h2><p class="modal-sub">'+t.desc+'</p></div><div class="business-profit '+(p<0?'danger':'')+'">'+(p>=0?'+':'')+moneyF(p)+'/day</div></div><div class="manage-stats"><div class="mini-stat"><small>LEVEL</small><b>'+b.level+'</b></div><div class="mini-stat"><small>POPULARITY</small><b>'+Math.round(b.popularity||55)+'%</b></div><div class="mini-stat"><small>LOCATIONS</small><b>'+(b.locations?.length||1)+'</b></div><div class="mini-stat"><small>RISK</small><b>'+riskLabel(b)+'</b></div></div><div class="location-summary">'+(b.locations||[{name:'Downtown',icon:'🏙️'}]).map((l,i)=>'<div><span>'+l.icon+'</span><b>Location '+(i+1)+'</b><small>'+l.name+'</small><strong>'+moneyF((function(){const x={...b,locations:[l]};return window.businessDailyProfit(x)})())+'/day</strong></div>').join('')+'</div><div class="finance-row"><span>Business balance</span><b class="'+(bal<0?'danger':'good')+'">'+moneyF(bal)+'</b></div><div class="finance-row"><span>Bankruptcy threshold</span><b class="danger">'+moneyF(limit)+'</b></div><div class="manage-actions"><button class="upgrade-button" data-econ-manage="upgrade"><b>⬆ Upgrade Business</b><small>Level '+(b.level+1)+' · '+moneyF(upgradeCost)+'</small></button><button class="upgrade-button" data-econ-manage="marketing"><b>📢 Marketing</b><small>+8 popularity · '+moneyF(marketingCost)+'</small></button><button class="upgrade-button" data-econ-manage="efficiency"><b>⚙ Improve Efficiency</b><small>Lower daily expenses · '+moneyF(efficiencyCost)+'</small></button><button class="upgrade-button" data-econ-manage="sell"><b>💰 Sell Business</b><small>Recover part of its current value</small></button></div><div class="chain-box"><b>🏢 Chain Expansion</b><p class="modal-sub">Open another location. Higher-demand areas can earn more, but their rent is also higher.</p><button class="chain-button" data-econ-manage="chain">Choose Location #'+((b.locations?.length||1)+1)+' · '+moneyF(chainCost)+'</button></div>';
+    document.getElementById('manageModal').classList.remove('hidden');
+    c.querySelectorAll('[data-econ-manage]').forEach(el=>el.onclick=()=>window.manageAction?.(index,el.dataset.econManage));
+  }
+  window.renderBusinesses=renderBusinesses;window.renderHoldings=renderHoldings;window.renderFinance=renderFinance;window.openManage=openManage;
+  setTimeout(()=>window.render?.(),0);
+})();
