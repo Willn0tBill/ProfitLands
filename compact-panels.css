@@ -37,12 +37,3 @@
   .game-center-controls .timer-box strong{font-size:23px}
   .end-day-compact{font-size:11px;padding:9px 10px!important}
 }
-
-/* Prevent the dashboard stats from jumping above the game header. The DOM order is intentional: header -> stats -> economy/panels. */
-#gameScreen.active{display:flex;flex-direction:column}
-#gameScreen.active>.game-head{order:1;position:relative!important;top:auto!important;bottom:auto!important;inset-inline:auto}
-#gameScreen.active>.stats-grid{order:2;position:relative!important;top:auto!important;bottom:auto!important;inset-inline:auto}
-#gameScreen.active>#eventBanner{order:3}
-#gameScreen.active>.dashboard-grid{order:4}
-#gameScreen.active>.bottom-grid{order:5}
-#gameScreen.active>.bottom-grid + .bottom-grid{order:6}
