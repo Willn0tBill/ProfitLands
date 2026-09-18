@@ -217,9 +217,17 @@
       const popMove=(Math.random()-.5)*(5+r.vol*8)*(1+tier()*.08);
       b.popularity=Math.max(5,Math.min(100,(b.popularity||55)+popMove));
       if(b.locations)b.locations.forEach(l=>{l.basePopularity=Math.max(5,Math.min(100,(l.basePopularity||b.popularity)+popMove*.35))});
-      if(b.financialBalance<=-Math.abs(b.originalCost||BUSINESS_TYPES.find(x=>x.id===b.type)?.cost||1)&&!b.bankruptcyPending){
+      /* Individual companies can accumulate losses, but the global Financial Recovery popup
+         only activates when the player's largest company reaches its own loss threshold. */
+      const biggest=(state.businesses||[]).reduce((largest,x)=>{
+        const xCost=Math.abs(x.originalCost||BUSINESS_TYPES.find(t=>t.id===x.type)?.cost||0);
+        const lCost=largest?Math.abs(largest.originalCost||BUSINESS_TYPES.find(t=>t.id===largest.type)?.cost||0):0;
+        return xCost>lCost?x:largest;
+      },null);
+      const threshold=biggest?Math.abs(biggest.originalCost||BUSINESS_TYPES.find(t=>t.id===biggest.type)?.cost||1):0;
+      if(biggest===b && threshold>0 && b.financialBalance<=-threshold && !b.bankruptcyPending){
         b.bankruptcyPending=true;
-        state.news.push('BUSINESS WATCH — A major company has reached a critical loss level after operating costs overwhelmed revenue. Financial analysts are watching for further corporate failures.');
+        state.news.push('FINANCIAL SYSTEM — A major company has reached its maximum loss threshold. Financial recovery procedures are now available.');
       }
     });
     return total;
@@ -251,7 +259,7 @@
   function bankruptcyModal(index){
     const b=state.businesses[index];if(!b)return;
     const m=makeModal(),t=BUSINESS_TYPES.find(x=>x.id===b.type);
-    m.querySelector('.economy-modal-content').innerHTML='<span class="eyebrow">BUSINESS BANKRUPTCY</span><h2>'+t.icon+' '+b.name+' has gone broke</h2><p class="modal-sub">This business has accumulated losses equal to its original purchase cost of '+money(b.originalCost)+'. You can file for bankruptcy and reset the company to $100, or keep operating temporarily and accept the risk of deeper losses.</p><div class="bankruptcy-actions"><button class="secondary-button" id="continueRisk">Continue Temporarily</button><button class="primary-button danger-primary" id="fileBankruptcy">File Bankruptcy</button></div>';
+    m.querySelector('.economy-modal-content').innerHTML='<span class="eyebrow">FINANCIAL RECOVERY</span><h2>'+t.icon+' Financial recovery required</h2><p class="modal-sub">'+b.name+' has reached its maximum loss threshold of '+money(b.originalCost)+'. This is the largest company in your empire, so your empire has entered financial recovery. You can continue temporarily, or file for bankruptcy and rebuild from $100.</p><div class="bankruptcy-actions"><button class="secondary-button" id="continueRisk">Continue Temporarily</button><button class="primary-button danger-primary" id="fileBankruptcy">Begin Financial Recovery</button></div>';
     m.classList.remove('hidden');
     document.getElementById('continueRisk').onclick=()=>{b.financialBalance-=Math.round(b.originalCost*.15);m.classList.add('hidden');save();render()};
     document.getElementById('fileBankruptcy').onclick=()=>{
@@ -266,7 +274,19 @@
       m.classList.add('hidden');save();render();
     };
   }
-  function checkBankruptcies(){const i=(state.businesses||[]).findIndex(b=>b.bankruptcyPending);if(i>=0)setTimeout(()=>bankruptcyModal(i),0)}
+  function checkBankruptcies(){
+    const businesses=state.businesses||[];
+    const biggest=businesses.reduce((largest,x)=>{
+      const xCost=Math.abs(x.originalCost||BUSINESS_TYPES.find(t=>t.id===x.type)?.cost||0);
+      const lCost=largest?Math.abs(largest.originalCost||BUSINESS_TYPES.find(t=>t.id===largest.type)?.cost||0):0;
+      return xCost>lCost?x:largest;
+    },null);
+    if(!biggest)return;
+    const threshold=Math.abs(biggest.originalCost||BUSINESS_TYPES.find(t=>t.id===biggest.type)?.cost||1);
+    if(biggest.financialBalance<=-threshold && !biggest.bankruptcyPending)biggest.bankruptcyPending=true;
+    const i=businesses.indexOf(biggest);
+    if(i>=0 && biggest.bankruptcyPending)setTimeout(()=>bankruptcyModal(i),0);
+  }
   function majorPanel(){
     let panel=document.getElementById('majorCompaniesPanel');if(panel)return panel;
     panel=document.createElement('div');panel.id='majorCompaniesPanel';panel.className='panel major-companies-panel';
