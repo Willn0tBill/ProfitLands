@@ -1,0 +1,20 @@
+/* Compact collapsible game panels */
+.collapsible-panel{overflow:hidden}
+.panel-head{margin-bottom:0}
+.panel-toggle{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;background:transparent;border:0;color:inherit;padding:0;text-align:left;cursor:pointer;border-radius:10px}
+.panel-toggle:focus-visible{outline:2px solid #aef45f;outline-offset:4px}
+.panel-toggle-copy{min-width:0}
+.panel-toggle-arrow{flex:0 0 auto;width:28px;height:28px;border:1px solid #293440;border-radius:9px;display:grid;place-items:center;color:#7d8a9a;font-size:14px;transition:transform .2s ease,border-color .2s ease,color .2s ease}
+.collapsible-panel.open .panel-toggle-arrow{transform:rotate(180deg);color:#aef45f;border-color:#40513b}
+.panel-body{display:grid;grid-template-rows:0fr;opacity:.65;transition:grid-template-rows .22s ease,opacity .18s ease,padding-top .22s ease}
+.panel-body-inner{min-height:0;overflow:hidden}
+.collapsible-panel.open .panel-body{grid-template-rows:1fr;opacity:1;padding-top:14px}
+.collapsible-panel.open .panel-head{margin-bottom:0}
+.collapsible-panel:not(.open) .panel-head{margin-bottom:0}
+@media(max-width:600px){
+ .panel-toggle-arrow{width:30px;height:30px}
+ .collapsible-panel.open .panel-body{padding-top:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .panel-toggle-arrow,.panel-body{transition:none}
+}
