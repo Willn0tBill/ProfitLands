@@ -219,7 +219,7 @@
       if(b.locations)b.locations.forEach(l=>{l.basePopularity=Math.max(5,Math.min(100,(l.basePopularity||b.popularity)+popMove*.35))});
       if(b.financialBalance<=-Math.abs(b.originalCost||BUSINESS_TYPES.find(x=>x.id===b.type)?.cost||1)&&!b.bankruptcyPending){
         b.bankruptcyPending=true;
-        state.news.push('Business Failure Warning — '+b.name+' has reached a loss equal to its original purchase cost. The company must decide how to handle the failed business.');
+        state.news.push('BUSINESS WATCH — A major company has reached a critical loss level after operating costs overwhelmed revenue. Financial analysts are watching for further corporate failures.');
       }
     });
     return total;
@@ -287,7 +287,7 @@
     if(state.actions<=0)return toast('No actions left.');
     state.cash-=d.price;state.actions--;
     state.majorCompanies.push({type:id,name:d.name,value:d.price,financialBalance:0});
-    state.news.push('Corporate Expansion — '+d.name+' has entered the ProfitLands economy, increasing the scale and exposure of your empire.');
+    state.news.push('CORPORATE LANDSCAPE — '+d.name+' has entered the ProfitLands economy, adding another major competitor to the corporate market.');
     save();render();
   }
   function economyUI(){
@@ -307,7 +307,7 @@
     const amount=Math.max(1000,Math.min(100000000,Math.round(Math.max(1000,Math.abs(totalBusinessProfit())*3+5000))));
     const balance=Math.round(amount*(1+state.economy.loanRate));
     state.cash+=amount;state.loans.push({principal:amount,balance,dueDay:state.day+15,daysLeft:15,defaulted:false,recoveryOffered:false});
-    state.news.push('Bank Credit — an emergency loan was issued to keep the company operating. The balance is due within 15 in-game days.');
+    state.news.push('CREDIT MARKETS — Emergency lending activity increased today as several companies sought short-term financing to cover operating costs.');
     save();render();
   }
   function reset(mode,type){
@@ -334,7 +334,7 @@
       if(active.length)state.news.push('WORLD DESK — '+active.join(' · ')+'. Businesses are adjusting to the changing conditions.');
     }
     if(profit<0)state.news.push('CORPORATE RESULTS — Companies across ProfitLands are reporting pressure on margins as operating costs and demand continue to shift.');
-    else state.news.push('CORPORATE RESULTS — Businesses reported a '+money(profit)+' net change across the empire during the latest cycle.');
+    else state.news.push('CORPORATE RESULTS — Businesses across ProfitLands reported a '+(profit>=0?'stronger':'weaker')+' operating cycle as demand, costs, and market conditions shifted.');
     save();render();checkBankruptcies();setTimeout(recovery,100);if(!auto)toast('Day '+previous+' ended. Welcome to Day '+state.day+'!');
   }
   function renderOverride(){
