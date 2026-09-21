@@ -175,16 +175,40 @@
     if(Math.random()<naturalChance)events.push('natural');
     if(Math.random()<.08+t*.025)events.push('world');
     if(!events.length)return [];
+
+    const conflicts={
+      consumer_boom:['consumer_slowdown'],
+      consumer_slowdown:['consumer_boom'],
+      rent_crisis:['rent_relief'],
+      rent_relief:['rent_crisis'],
+      market_panic:['investor_confidence'],
+      investor_confidence:['market_panic']
+    };
     const chosen=[];
-    events.forEach(type=>{
-      const pool=EVENTS.filter(x=>x.type===type&&x.id!==e.lastEventId);
-      if(pool.length){
-        const total=pool.reduce((s,x)=>s+x.weight,0),r=Math.random()*total;
-        let n=0,poolPick=pool[0];for(const x of pool){n+=x.weight;if(r<=n){poolPick=x;break}}
-        chosen.push(poolPick);
-      }
-    });
-    return chosen.slice(0,Math.min(3,1+Math.floor(t/3)));
+    const pickType=type=>{
+      const used=new Set(chosen.map(x=>x.id));
+      const blocked=new Set(chosen.flatMap(x=>conflicts[x.id]||[]));
+      const pool=EVENTS.filter(x=>x.type===type&&x.id!==e.lastEventId&&!used.has(x.id)&&!blocked.has(x.id));
+      if(!pool.length)return null;
+      const total=pool.reduce((sum,x)=>sum+x.weight,0),r=Math.random()*total;
+      let n=0,pick=pool[0];
+      for(const x of pool){n+=x.weight;if(r<=n){pick=x;break}}
+      chosen.push(pick);
+      return pick;
+    };
+
+    events.forEach(pickType);
+
+    /* Occasionally stack a second economic condition on the same day.
+       The chance rises as the player's empire grows, making later games less predictable. */
+    const doubleEconomicChance=Math.min(.34,.10+t*.035);
+    if(chosen.some(x=>x.type==='economic')&&Math.random()<doubleEconomicChance){
+      pickType('economic');
+    }
+
+    const baseLimit=Math.min(3,1+Math.floor(t/3));
+    const limit=Math.max(baseLimit,chosen.filter(x=>x.type==='economic').length>=2?2:1);
+    return chosen.slice(0,limit);
   }
   function applyEvents(){
     const e=state.economy;
