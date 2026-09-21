@@ -20,28 +20,61 @@
   function saveProfile(uid,data){return db.collection('users').doc(uid).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}
   function localSaveExists(){try{return !!localStorage.getItem('profitlands-v2')}catch(e){return false}}
   function saveLastGameMeta(savedState){return {mode:savedState.mode,playType:savedState.playType,day:savedState.day,cash:savedState.cash,netWorth:typeof netWorth==='function'?netWorth():0,started:savedState.started!==false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}}
+  function localSave(){
+    try{
+      const raw=localStorage.getItem('profitlands-v2');
+      return raw?JSON.parse(raw):null;
+    }catch(e){return null}
+  }
+  function savedAt(st){return Number(st?.savedAt||0)}
   async function loadCloud(){
     if(!currentUser||!db)return;
     loadingCloud=true;
     try{
       const p=await db.collection('users').doc(currentUser.uid).get();
-      if(p.exists){window.profitlandsProfile=p.data();state.playerName=p.data().playerName||'';state.companyName=p.data().companyName||'';localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile))}
+      if(p.exists){
+        window.profitlandsProfile=p.data();
+        state.playerName=p.data().playerName||'';
+        state.companyName=p.data().companyName||'';
+        localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile));
+      }
+
       const lastRef=db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game');
       const lastSnap=await lastRef.get();
-      if(lastSnap.exists && lastSnap.data().state){
-        const cloudState=lastSnap.data().state;
-        Object.assign(state,cloudState);
+      const cloudDoc=lastSnap.exists?lastSnap.data():null;
+      const cloudState=cloudDoc?.state||null;
+      const local=localSave();
+
+      let chosen=null;
+      let source='none';
+      if(local&&cloudState){
+        if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
+        else{chosen=cloudState;source='cloud'}
+      }else if(local){chosen=local;source='local'}
+      else if(cloudState){chosen=cloudState;source='cloud'}
+
+      if(chosen){
+        const resumeState=JSON.parse(JSON.stringify(chosen));
+        Object.assign(state,resumeState);
         state.started=false;
-        localStorage.setItem('profitlands-v2',JSON.stringify(state));
-        window.profitlandsLastCloudSave={...lastSnap.data(),hasSave:true};
-      }else if(localSaveExists()){
-        const local=JSON.parse(localStorage.getItem('profitlands-v2'));
-        window.profitlandsLastCloudSave={...saveLastGameMeta(local),state:local,hasSave:true,localOnly:true};
-        await db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game').set({state:local,...saveLastGameMeta(local),saveVersion:2},{merge:true});
+
+        if(source==='cloud'){
+          localStorage.setItem('profitlands-v2',JSON.stringify(resumeState));
+          window.profitlandsLastCloudSave={...cloudDoc,state:resumeState,hasSave:true};
+        }else{
+          const payload={state:resumeState,...saveLastGameMeta(resumeState),saveVersion:3};
+          window.profitlandsLastCloudSave={...payload,hasSave:true,localOnly:!cloudState};
+          if(!cloudState||savedAt(resumeState)>savedAt(cloudState)){
+            await lastRef.set(payload,{merge:true});
+          }
+        }
       }else{
         window.profitlandsLastCloudSave={hasSave:false};
       }
-    }catch(e){console.warn('Cloud load failed',e);window.profitlandsLastCloudSave={hasSave:false,error:true}}
+    }catch(e){
+      console.warn('Cloud load failed',e);
+      window.profitlandsLastCloudSave={hasSave:false,error:true};
+    }
     loadingCloud=false;
     render();
     refresh();
@@ -51,6 +84,7 @@
     try{
       const copy=JSON.parse(JSON.stringify(state));
       delete copy.timeLeft;
+      delete copy.savedAt;
       return JSON.stringify(copy);
     }catch(e){return ''}
   }
@@ -68,7 +102,7 @@
         day:state.day,
         playerName:state.playerName||(window.profitlandsProfile?.playerName||''),
         companyName:state.companyName||(window.profitlandsProfile?.companyName||''),
-        saveVersion:2,
+        saveVersion:3,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('users').doc(currentUser.uid).collection('saves').doc(saveId).set(payload,{merge:true});
@@ -151,13 +185,12 @@
         if(u){
           await loadCloud();
           refresh();
-          await cloudSave(true);
         }else{
           lastCloudSignature='';
           refresh()
         }
       });
-      window.profitlandsFirebase={signIn,create,settings,cloudSave}
+      window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh}
     }catch(e){
       console.error(e);
       const n=document.querySelector('.local-note');
