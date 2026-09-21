@@ -63,7 +63,7 @@
           localStorage.setItem('profitlands-v2',JSON.stringify(resumeState));
           window.profitlandsLastCloudSave={...cloudDoc,state:resumeState,hasSave:true};
         }else{
-          const payload={state:resumeState,...saveLastGameMeta(resumeState),saveVersion:3};
+          const payload={state:resumeState,...saveLastGameMeta(resumeState),saveVersion:4};
           window.profitlandsLastCloudSave={...payload,hasSave:true,localOnly:!cloudState};
           if(!cloudState||savedAt(resumeState)>savedAt(cloudState)){
             await lastRef.set(payload,{merge:true});
@@ -103,7 +103,7 @@
         day:state.day,
         playerName:state.playerName||(window.profitlandsProfile?.playerName||''),
         companyName:state.companyName||(window.profitlandsProfile?.companyName||''),
-        saveVersion:3,
+        saveVersion:4,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       };
       await db.collection('users').doc(currentUser.uid).collection('saves').doc(saveId).set(payload,{merge:true});
