@@ -120,14 +120,17 @@
       box.className='account-actions';
       top.appendChild(box);
     }
+    const note=document.querySelector('.local-note');
     if(!currentUser){
       box.innerHTML='<button class="account-chip" id="plSignIn">Sign In</button><button class="account-chip" id="plCreate">Create Account</button>';
       $('plSignIn').onclick=signIn;
       $('plCreate').onclick=create;
+      if(note)note.textContent='Playing without an account saves progress on this device.';
     }else{
       const p=window.profitlandsProfile||{};
       box.innerHTML=`<button class="account-chip" id="plAccount">${esc(p.playerName||'Account')}</button>`;
       $('plAccount').onclick=settings;
+      if(note)note.textContent='Your progress will be saved to your ProfitLands account.';
     }
   }
   function install(){
@@ -143,21 +146,12 @@
       auth=firebase.auth();
       db=firebase.firestore();
       window.profitlandsSaveHook=()=>cloudSaveLater();
-      document.addEventListener('click',e=>{
-        if(window.profitLandsPlatform?.externalAuthDisabled)return;
-        if(e.target.closest('#startGame')&&!currentUser){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          signIn()
-        }
-      },true);
       auth.onAuthStateChanged(async u=>{
         currentUser=u;
         if(u){
           await loadCloud();
           refresh();
           await cloudSave(true);
-          if(!window.profitLandsPlatform?.externalAuthDisabled&&$('homeScreen')?.classList.contains('active'))setTimeout(welcome,120)
         }else{
           lastCloudSignature='';
           refresh()
