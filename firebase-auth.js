@@ -92,7 +92,8 @@
     const saved=window.profitlandsLastCloudSave;
     const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
-    const data=saved?.hasSave?saved:(localState&&(localState.started||localState.day>1)?{...localState,hasSave:true,localOnly:true}:null);
+    const hasProgress=st=>!!st&&(Number(st.day)>1||Number(st.cash)!==1000||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
+    const data=saved?.hasSave?saved:(hasProgress(localState)?{...localState,hasSave:true,localOnly:true}:null);
     if(!data){box?.remove();return}
     if(!box){box=document.createElement('div');box.id='profitlandsResumeCard';box.className='panel';const target=home.querySelector('.home-content')||home;target.insertBefore(box,target.firstChild)}
     const s=data.state||data;
