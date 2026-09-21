@@ -193,11 +193,22 @@ body:has(#gameScreen.active) .goal-status{
 }
 body:has(#gameScreen.active) .game-hud .stats-grid{
   order:2!important;
+  position:static!important;
+  top:auto!important;
+  left:auto!important;
+  right:auto!important;
+  transform:none!important;
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
   gap:12px!important;
   margin-top:0!important;
   margin-bottom:0!important;
+  padding:0!important;
+}
+body:has(#gameScreen.active) .game-hud .stats-grid::before,
+body:has(#gameScreen.active) .game-hud .stats-grid::after{
+  content:none!important;
+  display:none!important;
 }
 body:has(#gameScreen.active) .game-hud .stat{
   min-height:70px!important;
