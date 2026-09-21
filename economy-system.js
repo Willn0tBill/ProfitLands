@@ -137,18 +137,33 @@
     return Math.round((d.rev*econ*event*(1+noise)-d.expense*(1+(60-e.health)/220)*(1+Math.max(0,noise)*.35))* (1+Math.min(3,tier())*.02));
   }
   function stockUpdate(){
-    const t=tier(), severity=1+t*.18;
     STOCKS.forEach(s=>{
+      const anchor=window.ProfitLandsStockBase?.[s.id]||s.price||10;
+      const floor=anchor*.35;
+      const ceiling=anchor*4;
+      const old=Math.max(floor,Number(s.price)||anchor);
+      const riskVol=s.risk==='High'?.024:s.risk==='Low'?.012:.018;
+      const riskSensitivity=s.risk==='High'?1.15:s.risk==='Low'?.7:1;
+
       let sector=0;
       if(s.id==='nova')sector=activeEffect('tech')-1;
       if(s.id==='harbor')sector=activeEffect('demand')-1;
-      if(s.id==='atlas')sector=activeEffect('supply')-1;
+      if(s.id==='atlas')sector=(activeEffect('supply')-1)*-.35;
       if(s.id==='skyline')sector=(activeEffect('demand')-1)*.7;
-      const base=(Math.random()-.5)*(.045+Math.min(1.5,t*.12));
-      const econ=(state.economy.health-60)/250*(s.risk==='High'?1.2:s.risk==='Low'?.65:1);
-      const event=activeEffect('stocks')-1;
-      const move=Math.max(-.12,Math.min(.12,base+econ+sector*.55+event));
-      const old=s.price;s.price=Math.max(2,+(s.price*(1+move)).toFixed(2));s._change=(s.price/old-1)*100;
+
+      const random=(Math.random()-.5)*2*riskVol;
+      const econ=((state.economy.health-60)/40)*.006*riskSensitivity;
+      const event=Math.max(-.05,Math.min(.05,activeEffect('stocks')-1));
+      const sectorMove=Math.max(-.02,Math.min(.02,sector*.12));
+      const reversion=Math.max(-.01,Math.min(.01,((anchor-old)/anchor)*.012));
+      const majorEvent=Math.abs(event)>.025;
+      const maxMove=majorEvent?.08:.03;
+      let move=Math.max(-maxMove,Math.min(maxMove,random+econ+event+sectorMove+reversion));
+
+      let next=Math.max(floor,Math.min(ceiling,old*(1+move)));
+      if(old<=floor*1.002&&next<=old)next=old*1.006;
+      s.price=+next.toFixed(2);
+      s._change=(s.price/old-1)*100;
     });
   }
   function chooseEvent(){
@@ -362,7 +377,7 @@
   }
   function renderOverride(){
     if(typeof window.__profitBaseRender==='function')window.__profitBaseRender();
-    ensure();economyUI();bankPanel();renderMajor();
+    ensure();economyUI();bankPanel();
     const banner=document.getElementById('eventBanner');
     if(banner){
       const e=state.economy,ev=e.activeEvents.map(a=>{const x=EVENTS.find(y=>y.id===a.id);return x?x.title+' · '+a.days+'d':''}).filter(Boolean);
@@ -372,8 +387,25 @@
   }
   function startTimer2(){
     clearInterval(window.__profitTimer);
-    const tick=()=>{if(!state.started)return;const left=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));state.timeLeft=left;const el=document.getElementById('timer');if(el)el.textContent=formatTime(left);if(left<=0&&!window.__profitEnding){window.__profitEnding=true;doEndDay(true);window.__profitEnding=false}};
-    tick();window.__profitTimer=setInterval(tick,250);
+    let lastShown=-1;
+    const tick=()=>{
+      if(!state.started)return;
+      const left=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));
+      state.timeLeft=left;
+      const shown=Math.floor(left);
+      if(shown!==lastShown){
+        lastShown=shown;
+        const el=document.getElementById('timer');
+        if(el)el.textContent=formatTime(shown);
+      }
+      if(left<=0&&!window.__profitEnding){
+        window.__profitEnding=true;
+        doEndDay(true);
+        window.__profitEnding=false;
+      }
+    };
+    tick();
+    window.__profitTimer=setInterval(tick,500);
   }
   function bind(){
     window.__profitBaseRender=window.render;
@@ -386,7 +418,7 @@
     window.startTimer=startTimer2;
     window.startProfitLands=()=>{reset(state.mode,state.playType);document.getElementById('homeScreen')?.classList.remove('active');document.getElementById('gameScreen')?.classList.add('active');render();startTimer2();window.profitLandsPlatform?.gameplayStart()};
     const end=document.getElementById('endDay');if(end)end.addEventListener('click',e=>{e.stopImmediatePropagation();doEndDay(false)},true);
-    ensure();setTimeout(()=>{render();startTimer2()},100);
+    ensure();setTimeout(()=>{render();if(state.started)startTimer2()},100);
   }
   function init(){if(typeof state==='undefined'||typeof BUSINESS_TYPES==='undefined')return;bind()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
