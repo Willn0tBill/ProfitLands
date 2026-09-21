@@ -56,6 +56,7 @@
       if(chosen){
         const resumeState=JSON.parse(JSON.stringify(chosen));
         Object.assign(state,resumeState);
+        window.restoreProfitLandsMarket?.();
         state.started=false;
 
         if(source==='cloud'){
@@ -135,6 +136,7 @@
     box.innerHTML='<span class="eyebrow">SAVED GAME</span><h3>Continue your last empire</h3><p class="modal-sub">'+(data.localOnly?'Saved on this device':'Saved to your account')+' · '+(s.mode||'Standard')+' · '+(s.playType==='multi'?'Multiplayer':'Singleplayer')+' · Day '+(s.day||1)+'</p><div class="auth-buttons"><button class="primary-button" id="resumeLastGame">Continue Game <span>→</span></button><button class="secondary-button" id="discardResume">Start New Game</button></div>';
     box.querySelector('#resumeLastGame').onclick=()=>{
       Object.assign(state,s);
+      window.restoreProfitLandsMarket?.();
       state.timeLeft=Math.max(0,Number(state.timeLeft)||0);state.dayEndsAt=Date.now()+(state.timeLeft||MODES[state.mode]?.daySeconds||900)*1000;
       window.resumeProfitLands?.();
       box.remove();
