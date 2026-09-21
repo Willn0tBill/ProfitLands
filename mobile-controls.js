@@ -7,13 +7,16 @@
     content.innerHTML='<span class="eyebrow">END GAME</span><h2>Save and leave this empire?</h2><p class="modal-sub">Your current game will stay saved. You can return to it later.</p><div class="confirm-actions"><button type="button" id="cancelEndGame" class="secondary-button">Keep Playing</button><button type="button" id="confirmEndGame" class="primary-button">Save & End Game</button></div>';
     modal.classList.remove('hidden');
     document.getElementById('cancelEndGame').onclick=()=>modal.classList.add('hidden');
-    document.getElementById('confirmEndGame').onclick=()=>{
+    document.getElementById('confirmEndGame').onclick=async()=>{
+      try{window.syncProfitLandsTime?.()}catch(e){}
       window.state.started=false;
       window.save?.();
-      if(window.timerHandle)clearInterval(window.timerHandle);
+      window.stopProfitLandsTimer?.();
       window.profitLandsPlatform?.gameplayStop?.();
+      try{await window.profitlandsFirebase?.cloudSave?.(true)}catch(e){}
       document.getElementById('gameScreen')?.classList.remove('active');
       document.getElementById('homeScreen')?.classList.add('active');
+      window.profitlandsFirebase?.refresh?.();
       modal.classList.add('hidden');
       window.toast?.('Game saved. You can continue your empire later.');
       window.scrollTo({top:0,left:0,behavior:'instant'});
