@@ -68,7 +68,7 @@ function netWorth(){return state.cash+STOCKS.reduce((sum,s)=>sum+s.price*(state.
 function totalBusinessProfit(){return state.businesses.reduce((sum,b)=>sum+businessDailyProfit(b),0)}
 function formatTime(sec){sec=Math.max(0,Math.floor(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;if(h)return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
 function render(){
-$('modeName').textContent=MODES[state.mode].name;$('playType').textContent=state.playType==='multi'?'Multiplayer':'Singleplayer';$('gameDay').textContent=state.day;$('dayLabel')?.remove();$('cash').textContent=money(state.cash);$('netWorth').textContent=money(netWorth());$('dailyIncome').textContent=(state.lastDayProfit>=0?'+':'')+money(state.lastDayProfit);$('actionsLeft').textContent=state.actions;$('actionsMax').textContent=MODES[state.mode].actions;$('timer').textContent=formatTime(state.timeLeft);$('goalStatus').textContent=`$1T Empire Goal · ${((netWorth()/GOAL)*100).toFixed(6)}% complete`;
+const currentNetWorth=netWorth();const goalPct=Math.max(0,(currentNetWorth/GOAL)*100);$('modeName').textContent=MODES[state.mode].name;$('playType').textContent=state.playType==='multi'?'Multiplayer':'Singleplayer';$('gameDay').textContent=state.day;$('dayLabel')?.remove();$('cash').textContent=money(state.cash);$('netWorth').textContent=money(currentNetWorth);$('dailyIncome').textContent=(state.lastDayProfit>=0?'+':'')+money(state.lastDayProfit);$('actionsLeft').textContent=state.actions;$('actionsMax').textContent=MODES[state.mode].actions;$('timer').textContent=formatTime(state.timeLeft);$('goalStatus').textContent=`$1T Empire Goal · ${goalPct.toFixed(6)}% complete`;const goalFill=$('goalProgressFill');if(goalFill)goalFill.style.width=Math.min(100,goalPct)+'%';
 renderBusinesses();renderStocks();renderHoldings();renderNews();renderFinance();
 if(state.trend){$('eventBanner').classList.remove('hidden');$('eventBanner').textContent='Research report: '+state.trend}else $('eventBanner').classList.add('hidden')
 }
@@ -107,15 +107,15 @@ function manageAction(index,what){const b=state.businesses[index];if(!b)return;c
 function marketUpdate(){
   STOCKS.forEach(s=>{
     const base=INITIAL_STOCK_PRICES[s.id];
-    const old=Math.max(base*.35,Number(s.price)||base);
-    const risk=s.risk==='High'?.024:s.risk==='Low'?.012:.018;
+    const floor=base*.30,ceiling=base*5;
+    const old=Math.max(floor,Number(s.price)||base);
+    const risk=s.risk==='High'?.05:s.risk==='Low'?.025:.035;
     let move=(Math.random()-.5)*2*risk;
-    if(state.trend&&state.trend.includes(s.name))move+=state.trend.includes('strong')?.012:-.012;
-    move+=Math.max(-.008,Math.min(.008,((base-old)/base)*.012));
-    move=Math.max(-.03,Math.min(.03,move));
-    const floor=base*.35,ceiling=base*4;
+    if(state.trend&&state.trend.includes(s.name))move+=state.trend.includes('strong')?.02:-.02;
+    move+=Math.max(-.012,Math.min(.012,((base-old)/base)*.015));
+    move=Math.max(-.06,Math.min(.06,move));
     let next=Math.max(floor,Math.min(ceiling,old*(1+move)));
-    if(old<=floor*1.002&&next<=old)next=old*1.006;
+    if(old<=floor*1.002&&next<=old)next=old*1.01;
     s.price=+next.toFixed(2);
     s._change=(s.price/old-1)*100;
   });
