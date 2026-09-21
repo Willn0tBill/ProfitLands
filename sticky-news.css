@@ -1,15 +1,7 @@
-.game-head{position:fixed;top:0;left:50%;transform:translateX(-50%);width:min(1200px,calc(100% - 32px));z-index:50;padding:12px 0 10px;background:linear-gradient(180deg,#0b0e13 88%,#0b0e1300);backdrop-filter:blur(12px);margin:0}.stats-grid{position:fixed;top:76px;left:50%;transform:translateX(-50%);width:min(1200px,calc(100% - 32px));z-index:49;padding:8px 0 12px;background:linear-gradient(180deg,#0b0e13 88%,#0b0e1300);backdrop-filter:blur(12px);margin:0}.game-head+ .stats-grid{}.stat{box-shadow:0 8px 24px #0005}.game-head,.stats-grid{isolation:isolate}.game-head:before,.stats-grid:before{content:"";position:absolute;inset:0 -50vw;z-index:-1;background:#0b0e13}.game-head:after{content:"";position:absolute;left:0;right:0;bottom:-18px;height:18px;z-index:-1;background:linear-gradient(180deg,#0b0e13aa,transparent)}.stats-grid:after{content:"";position:absolute;left:0;right:0;bottom:-18px;height:18px;z-index:-1;background:linear-gradient(180deg,#0b0e13aa,transparent)}#gameScreen{padding-top:170px}.news-item{transition:background .2s,border-color .2s}.news-item:first-child{border-left:2px solid #aef45f;padding-left:10px}.news-item.news-market:first-child{border-left-color:#78b9ff}.news-item.news-business:first-child{border-left-color:#aef45f}.news-item.news-world:first-child{border-left-color:#f0d48a}@media(max-width:850px){#gameScreen{padding-top:170px}.game-head{width:calc(100% - 20px)}.stats-grid{width:calc(100% - 20px)}}@media(max-width:600px){.game-head{padding-top:8px;padding-bottom:8px}.game-head h2{font-size:28px}.timer-box{min-width:105px}.timer-box strong{font-size:23px}.stats-grid{top:64px;grid-template-columns:1fr 1fr;gap:8px;padding-top:8px}.stat{padding:12px}.stat strong{font-size:17px;white-space:nowrap}#gameScreen{padding-top:178px}}@media(max-width:360px){.game-head{width:calc(100% - 12px)}.stats-grid{width:calc(100% - 12px);top:60px}.game-head h2{font-size:25px}.timer-box strong{font-size:20px}.stat{padding:10px 8px}.stat strong{font-size:15px}#gameScreen{padding-top:170px}}
-
-/* Modals must always sit above the persistent game HUD on desktop and mobile. */
-.modal{z-index:1000!important}
-.modal-card{z-index:1001!important}
-body:has(.modal:not(.hidden)){overflow:hidden}
-
-/* Gameplay HUD mode: once the game is active, the landing-page header must not remain above or behind the fixed gameplay HUD. */
-body:has(#gameScreen.active) .topbar{display:none!important}
-body:has(#gameScreen.active) .app-shell{padding-top:0!important}
-body:has(#gameScreen.active) main{margin:0!important}
-body:has(#gameScreen.active) #gameScreen{margin:0!important}
-/* Keep the first normal-flow gameplay panel below the fixed header + stat cards. */
-body:has(#gameScreen.active) #gameScreen{padding-top:170px!important}
-@media(max-width:600px){body:has(#gameScreen.active) #gameScreen{padding-top:178px!important}}
+/* ProfitLands news accents.
+   HUD positioning lives in compact-panels.css so the two systems do not fight each other. */
+.news-item{transition:background .2s,border-color .2s}
+.news-item:first-child{border-left:2px solid #aef45f;padding-left:10px}
+.news-item.news-market:first-child{border-left-color:#78b9ff}
+.news-item.news-business:first-child{border-left-color:#aef45f}
+.news-item.news-world:first-child{border-left-color:#f0d48a}
