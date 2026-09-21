@@ -6,6 +6,22 @@ const STOCKS=[
 {id:'atlas',name:'Atlas Energy',ticker:'ATE',price:67.2,sector:'Energy',risk:'Medium'},
 {id:'skyline',name:'Skyline Motors',ticker:'SKM',price:31.4,sector:'Industrial',risk:'Medium'}
 ];
+const INITIAL_STOCK_PRICES=Object.fromEntries(STOCKS.map(s=>[s.id,s.price]));
+function captureMarket(){
+  state.marketPrices=Object.fromEntries(STOCKS.map(s=>[s.id,{price:s.price,change:s._change||0}]));
+}
+function restoreMarket(){
+  const saved=state.marketPrices||{};
+  STOCKS.forEach(s=>{
+    const m=saved[s.id];
+    s.price=Number(m?.price)||INITIAL_STOCK_PRICES[s.id];
+    s._change=Number(m?.change)||0;
+  });
+}
+function resetMarket(){
+  STOCKS.forEach(s=>{s.price=INITIAL_STOCK_PRICES[s.id];s._change=0});
+  captureMarket();
+}
 const BUSINESS_TYPES=[
 {id:'coffee',name:'Coffee Shop',icon:'☕',cost:500,baseRevenue:115,baseExpense:48,volatility:.28,desc:'Sells coffee, drinks, and quick food. Cheap to start and easy to expand.'},
 {id:'restaurant',name:'Restaurant',icon:'🍔',cost:2000,baseRevenue:390,baseExpense:190,volatility:.32,desc:'Food sales with strong upside but higher operating costs.'},
@@ -24,6 +40,7 @@ const $=id=>document.getElementById(id);
 function money(n){if(Math.abs(n)>=1e12)return '$'+(n/1e12).toFixed(2)+'T';if(Math.abs(n)>=1e9)return '$'+(n/1e9).toFixed(2)+'B';if(Math.abs(n)>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return '$'+Math.round(n).toLocaleString();return '$'+Math.round(n).toLocaleString()}
 function save(){
   try{if(state.started)syncTime()}catch(e){}
+  captureMarket();
   state.savedAt=Date.now();
   state.saveVersion=3;
   const snapshot=JSON.stringify(state);
@@ -31,8 +48,8 @@ function save(){
   try{window.profitLandsPlatform?.save(state)}catch(e){console.warn('Platform save failed',e)}
   try{window.profitlandsSaveHook?.()}catch(e){console.warn('Cloud save scheduling failed',e)}
 }
-function load(){const raw=localStorage.getItem('profitlands-v2');if(!raw)return;try{const saved=JSON.parse(raw);Object.assign(state,saved)}catch(e){localStorage.removeItem('profitlands-v2')}}
-function resetForMode(mode,type){state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.bankrupt=false;save()}
+function load(){const raw=localStorage.getItem('profitlands-v2');if(!raw)return;try{const saved=JSON.parse(raw);Object.assign(state,saved);restoreMarket()}catch(e){localStorage.removeItem('profitlands-v2')}}
+function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
 function businessDailyProfit(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);const levelMult=1+(b.level-1)*.22;const chainMult=1+b.chainCount*.9;const popularity=b.popularity/100;const revenue=t.baseRevenue*levelMult*chainMult*(.45+popularity*.8)*(1+b.marketing*.08);const expense=t.baseExpense*levelMult*chainMult*(1+b.efficiency*.07);return Math.round(revenue-expense)}
 function netWorth(){return state.cash+STOCKS.reduce((sum,s)=>sum+s.price*(state.stocks[s.id]?.shares||0),0)+state.businesses.reduce((sum,b)=>sum+businessValue(b),0)+state.property*750}
@@ -122,7 +139,7 @@ $('endGame').onclick=()=>{
   toast('Game saved. You can continue your empire later.');
  };
 };
-window.state=state;window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null};
+window.state=state;window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null};window.restoreProfitLandsMarket=restoreMarket;window.resetProfitLandsMarket=resetMarket;
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
 /* Always open on the home screen, but do not rewrite or destroy the saved game just to show the menu. */
@@ -138,9 +155,11 @@ render();
 function saveLocalSnapshot(){
   if(!state.started)return;
   try{syncTime()}catch(e){}
+  captureMarket();
   state.savedAt=Date.now();
   state.saveVersion=3;
   try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}
+  try{window.profitlandsSaveHook?.()}catch(e){}
 }
 window.addEventListener('pagehide',saveLocalSnapshot);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLocalSnapshot()});
