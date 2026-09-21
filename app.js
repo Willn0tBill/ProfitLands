@@ -7,16 +7,28 @@ const STOCKS=[
 {id:'skyline',name:'Skyline Motors',ticker:'SKM',price:31.4,sector:'Industrial',risk:'Medium'}
 ];
 const INITIAL_STOCK_PRICES=Object.fromEntries(STOCKS.map(s=>[s.id,s.price]));
+window.ProfitLandsStockBase=INITIAL_STOCK_PRICES;
 function captureMarket(){
   state.marketPrices=Object.fromEntries(STOCKS.map(s=>[s.id,{price:s.price,change:s._change||0}]));
 }
 function restoreMarket(){
   const saved=state.marketPrices||{};
+  let repaired=false;
   STOCKS.forEach(s=>{
+    const base=INITIAL_STOCK_PRICES[s.id];
     const m=saved[s.id];
-    s.price=Number(m?.price)||INITIAL_STOCK_PRICES[s.id];
-    s._change=Number(m?.change)||0;
+    let price=Number(m?.price);
+    if(!Number.isFinite(price)||price<=Math.max(2.05,base*.12)){
+      price=base;
+      repaired=true;
+    }
+    s.price=+price.toFixed(2);
+    s._change=Number.isFinite(Number(m?.change))?Number(m.change):0;
   });
+  if(repaired){
+    state.marketRepairApplied=true;
+    captureMarket();
+  }
 }
 function resetMarket(){
   STOCKS.forEach(s=>{s.price=INITIAL_STOCK_PRICES[s.id];s._change=0});
@@ -42,7 +54,7 @@ function save(){
   try{if(state.started)syncTime()}catch(e){}
   captureMarket();
   state.savedAt=Date.now();
-  state.saveVersion=3;
+  state.saveVersion=4;
   const snapshot=JSON.stringify(state);
   try{localStorage.setItem('profitlands-v2',snapshot)}catch(e){console.warn('Local save failed',e)}
   try{window.profitLandsPlatform?.save(state)}catch(e){console.warn('Platform save failed',e)}
@@ -92,31 +104,54 @@ function tradeAction(id,actionType){
 }
 function openManage(index){const b=state.businesses[index],t=BUSINESS_TYPES.find(x=>x.id===b.type),profit=businessDailyProfit(b),upgradeCost=Math.round(t.cost*(1+b.level*.75));const chainCost=t.cost*10;const marketingCost=Math.round(t.cost*.65*(b.marketing+1));const efficiencyCost=Math.round(t.cost*.7*(b.efficiency+1));$('manageContent').innerHTML=`<div class="manage-head"><div><span class="eyebrow">COMPANY MANAGEMENT</span><h2>${t.icon} ${b.name}</h2><p class="modal-sub">${t.desc}</p></div><div class="business-profit">${profit>=0?'+':''}${money(profit)}/day</div></div><div class="manage-stats"><div class="mini-stat"><small>LEVEL</small><b>${b.level}</b></div><div class="mini-stat"><small>POPULARITY</small><b>${Math.round(b.popularity)}%</b></div><div class="mini-stat"><small>LOCATIONS</small><b>${b.chainCount+1}</b></div><div class="mini-stat"><small>STATUS</small><b class="${profit<0?'danger':'good'}">${profit<0?'LOSING':'PROFITABLE'}</b></div></div><div class="manage-actions"><button class="upgrade-button" data-manage="upgrade"><b>⬆ Upgrade Business</b><small>Level ${b.level+1} · ${money(upgradeCost)}</small></button><button class="upgrade-button" data-manage="marketing"><b>📢 Marketing</b><small>+8 popularity · ${money(marketingCost)}</small></button><button class="upgrade-button" data-manage="efficiency"><b>⚙ Improve Efficiency</b><small>Lower daily expenses · ${money(efficiencyCost)}</small></button><button class="upgrade-button" data-manage="sell"><b>💰 Sell Business</b><small>Recover part of its current value</small></button></div><div class="chain-box"><b>🏢 Chain Expansion</b><p class="modal-sub">Open another ${t.name} location. The first expansion costs 10× the original business price. Each later location gets more expensive.</p><button class="chain-button" data-manage="chain" ${state.cash<chainCost?'disabled':''}>Open Location #${b.chainCount+2} · ${money(chainCost*(1+b.chainCount*.35))}</button></div>`;$('manageModal').classList.remove('hidden');document.querySelectorAll('[data-manage]').forEach(el=>el.onclick=()=>manageAction(index,el.dataset.manage));}
 function manageAction(index,what){const b=state.businesses[index];if(!b)return;const t=BUSINESS_TYPES.find(x=>x.id===b.type);if(what==='upgrade'){const cost=Math.round(t.cost*(1+b.level*.75));if(!spendAction(cost))return;b.level++;state.news.push(`${b.name} reached Level ${b.level}.`);toast('Business upgraded.')}else if(what==='marketing'){const cost=Math.round(t.cost*.65*(b.marketing+1));if(!spendAction(cost))return;b.marketing++;b.popularity=Math.min(100,b.popularity+8);toast('Marketing boosted popularity.')}else if(what==='efficiency'){const cost=Math.round(t.cost*.7*(b.efficiency+1));if(!spendAction(cost))return;b.efficiency++;toast('Efficiency improved.')}else if(what==='chain'){const cost=Math.round(t.cost*10*(1+b.chainCount*.35));if(!spendAction(cost))return;b.chainCount++;state.news.push(`${b.name} expanded to location #${b.chainCount+1}.`);toast('New chain location opened.')}else if(what==='sell'){const value=Math.round(businessValue(b)*.65);state.cash+=value;state.businesses.splice(index,1);state.news.push(`You sold ${b.name} for ${money(value)}.`);closeModal('manageModal');toast('Business sold.')}save();render();if(what!=='sell')openManage(index)}
-function marketUpdate(){STOCKS.forEach(s=>{let move=(Math.random()-.48)*.16;if(state.trend&&state.trend.includes(s.name))move+=(state.trend.includes('strong')?.06:-.06);const old=s.price;s.price=Math.max(2,+(s.price*(1+move)).toFixed(2));s._change=(s.price/old-1)*100})}
+function marketUpdate(){
+  STOCKS.forEach(s=>{
+    const base=INITIAL_STOCK_PRICES[s.id];
+    const old=Math.max(base*.35,Number(s.price)||base);
+    const risk=s.risk==='High'?.024:s.risk==='Low'?.012:.018;
+    let move=(Math.random()-.5)*2*risk;
+    if(state.trend&&state.trend.includes(s.name))move+=state.trend.includes('strong')?.012:-.012;
+    move+=Math.max(-.008,Math.min(.008,((base-old)/base)*.012));
+    move=Math.max(-.03,Math.min(.03,move));
+    const floor=base*.35,ceiling=base*4;
+    let next=Math.max(floor,Math.min(ceiling,old*(1+move)));
+    if(old<=floor*1.002&&next<=old)next=old*1.006;
+    s.price=+next.toFixed(2);
+    s._change=(s.price/old-1)*100;
+  });
+}
 function businessUpdate(){let total=0;state.businesses.forEach(b=>{const t=BUSINESS_TYPES.find(x=>x.id===b.type);const swing=(Math.random()-.5)*t.volatility*100;b.popularity=Math.max(5,Math.min(100,b.popularity+swing));total+=businessDailyProfit(b)});const propertyIncome=state.property*12;return total+propertyIncome}
 function checkBankruptcy(){if(state.cash<0){state.cash=0}const p=totalBusinessProfit();if(state.businesses.length&&p<0&&state.cash<Math.abs(p)*2){state.news.push('⚠️ Financial warning: your companies are burning cash. Consider upgrading, expanding carefully, or selling a business.')}if(state.businesses.length&&state.cash===0&&p<0){state.news.push('🚨 Your empire is in a financial crisis. A recovery is possible, but continued losses may force asset sales.');state.bankrupt=true}else if(p>=0){state.bankrupt=false}}
 function endDay(auto=false){if(!state.started)return;const profit=businessUpdate();state.cash+=profit;state.lastDayProfit=profit;marketUpdate();const events=['A new startup gets attention across ProfitLands.','Consumer demand rises this morning.','A surprise supply issue hits one industry.','A major investor announces a new fund.','Markets open quietly after a calm night.','A local trend changes customer behavior across several industries.'];const event=events[Math.floor(Math.random()*events.length)];state.news.push(event);checkBankruptcy();state.day++;state.actions=MODES[state.mode].actions;state.timeLeft=MODES[state.mode].daySeconds;state.dayEndsAt=Date.now()+MODES[state.mode].daySeconds*1000;state.trend=null;save();render();if(!auto)toast(`Day ${state.day-1} ended. Welcome to Day ${state.day}!`)}
 function startTimer(){
  clearInterval(timerHandle);
  syncTime();
- timerHandle=setInterval(()=>{
+ let lastShown=-1;
+ const tick=()=>{
   if(!state.started)return;
   syncTime();
-  if(state.timeLeft<=0&&!dayEnding){
-   dayEnding=true;
-   endDay(true);
-   dayEnding=false;
-   toast(`Day ${state.day-1} ended automatically.`);
+  const shown=Math.max(0,Math.floor(state.timeLeft));
+  if(shown!==lastShown){
+    lastShown=shown;
+    const el=$('timer');
+    if(el)el.textContent=formatTime(shown);
   }
-  render();
- },250);
+  if(state.timeLeft<=0&&!dayEnding){
+    dayEnding=true;
+    endDay(true);
+    dayEnding=false;
+    toast(`Day ${state.day-1} ended automatically.`);
+  }
+ };
+ tick();
+ timerHandle=setInterval(tick,500);
 }
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2000)}
 function closeModal(id){$(id).classList.add('hidden')}
 document.querySelectorAll('.mode-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.mode=card.dataset.mode}));
 document.querySelectorAll('.type-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.playType=card.dataset.type;$('multiNotice').classList.toggle('hidden',state.playType!=='multi')}));
-window.startProfitLands=()=>{resetForMode(state.mode,state.playType);$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();startTimer();window.profitLandsPlatform?.gameplayStart()};
-window.resumeProfitLands=()=>{if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();startTimer();window.profitLandsPlatform?.gameplayStart()};
+window.startProfitLands=()=>{resetForMode(state.mode,state.playType);$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
+window.resumeProfitLands=()=>{if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;save();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
 $('startGame').onclick=()=>window.startProfitLands();
 $('openBusinessShop').onclick=()=>{$('businessChoices').innerHTML=BUSINESS_TYPES.map(t=>`<button class="business-choice" data-buy="${t.id}"><h4>${t.icon} ${t.name}</h4><p>${t.desc}</p><div class="choice-bottom"><span>Buy for ${money(t.cost)}</span><span>↑ Chain: ${money(t.cost*10)}</span></div></button>`).join('');$('businessModal').classList.remove('hidden');document.querySelectorAll('[data-buy]').forEach(el=>el.onclick=()=>buyBusiness(el.dataset.buy))};
 document.querySelectorAll('.action-button').forEach(btn=>btn.onclick=()=>action(btn.dataset.action));document.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>closeModal(btn.dataset.close));
@@ -130,7 +165,7 @@ $('endGame').onclick=()=>{
   try{syncTime()}catch(e){}
   state.started=false;
   save();
-  clearInterval(timerHandle);timerHandle=null;
+  window.stopProfitLandsTimer?.();
   window.profitLandsPlatform?.gameplayStop();
   try{await window.profitlandsFirebase?.cloudSave?.(true)}catch(e){console.warn('Final cloud save failed',e)}
   $('gameScreen').classList.remove('active');$('homeScreen').classList.add('active');
@@ -139,7 +174,7 @@ $('endGame').onclick=()=>{
   toast('Game saved. You can continue your empire later.');
  };
 };
-window.state=state;window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null};window.restoreProfitLandsMarket=restoreMarket;window.resetProfitLandsMarket=resetMarket;
+window.state=state;window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null;clearInterval(window.__profitTimer);window.__profitTimer=null};window.restoreProfitLandsMarket=restoreMarket;window.resetProfitLandsMarket=resetMarket;
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
 /* Always open on the home screen, but do not rewrite or destroy the saved game just to show the menu. */
@@ -157,7 +192,7 @@ function saveLocalSnapshot(){
   try{syncTime()}catch(e){}
   captureMarket();
   state.savedAt=Date.now();
-  state.saveVersion=3;
+  state.saveVersion=4;
   try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}
   try{window.profitlandsSaveHook?.()}catch(e){}
 }
