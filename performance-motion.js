@@ -69,7 +69,9 @@
     const button=e.target.closest('button');
     if(!button||button.disabled)return;
     button.classList.remove('motion-press');
-    void button.offsetWidth;
-    button.classList.add('motion-press');
+    requestAnimationFrame(()=>{
+      button.classList.add('motion-press');
+      setTimeout(()=>button.classList.remove('motion-press'),150);
+    });
   });
 })();
