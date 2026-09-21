@@ -22,7 +22,15 @@ let dayEnding=false;
 function syncTime(){if(!state.started||!state.dayEndsAt)return;state.timeLeft=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));}
 const $=id=>document.getElementById(id);
 function money(n){if(Math.abs(n)>=1e12)return '$'+(n/1e12).toFixed(2)+'T';if(Math.abs(n)>=1e9)return '$'+(n/1e9).toFixed(2)+'B';if(Math.abs(n)>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(Math.abs(n)>=1e3)return '$'+Math.round(n).toLocaleString();return '$'+Math.round(n).toLocaleString()}
-function save(){try{syncTime()}catch(e){}try{window.profitlandsPlatform?.save(state)}catch(e){console.warn('Platform save failed',e)}localStorage.setItem('profitlands-v2',JSON.stringify(state))}
+function save(){
+  try{if(state.started)syncTime()}catch(e){}
+  state.savedAt=Date.now();
+  state.saveVersion=3;
+  const snapshot=JSON.stringify(state);
+  try{localStorage.setItem('profitlands-v2',snapshot)}catch(e){console.warn('Local save failed',e)}
+  try{window.profitLandsPlatform?.save(state)}catch(e){console.warn('Platform save failed',e)}
+  try{window.profitlandsSaveHook?.()}catch(e){console.warn('Cloud save scheduling failed',e)}
+}
 function load(){const raw=localStorage.getItem('profitlands-v2');if(!raw)return;try{const saved=JSON.parse(raw);Object.assign(state,saved)}catch(e){localStorage.removeItem('profitlands-v2')}}
 function resetForMode(mode,type){state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
@@ -101,20 +109,38 @@ $('endGame').onclick=()=>{
  $('endGameContent').innerHTML='<span class="eyebrow">END GAME</span><h2>Save and leave this empire?</h2><p class="modal-sub">Your current game will stay saved. You can return to it later.</p><div class="confirm-actions"><button id="cancelEndGame" class="secondary-button">Keep Playing</button><button id="confirmEndGame" class="primary-button">Save & End Game</button></div>';
  $('endGameModal').classList.remove('hidden');
  $('cancelEndGame').onclick=()=>closeModal('endGameModal');
- $('confirmEndGame').onclick=()=>{
-  state.started=false;syncTime();save();clearInterval(timerHandle);window.profitLandsPlatform?.gameplayStop();
+ $('confirmEndGame').onclick=async()=>{
+  try{syncTime()}catch(e){}
+  state.started=false;
+  save();
+  clearInterval(timerHandle);timerHandle=null;
+  window.profitLandsPlatform?.gameplayStop();
+  try{await window.profitlandsFirebase?.cloudSave?.(true)}catch(e){console.warn('Final cloud save failed',e)}
   $('gameScreen').classList.remove('active');$('homeScreen').classList.add('active');
   closeModal('endGameModal');closeModal('manageModal');closeModal('businessModal');closeModal('settingsModal');closeModal('tradeModal');
+  window.profitlandsFirebase?.refresh?.();
   toast('Game saved. You can continue your empire later.');
  };
 };
-window.state=state;window.save=save;window.toast=toast;window.timerHandle=timerHandle;
+window.state=state;window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null};
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
-/* Always open on the home screen. Saved games are resumed only when the player chooses Continue Game. */
-if(state.started){state.started=false;try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}}
+/* Always open on the home screen, but do not rewrite or destroy the saved game just to show the menu. */
+state.started=false;
 $('gameScreen').classList.remove('active');
 $('homeScreen').classList.add('active');
 const selected=document.querySelector(`[data-mode="${state.mode}"]`);if(selected){document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));selected.classList.add('selected')}
 const type=document.querySelector(`[data-type="${state.playType}"]`);if(type){document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));type.classList.add('selected')}
 render();
+
+
+/* Keep the latest in-progress state on the device if the tab/app is backgrounded or closed. */
+function saveLocalSnapshot(){
+  if(!state.started)return;
+  try{syncTime()}catch(e){}
+  state.savedAt=Date.now();
+  state.saveVersion=3;
+  try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}
+}
+window.addEventListener('pagehide',saveLocalSnapshot);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLocalSnapshot()});
