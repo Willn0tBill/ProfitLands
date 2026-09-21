@@ -37,10 +37,17 @@
             <section id="gameScreen" class="screen">
         <div class="game-hud">
         <div class="game-head">
-          <div><span class="eyebrow">YOUR EMPIRE</span><h2>Day <span id="gameDay">1</span></h2><div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div></div>
-          <div class="game-center-controls">
-            <div class="timer-box"><small>DAY ENDS IN</small><strong id="timer">15:00</strong></div>
-            <button id="endDay" class="small-button end-day-compact">End Day <span>→</span></button>
+          <div class="empire-status">
+            <span class="eyebrow">YOUR EMPIRE</span>
+            <div class="day-row">
+              <h2>Day <span id="gameDay">1</span></h2>
+              <div class="game-center-controls">
+                <div class="timer-box"><small>DAY ENDS IN</small><strong id="timer">15:00</strong></div>
+                <button id="endDay" class="small-button end-day-compact">End Day <span>→</span></button>
+              </div>
+            </div>
+            <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
+            <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
           </div>
           <div class="game-controls"><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
         </div>
@@ -62,8 +69,8 @@
             <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the day ends.</div></div>
           </div>
         </div>
-        </div>
         <div id="eventBanner" class="event-banner hidden"></div>
+        </div>
         <div class="dashboard-grid">
           <div class="panel collapsible-panel business-panel open">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">COMPANIES</span><h3>Your Businesses</h3></span><span class="panel-toggle-arrow">⌄</span></button><button id="openBusinessShop" class="small-button">+ Buy Business</button></div>
