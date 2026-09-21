@@ -139,11 +139,11 @@
   function stockUpdate(){
     STOCKS.forEach(s=>{
       const anchor=window.ProfitLandsStockBase?.[s.id]||s.price||10;
-      const floor=anchor*.35;
-      const ceiling=anchor*4;
+      const floor=anchor*.30;
+      const ceiling=anchor*5;
       const old=Math.max(floor,Number(s.price)||anchor);
-      const riskVol=s.risk==='High'?.024:s.risk==='Low'?.012:.018;
-      const riskSensitivity=s.risk==='High'?1.15:s.risk==='Low'?.7:1;
+      const riskVol=s.risk==='High'?.05:s.risk==='Low'?.025:.035;
+      const riskSensitivity=s.risk==='High'?1.2:s.risk==='Low'?.75:1;
 
       let sector=0;
       if(s.id==='nova')sector=activeEffect('tech')-1;
@@ -152,16 +152,16 @@
       if(s.id==='skyline')sector=(activeEffect('demand')-1)*.7;
 
       const random=(Math.random()-.5)*2*riskVol;
-      const econ=((state.economy.health-60)/40)*.006*riskSensitivity;
-      const event=Math.max(-.05,Math.min(.05,activeEffect('stocks')-1));
-      const sectorMove=Math.max(-.02,Math.min(.02,sector*.12));
-      const reversion=Math.max(-.01,Math.min(.01,((anchor-old)/anchor)*.012));
-      const majorEvent=Math.abs(event)>.025;
-      const maxMove=majorEvent?.08:.03;
+      const econ=((state.economy.health-60)/40)*.012*riskSensitivity;
+      const event=Math.max(-.08,Math.min(.08,activeEffect('stocks')-1));
+      const sectorMove=Math.max(-.03,Math.min(.03,sector*.16));
+      const reversion=Math.max(-.012,Math.min(.012,((anchor-old)/anchor)*.015));
+      const majorEvent=Math.abs(event)>.03;
+      const maxMove=majorEvent?.12:.06;
       let move=Math.max(-maxMove,Math.min(maxMove,random+econ+event+sectorMove+reversion));
 
       let next=Math.max(floor,Math.min(ceiling,old*(1+move)));
-      if(old<=floor*1.002&&next<=old)next=old*1.006;
+      if(old<=floor*1.002&&next<=old)next=old*1.01;
       s.price=+next.toFixed(2);
       s._change=(s.price/old-1)*100;
     });
