@@ -21,7 +21,7 @@
   function ensure(){
     if(document.getElementById('tutorialModal'))return;
     const m=document.createElement('div');
-    m.id='tutorialModal';m.className='modal hidden';
+    m.id='tutorialModal';m.className='modal hidden';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label','How to play ProfitLands');
     m.innerHTML='<div class="modal-card wide tutorial-card"><div class="tutorial-progress"><span id="tutorialProgress"></span><button id="tutorialSkip" class="tutorial-skip">Skip tutorial</button></div><div id="tutorialContent"></div><div class="tutorial-actions"><button id="tutorialBack" class="secondary-button">Back</button><button id="tutorialNext" class="primary-button">Next <span>→</span></button></div></div>';
     document.body.appendChild(m);
     m.querySelector('#tutorialSkip').onclick=finish;
@@ -32,7 +32,7 @@
   function renderStep(){
     ensure();clearHighlights();
     const s=steps[step],target=s.target?document.querySelector(s.target):null;
-    if(target){target.classList.add('tutorial-highlight');target.scrollIntoView({behavior:'smooth',block:'center'})}
+    if(target && window.matchMedia('(min-width:851px)').matches){target.classList.add('tutorial-highlight')}
     const content=document.getElementById('tutorialContent');
     const stockNote=s.stock?'<div class="tutorial-stock-example"><div><span>PRICE</span><b>$42.50</b></div><div><span>CHANGE</span><b>+2.1%</b></div><div><span>RISK</span><b>HIGH</b></div><p>If yesterday\'s price was $42.50 and today\'s change is +2.1%, the stock moved upward. A negative percentage means it moved downward.</p></div>':'';
     content.innerHTML='<span class="eyebrow">PROFITLANDS TUTORIAL · '+String(step+1).padStart(2,'0')+'/'+steps.length+'</span><h2>'+s.title+'</h2><p class="modal-sub tutorial-body">'+s.body+'</p>'+stockNote+(s.stock?'<p class="tutorial-tip">Tip: A rising price does not automatically mean a stock is a good purchase. Check the company, sector, risk, price, and current events before deciding what to do.</p>':'');
@@ -40,16 +40,20 @@
     document.getElementById('tutorialBack').disabled=step===0;
     document.getElementById('tutorialNext').innerHTML=step===steps.length-1?'Start Playing <span>→</span>':'Next <span>→</span>';
     document.getElementById('tutorialModal').classList.remove('hidden');
+    document.getElementById('tutorialNext')?.focus({preventScroll:true});
   }
   function finish(){
     active=false;clearHighlights();localStorage.setItem(KEY,'1');document.getElementById('tutorialModal')?.classList.add('hidden');
   }
-  function start(){
-    if(active||localStorage.getItem(KEY))return;
-    active=true;step=0;setTimeout(renderStep,350);
+  function start(force=false){
+    if(active||(!force&&localStorage.getItem(KEY)))return;
+    active=true;step=0;renderStep();
   }
   document.addEventListener('click',e=>{
-    if(e.target.closest('#startGame'))setTimeout(start,450);
+    if(e.target.closest('#openTutorialHome,#helpTutorial'))start(true);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&active)finish();
   });
   window.ProfitLandsTutorial={start,reset:()=>localStorage.removeItem(KEY)};
 })();
