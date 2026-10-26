@@ -61,7 +61,7 @@ body:has(#gameScreen.active) .app-shell{padding-top:14px!important}
 #gameScreen.active{position:relative!important;transform:none!important;contain:none!important;overflow:visible!important;padding-top:0!important}
 #gameScreen::before,#gameScreen::after{content:none!important;display:none!important}
 #gameScreen .game-hud{
-  position:sticky!important;top:max(0px,env(safe-area-inset-top))!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:150!important;
+  position:relative!important;inset:auto!important;z-index:1!important;
   display:grid!important;gap:14px!important;width:100%!important;
   margin:0 0 18px!important;padding:22px!important;
   border:1px solid rgba(137,185,160,.22)!important;border-radius:20px!important;
@@ -132,69 +132,33 @@ body:has(#gameScreen.active) .app-shell{padding-top:14px!important}
 }
 @media(prefers-reduced-motion:reduce){#gameScreen .goal-progress i{transition:none!important}}
 
-/* Always-visible game HUD: sticky within gameplay, no fake spacer or fixed overlay. */
-#gameScreen.active{overflow:visible!important}
-#gameScreen .game-hud{
-  isolation:isolate!important;
-  -webkit-backdrop-filter:blur(16px)!important;
-  backdrop-filter:blur(16px)!important;
-  box-shadow:0 16px 46px rgba(0,0,0,.34)!important;
+
+/* Scrolling-safe HUD: full dashboard stays in normal page flow. */
+#gameScreen.active{position:relative!important;overflow:visible!important;transform:none!important}
+#gameScreen .game-hud{position:relative!important;inset:auto!important;z-index:1!important;max-height:none!important;overflow:visible!important}
+#gameScreen .game-hud .stats-grid{position:static!important}
+html,body{overflow-y:auto!important;overscroll-behavior-y:auto!important}
+html{scroll-padding-top:66px!important}
+#floatingHud[hidden]{display:none!important}
+#floatingHud{
+  position:fixed;inset:0 0 auto;z-index:160;width:100%;
+  min-height:57px;padding:7px max(16px,env(safe-area-inset-right)) 7px max(16px,env(safe-area-inset-left));
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(10,20,23,.97);border-bottom:1px solid rgba(165,226,156,.3);
+  box-shadow:0 9px 24px #0009;backdrop-filter:blur(14px);
 }
-#gameScreen .game-hud .stats-grid{align-items:stretch!important}
-#gameScreen .game-hud .stat{min-height:76px!important}
-#hudStatsToggle{display:none}
-#gameScreen.hud-scrolled .game-hud{
-  padding-block:12px!important;
-  gap:9px!important;
-  border-radius:0 0 16px 16px!important;
-  box-shadow:0 14px 36px rgba(0,0,0,.45)!important;
-}
-#gameScreen.hud-scrolled .game-hud .stat{min-height:68px!important;padding-block:9px!important}
-#gameScreen.hud-scrolled .game-hud .game-head h2{font-size:28px!important}
-#gameScreen.hud-scrolled .game-hud .goal-progress{margin-top:7px!important}
-#gameScreen.hud-scrolled .game-hud .goal-status{margin-top:4px!important}
-@media(max-width:850px){
-  #gameScreen .game-hud{top:max(0px,env(safe-area-inset-top))!important}
-  #gameScreen .game-hud .game-head{gap:10px!important}
-}
+.floating-hud-inner{display:flex;align-items:center;gap:clamp(8px,2vw,24px);width:min(1210px,100%);margin:auto}
+.floating-hud-item{display:flex;align-items:baseline;gap:6px;white-space:nowrap;font-size:14px;color:#c8d6c9}
+.floating-hud-item strong{color:#b8fa80;font-variant-numeric:tabular-nums;font-size:17px}
+.floating-hud-spacer{flex:1}
+.floating-hud-button{appearance:none;border:1px solid #3a553c;background:#18251a;color:#d6fbb9;border-radius:8px;padding:8px 12px;min-height:39px;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.floating-hud-button:focus-visible{outline:3px solid #b8fa80;outline-offset:3px}
 @media(max-width:600px){
-  #gameScreen .game-hud{z-index:150!important}
-  #hudStatsToggle{
-    display:inline-flex!important;align-items:center;justify-content:center;
-    min-height:40px;padding:8px 10px;border:1px solid #395446;
-    border-radius:9px;background:#16221d;color:#c8f5a8;
-    font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;
-  }
-  #gameScreen .game-hud .game-controls{gap:6px!important}
-  #gameScreen .game-hud .game-controls .small-button{font-size:11px!important;padding:9px 10px!important;min-height:40px!important}
-  #gameScreen.hud-scrolled .game-hud{
-    padding:8px 10px 10px!important;gap:7px!important;
-    border-radius:0 0 12px 12px!important;
-  }
-  #gameScreen.hud-scrolled .game-hud .game-head{
-    display:flex!important;flex-direction:column!important;gap:7px!important;margin:0!important;
-  }
-  #gameScreen.hud-scrolled .game-hud .empire-status{flex:0 1 auto!important;width:100%!important}
-  #gameScreen.hud-scrolled .game-hud .empire-status>.eyebrow,
-  #gameScreen.hud-scrolled .game-hud .goal-progress,
-  #gameScreen.hud-scrolled .game-hud .goal-status,
-  #gameScreen.hud-scrolled .game-hud .timer-box small{display:none!important}
-  #gameScreen.hud-scrolled .day-row{
-    display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important;
-  }
-  #gameScreen.hud-scrolled .day-row h2{font-size:20px!important}
-  #gameScreen.hud-scrolled .game-center-controls{
-    display:flex!important;align-items:center!important;gap:8px!important;
-  }
-  #gameScreen.hud-scrolled .timer-box{min-width:0!important}
-  #gameScreen.hud-scrolled .timer-box strong{font-size:19px!important}
-  #gameScreen.hud-scrolled .end-day-compact{padding:7px 10px!important;min-height:36px!important;font-size:12px!important}
-  #gameScreen.hud-scrolled .game-controls{width:100%!important;justify-content:flex-start!important}
-  #gameScreen.hud-scrolled .game-hud .stat{min-height:64px!important;padding:9px 10px!important}
-  #gameScreen.hud-collapsed .game-hud .stats-grid{display:none!important}
-  #gameScreen.hud-collapsed .game-hud .event-banner{display:none!important}
+  #floatingHud{min-height:48px;padding:6px 9px}
+  .floating-hud-inner{gap:9px}
+  .floating-hud-item{font-size:12px;gap:4px}
+  .floating-hud-item strong{font-size:13px}
+  .floating-hud-hide-mobile{display:none}
+  .floating-hud-button{font-size:11px;padding:6px 8px;min-height:35px}
 }
-@media(max-width:375px){
-  #gameScreen.hud-scrolled .game-controls .small-button{font-size:10px!important;padding:7px 8px!important}
-  #hudStatsToggle{padding:7px 8px;font-size:11px}
-}
+@media(max-width:380px){.floating-hud-inner{gap:6px}.floating-hud-item strong{font-size:12px}.floating-hud-button{font-size:10px;padding:5px 6px}}
