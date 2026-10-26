@@ -17,10 +17,21 @@
   <link rel="stylesheet" href="mobile.css" />
   <link rel="stylesheet" href="mobile-controls.css" />
   <link rel="stylesheet" href="top-stats.css" />
-  <link rel="stylesheet" href="compact-panels.css?v=20261026-4" />
+  <link rel="stylesheet" href="compact-panels.css?v=20261026-5" />
   <link rel="stylesheet" href="site-polish.css?v=20261026-4" />
 </head>
 <body>
+  <div id="floatingHud" role="region" aria-label="Live empire status" hidden>
+    <div class="floating-hud-inner">
+      <span class="floating-hud-item"><span>Day</span> <strong id="floatDay">1</strong></span>
+      <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Remaining</span><strong id="floatTimer">15:00</strong></span>
+      <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Cash</span> <strong id="floatCash">$1,000</strong></span>
+      <span class="floating-hud-item floating-hud-hide-mobile"><span>Actions</span> <strong id="floatActions">6</strong></span>
+      <span class="floating-hud-spacer"></span>
+      <button type="button" class="floating-hud-button" id="floatingEndDay">End Day →</button>
+      <button type="button" class="floating-hud-button" id="floatingBackTop">Dashboard ↑</button>
+    </div>
+  </div>
   <div class="app-shell">
     <header class="topbar">
       <div class="brand"><div class="brand-mark">$</div><div><h1>ProfitLands</h1><p>WtvStudios · Build. Invest. Compete.</p></div></div>
@@ -51,7 +62,7 @@
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
             <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
           </div>
-          <div class="game-controls"><button id="hudStatsToggle" type="button" aria-controls="hudStats" aria-expanded="true">Hide stats ▴</button><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
+          <div class="game-controls"><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
         </div>
         <div class="stats-grid" id="hudStats" aria-label="Empire statistics">
           <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
@@ -135,7 +146,7 @@
   <script src="mobile-controls.js"></script>
   <script src="top-stats.js"></script>
   <script src="compact-panels.js"></script>
-  <script src="hud-sticky.js?v=20261026-4"></script>
+  <script src="hud-sticky.js?v=20261026-5"></script>
   <script src="crazygames.js"></script>
   <script src="firebase-auth.js"></script>
 </body>
