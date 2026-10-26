@@ -17,8 +17,8 @@
   <link rel="stylesheet" href="mobile.css" />
   <link rel="stylesheet" href="mobile-controls.css" />
   <link rel="stylesheet" href="top-stats.css" />
-  <link rel="stylesheet" href="compact-panels.css" />
-  <link rel="stylesheet" href="site-polish.css" />
+  <link rel="stylesheet" href="compact-panels.css?v=20261026-2" />
+  <link rel="stylesheet" href="site-polish.css?v=20261026-2" />
 </head>
 <body>
   <div class="app-shell">
@@ -34,13 +34,13 @@
         <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose a game mode</h3></div>
         <div class="mode-grid"><button class="mode-card" data-mode="fast"><span>⚡</span><strong>Fast</strong><small>5 min days · 4 actions</small></button><button class="mode-card selected" data-mode="standard"><span>◆</span><strong>Standard</strong><small>15 min days · 6 actions</small></button><button class="mode-card" data-mode="long"><span>◷</span><strong>Long</strong><small>1 hour days · 10 actions</small></button><button class="mode-card" data-mode="persistent"><span>∞</span><strong>Persistent</strong><small>24 hour days · 12 actions</small></button></div>
         <div id="multiNotice" class="info-box hidden"><b>Multiplayer prototype</b><span>This build includes the multiplayer setup and economy rules, but live internet multiplayer still needs a server/backend. For now you can test the same game economy locally.</span></div>
-        <button id="startGame" type="button" class="primary-button">Start ProfitLands <span>→</span></button><p class="local-note">Your progress will be saved to your ProfitLands account.</p>
+        <button id="startGame" type="button" class="primary-button">Start ProfitLands <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button" style="margin-top:10px">How to play</button><p class="local-note">Your progress will be saved to your ProfitLands account.</p>
       </section>
             <section id="gameScreen" class="screen">
         <div class="game-hud">
         <div class="game-head">
           <div class="empire-status">
-            <span class="eyebrow">YOUR EMPIRE</span>
+            <span class="eyebrow">EMPIRE DASHBOARD</span>
             <div class="day-row">
               <h2>Day <span id="gameDay">1</span></h2>
               <div class="game-center-controls">
@@ -51,7 +51,7 @@
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
             <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
           </div>
-          <div class="game-controls"><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
+          <div class="game-controls"><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
         </div>
         <div class="stats-grid">
           <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
@@ -108,7 +108,8 @@
     </main>
   </div>
   <div id="businessModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="businessModal">×</button><span class="eyebrow">BUSINESS MARKET</span><h2>Choose a business</h2><p class="modal-sub">Every business has different economics, upgrade paths, risks, and chain potential.</p><div id="businessChoices" class="business-choices"></div></div></div>
-  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal">×</button><div id="manageContent"></div></div></div>\n  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="tradeModal">×</button><div id="tradeContent"></div></div></div>
+  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal">×</button><div id="manageContent"></div></div></div>
+  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="tradeModal">×</button><div id="tradeContent"></div></div></div>
   <div id="endGameModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="endGameModal">×</button><div id="endGameContent"></div></div></div>
   <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game options will live here as ProfitLands grows.</p><div class="settings-list"><div class="setting-row"><div><b>Audio</b><small>Sound effects and game audio · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Music</b><small>Background music · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Company Changes</b><small>Change your company identity and other profile options.</small></div><span>PROFILE</span></div><div class="setting-row"><div><b>More Game Options</b><small>Additional gameplay and display settings can be added here later.</small></div><span>SOON</span></div></div></div></div>
   <div id="toast" class="toast"></div>
@@ -124,7 +125,7 @@
   <script src="enhancements.js"></script>
   <script src="economy-system.js"></script>
   <script src="economy-render.js"></script>
-  <script src="tutorial.js"></script>
+  <script src="tutorial.js?v=20261026-2"></script>
   <script src="performance-motion.js"></script>
   <script src="trade-ui.js"></script>
   <script src="sticky-news.js"></script>
