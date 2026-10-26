@@ -1,63 +1,44 @@
-/* Keep the live empire HUD visible without covering the entire phone screen.
-   No game-state changes and no extra timers. */
+/* Lightweight, read-only status bar. Does not alter saved gameplay or scrolling. */
 (() => {
   'use strict';
   const screen = document.getElementById('gameScreen');
   const hud = screen?.querySelector('.game-hud');
-  const stats = screen?.querySelector('#hudStats');
-  const button = document.getElementById('hudStatsToggle');
-  if (!screen || !hud || !stats || !button) return;
-
-  const narrow = window.matchMedia('(max-width:600px)');
-  let manualExpanded = null;
-  let lastScrolled = false;
-  let lastActive = screen.classList.contains('active');
-  let framePending = false;
-
+  const bar = document.getElementById('floatingHud');
+  if (!screen || !hud || !bar) return;
+  const el = id => document.getElementById(id);
+  const numbers = [
+    ['floatDay','gameDay'],
+    ['floatTimer','timer'],
+    ['floatCash','cash'],
+    ['floatActions','actionsLeft']
+  ];
+  let queued = false;
   function refresh() {
-    framePending = false;
+    queued = false;
     const active = screen.classList.contains('active');
-    if (!active) {
-      screen.classList.remove('hud-scrolled', 'hud-collapsed');
-      manualExpanded = null;
-      lastScrolled = false;
-      lastActive = false;
-      return;
+    if (!active) {bar.hidden = true;return;}
+    const bottom = hud.getBoundingClientRect().bottom;
+    const shouldShow = bottom <= 12 && window.scrollY > 60;
+    if (shouldShow) for (const [target,source] of numbers) {
+      const out=el(target),input=el(source);
+      if (out && input && out.textContent !== input.textContent) out.textContent=input.textContent;
     }
-    if (!lastActive) manualExpanded = null;
-    lastActive = true;
-    const start = screen.getBoundingClientRect().top + window.scrollY;
-    const scrolled = window.scrollY > start + 70;
-    if (lastScrolled && !scrolled) manualExpanded = null;
-    lastScrolled = scrolled;
-    screen.classList.toggle('hud-scrolled', scrolled);
-
-    const collapsed = narrow.matches && (manualExpanded === null ? scrolled : !manualExpanded);
-    screen.classList.toggle('hud-collapsed', collapsed);
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.textContent = collapsed ? 'Show stats ▾' : 'Hide stats ▴';
-    button.setAttribute('aria-label', collapsed ? 'Show empire statistics' : 'Hide empire statistics');
+    bar.hidden = !shouldShow;
   }
-
-  function schedule() {
-    if (framePending) return;
-    framePending = true;
+  function requestRefresh(){
+    if(queued) return;
+    queued=true;
     window.requestAnimationFrame(refresh);
   }
-
-  button.addEventListener('click', () => {
-    manualExpanded = screen.classList.contains('hud-collapsed');
-    schedule();
+  bar.querySelector('#floatingEndDay')?.addEventListener('click', () => el('endDay')?.click());
+  bar.querySelector('#floatingBackTop')?.addEventListener('click', () => {
+    hud.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'start'});
   });
-
-  window.addEventListener('scroll', schedule, {passive:true});
-  window.addEventListener('resize', schedule, {passive:true});
-  narrow.addEventListener?.('change', () => {manualExpanded=null;schedule()});
-
-  const observer = new MutationObserver(() => {
-    const active = screen.classList.contains('active');
-    if (active !== lastActive) schedule();
-  });
-  observer.observe(screen, {attributes:true, attributeFilter:['class']});
-  schedule();
+  window.addEventListener('scroll',requestRefresh,{passive:true});
+  window.addEventListener('resize',requestRefresh,{passive:true});
+  new MutationObserver(requestRefresh).observe(screen,{attributes:true,attributeFilter:['class']});
+  // Update the clock only while the mini bar is visible, without modifying the game timer.
+  const timer = el('timer');
+  if (timer) new MutationObserver(() => {if(!bar.hidden)requestRefresh()}).observe(timer,{childList:true,characterData:true,subtree:true});
+  requestRefresh();
 })();
