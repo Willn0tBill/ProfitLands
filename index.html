@@ -17,8 +17,8 @@
   <link rel="stylesheet" href="mobile.css" />
   <link rel="stylesheet" href="mobile-controls.css" />
   <link rel="stylesheet" href="top-stats.css" />
-  <link rel="stylesheet" href="compact-panels.css?v=20261026-2" />
-  <link rel="stylesheet" href="site-polish.css?v=20261026-2" />
+  <link rel="stylesheet" href="compact-panels.css?v=20261026-4" />
+  <link rel="stylesheet" href="site-polish.css?v=20261026-4" />
 </head>
 <body>
   <div class="app-shell">
@@ -51,9 +51,9 @@
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
             <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
           </div>
-          <div class="game-controls"><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
+          <div class="game-controls"><button id="hudStatsToggle" type="button" aria-controls="hudStats" aria-expanded="true">Hide stats ▴</button><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
         </div>
-        <div class="stats-grid">
+        <div class="stats-grid" id="hudStats" aria-label="Empire statistics">
           <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>CASH BALANCE</small><strong id="cash">$1,000</strong></span><span class="stat-chevron">⌄</span>
             <div class="stat-explanation"><div><b>What is Cash?</b>Money you can spend right now. Buying businesses, upgrades, property, or stocks uses cash. Daily income can add to it.</div></div>
@@ -135,6 +135,7 @@
   <script src="mobile-controls.js"></script>
   <script src="top-stats.js"></script>
   <script src="compact-panels.js"></script>
+  <script src="hud-sticky.js?v=20261026-4"></script>
   <script src="crazygames.js"></script>
   <script src="firebase-auth.js"></script>
 </body>
