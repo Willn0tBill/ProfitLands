@@ -43,7 +43,9 @@
       const lastSnap=await lastRef.get();
       const cloudDoc=lastSnap.exists?lastSnap.data():null;
       const cloudState=cloudDoc?.state||null;
-      const local=localSave();
+      // Do not upload the last signed-in person's device save into a different account.
+      const deviceOwner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
+      const local=(deviceOwner&&deviceOwner!==currentUser.uid)?null:localSave();
 
       let chosen=null;
       let source='none';
@@ -77,6 +79,7 @@
       window.profitlandsLastCloudSave={hasSave:false,error:true};
     }
     loadingCloud=false;
+    try{localStorage.setItem('profitlands-local-owner',currentUser.uid)}catch(e){}
     render();
     refresh();
   }
@@ -128,7 +131,9 @@
     const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
     const hasProgress=st=>!!st&&(Number(st.day)>1||Number(st.cash)!==1000||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
-    const data=saved?.hasSave?saved:(hasProgress(localState)?{...localState,hasSave:true,localOnly:true}:null);
+    const owner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
+    const safeLocal=owner&&currentUser&&owner!==currentUser.uid?null:localState;
+    const data=saved?.hasSave?saved:(hasProgress(safeLocal)?{...safeLocal,hasSave:true,localOnly:true}:null);
     if(!data){box?.remove();return}
     if(!box){box=document.createElement('div');box.id='profitlandsResumeCard';box.className='panel';const target=home.querySelector('.home-content')||home;target.insertBefore(box,target.firstChild)}
     const s=data.state||data;
@@ -137,7 +142,9 @@
     box.querySelector('#resumeLastGame').onclick=()=>{
       Object.assign(state,s);
       window.restoreProfitLandsMarket?.();
-      state.timeLeft=Math.max(0,Number(state.timeLeft)||0);state.dayEndsAt=Date.now()+(state.timeLeft||MODES[state.mode]?.daySeconds||900)*1000;
+      const deadline=Number(state.dayEndsAt);
+      if(!Number.isFinite(deadline)||deadline<=0)state.dayEndsAt=Date.now()+(Math.max(1,Number(state.timeLeft)||0)||MODES[state.mode]?.daySeconds||900)*1000;
+      state.timeLeft=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));
       window.resumeProfitLands?.();
       box.remove();
     };
