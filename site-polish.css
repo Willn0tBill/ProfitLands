@@ -1,0 +1,20 @@
+/* ProfitLands visual pass: game-like clarity without expensive full-screen effects. */
+:root{color-scheme:dark;--polish-stroke:rgba(166,203,210,.15)}
+body{background:radial-gradient(ellipse at 85% 2%,rgba(64,125,106,.13),transparent 42%),#090f13}
+.topbar{border-bottom:1px solid var(--polish-stroke);backdrop-filter:blur(14px)}
+.brand h1{letter-spacing:-.045em}
+.hero{background:radial-gradient(ellipse at 80% 12%,rgba(140,210,102,.12),transparent 70%),linear-gradient(130deg,#111d24,#0e151b);border:1px solid var(--polish-stroke);border-radius:24px}
+.hero h2{letter-spacing:-.045em;line-height:1.1;text-wrap:balance}
+.panel,.stat,.mode-card,.type-card{border:1px solid var(--polish-stroke);box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.panel{border-radius:18px}
+.stat,.mode-card,.type-card{transition:border-color .2s ease,background-color .2s ease}
+.stat:hover,.mode-card:hover,.type-card:hover{border-color:rgba(165,239,139,.35)}
+.mode-card.selected,.type-card.selected{border-color:#a2eb79}
+.primary-button,.secondary-button,.small-button,.panel-toggle,.mode-card,.type-card{min-height:44px}
+#profitlandsResumeCard{border-color:rgba(162,235,121,.45);background:linear-gradient(145deg,#17271d,#0f1920);padding:22px;margin-bottom:22px}
+#profitlandsResumeCard h3{margin:9px 0}
+#profitlandsResumeCard .auth-buttons{margin-top:16px}
+:focus-visible{outline:3px solid #b8f78b!important;outline-offset:4px}
+@media(max-width:720px){.topbar{flex-wrap:wrap;gap:10px}.hero{padding:22px;border-radius:18px}.hero h2{font-size:clamp(2rem,8vw,3rem)}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.game-controls{display:flex;flex-wrap:wrap;gap:8px}.game-center-controls{flex-wrap:wrap}#profitlandsResumeCard .auth-buttons{flex-direction:column}}
+@media(max-width:390px){.stats-grid{grid-template-columns:minmax(0,1fr)}.hero{padding:18px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
