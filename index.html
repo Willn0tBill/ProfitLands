@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#10131a" />
-  <title>ProfitLands — WtvStudios</title>
+  <title>ProfitLands | Build Your Business Empire — WtvStudios</title>
+  <meta name="description" content="Play ProfitLands: a free browser business strategy prototype. Buy companies, manage investments, and build a virtual empire." />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="enhancements.css" />
   <link rel="stylesheet" href="trade-ui.css" />
@@ -17,6 +18,7 @@
   <link rel="stylesheet" href="mobile-controls.css" />
   <link rel="stylesheet" href="top-stats.css" />
   <link rel="stylesheet" href="compact-panels.css" />
+  <link rel="stylesheet" href="site-polish.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -26,13 +28,13 @@
     </header>
     <main>
       <section id="homeScreen" class="screen active">
-        <div class="hero"><div><span class="eyebrow">WTVSTUDIOS PRESENTS</span><h2>Start with $1,000.<br /><span>Build a $1 trillion empire.</span></h2><p>Buy real businesses, upgrade them, expand them into chains, survive changing demand, and build your way from a tiny company to a trillion-dollar empire.</p></div><div class="hero-coin">$</div></div>
+        <div class="hero"><div><span class="eyebrow">WTVSTUDIOS PRESENTS</span><h2>Start with $1,000.<br /><span>Build a $1 trillion empire.</span></h2><p>Buy virtual businesses, upgrade them, expand them into chains, survive changing demand, and build your way from a tiny company to a trillion-dollar empire.</p></div><div class="hero-coin">$</div></div>
         <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
-        <div class="type-grid"><button class="type-card selected" data-type="single"><strong>Singleplayer</strong><small>Build against AI companies and the changing market.</small></button><button class="type-card" data-type="multi"><strong>Multiplayer</strong><small>Prototype lobby for the shared-world multiplayer version.</small></button></div>
+        <div class="type-grid"><button class="type-card selected" data-type="single"><strong>Singleplayer</strong><small>Build against AI companies and the changing market.</small></button><button class="type-card" data-type="multi"><strong>Multiplayer Preview</strong><small>Prototype lobby for the shared-world multiplayer version.</small></button></div>
         <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose a game mode</h3></div>
         <div class="mode-grid"><button class="mode-card" data-mode="fast"><span>⚡</span><strong>Fast</strong><small>5 min days · 4 actions</small></button><button class="mode-card selected" data-mode="standard"><span>◆</span><strong>Standard</strong><small>15 min days · 6 actions</small></button><button class="mode-card" data-mode="long"><span>◷</span><strong>Long</strong><small>1 hour days · 10 actions</small></button><button class="mode-card" data-mode="persistent"><span>∞</span><strong>Persistent</strong><small>24 hour days · 12 actions</small></button></div>
         <div id="multiNotice" class="info-box hidden"><b>Multiplayer prototype</b><span>This build includes the multiplayer setup and economy rules, but live internet multiplayer still needs a server/backend. For now you can test the same game economy locally.</span></div>
-        <button id="startGame" class="primary-button">Start ProfitLands <span>→</span></button><p class="local-note">Your progress will be saved to your ProfitLands account.</p>
+        <button id="startGame" type="button" class="primary-button">Start ProfitLands <span>→</span></button><p class="local-note">Your progress will be saved to your ProfitLands account.</p>
       </section>
             <section id="gameScreen" class="screen">
         <div class="game-hud">
