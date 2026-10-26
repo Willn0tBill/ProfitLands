@@ -5,6 +5,12 @@
     modal.classList.add('hidden');
   }
 
+  document.addEventListener('keydown',function(event){
+    if(event.key!=='Escape')return;
+    const modal=[...document.querySelectorAll('.modal:not(.hidden)')].pop();
+    if(modal && modal.id!=='economyModal'){closeModal(modal);event.preventDefault();}
+  });
+
   document.addEventListener('click',function(event){
     const target=event.target;
     if(!(target instanceof Element))return;
@@ -13,7 +19,7 @@
 
     // Clicking the dark area outside the actual modal card closes it.
     // Clicking inside the card leaves the UI open.
-    if(target===modal){
+    if(target===modal && modal.id!=='economyModal'){
       closeModal(modal);
     }
   });
@@ -24,7 +30,7 @@
     const target=event.target;
     if(!(target instanceof Element))return;
     const modal=target.closest('.modal');
-    if(!modal||target!==modal)return;
+    if(!modal||target!==modal||modal.id==='economyModal')return;
     closeModal(modal);
   });
 })();
