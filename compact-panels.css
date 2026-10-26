@@ -25,7 +25,7 @@
   --pl-accent:#a8ee62;
   --pl-danger:#e27b73;
 }
-html,body{overflow-x:hidden!important}
+html,body{overflow-x:clip!important}
 body{background:var(--pl-bg)!important}
 .app-shell{width:min(1180px,calc(100% - 36px))!important}
 .hero{background:#10161d!important;border-color:var(--pl-border)!important;box-shadow:none!important}
@@ -61,7 +61,7 @@ body:has(#gameScreen.active) .app-shell{padding-top:14px!important}
 #gameScreen.active{position:relative!important;transform:none!important;contain:none!important;overflow:visible!important;padding-top:0!important}
 #gameScreen::before,#gameScreen::after{content:none!important;display:none!important}
 #gameScreen .game-hud{
-  position:relative!important;inset:auto!important;z-index:1!important;
+  position:sticky!important;top:max(0px,env(safe-area-inset-top))!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:150!important;
   display:grid!important;gap:14px!important;width:100%!important;
   margin:0 0 18px!important;padding:22px!important;
   border:1px solid rgba(137,185,160,.22)!important;border-radius:20px!important;
@@ -131,3 +131,70 @@ body:has(#gameScreen.active) .app-shell{padding-top:14px!important}
   #gameScreen .game-hud .stat small{font-size:8px!important}
 }
 @media(prefers-reduced-motion:reduce){#gameScreen .goal-progress i{transition:none!important}}
+
+/* Always-visible game HUD: sticky within gameplay, no fake spacer or fixed overlay. */
+#gameScreen.active{overflow:visible!important}
+#gameScreen .game-hud{
+  isolation:isolate!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+  backdrop-filter:blur(16px)!important;
+  box-shadow:0 16px 46px rgba(0,0,0,.34)!important;
+}
+#gameScreen .game-hud .stats-grid{align-items:stretch!important}
+#gameScreen .game-hud .stat{min-height:76px!important}
+#hudStatsToggle{display:none}
+#gameScreen.hud-scrolled .game-hud{
+  padding-block:12px!important;
+  gap:9px!important;
+  border-radius:0 0 16px 16px!important;
+  box-shadow:0 14px 36px rgba(0,0,0,.45)!important;
+}
+#gameScreen.hud-scrolled .game-hud .stat{min-height:68px!important;padding-block:9px!important}
+#gameScreen.hud-scrolled .game-hud .game-head h2{font-size:28px!important}
+#gameScreen.hud-scrolled .game-hud .goal-progress{margin-top:7px!important}
+#gameScreen.hud-scrolled .game-hud .goal-status{margin-top:4px!important}
+@media(max-width:850px){
+  #gameScreen .game-hud{top:max(0px,env(safe-area-inset-top))!important}
+  #gameScreen .game-hud .game-head{gap:10px!important}
+}
+@media(max-width:600px){
+  #gameScreen .game-hud{z-index:150!important}
+  #hudStatsToggle{
+    display:inline-flex!important;align-items:center;justify-content:center;
+    min-height:40px;padding:8px 10px;border:1px solid #395446;
+    border-radius:9px;background:#16221d;color:#c8f5a8;
+    font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;
+  }
+  #gameScreen .game-hud .game-controls{gap:6px!important}
+  #gameScreen .game-hud .game-controls .small-button{font-size:11px!important;padding:9px 10px!important;min-height:40px!important}
+  #gameScreen.hud-scrolled .game-hud{
+    padding:8px 10px 10px!important;gap:7px!important;
+    border-radius:0 0 12px 12px!important;
+  }
+  #gameScreen.hud-scrolled .game-hud .game-head{
+    display:flex!important;flex-direction:column!important;gap:7px!important;margin:0!important;
+  }
+  #gameScreen.hud-scrolled .game-hud .empire-status{flex:0 1 auto!important;width:100%!important}
+  #gameScreen.hud-scrolled .game-hud .empire-status>.eyebrow,
+  #gameScreen.hud-scrolled .game-hud .goal-progress,
+  #gameScreen.hud-scrolled .game-hud .goal-status,
+  #gameScreen.hud-scrolled .game-hud .timer-box small{display:none!important}
+  #gameScreen.hud-scrolled .day-row{
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important;
+  }
+  #gameScreen.hud-scrolled .day-row h2{font-size:20px!important}
+  #gameScreen.hud-scrolled .game-center-controls{
+    display:flex!important;align-items:center!important;gap:8px!important;
+  }
+  #gameScreen.hud-scrolled .timer-box{min-width:0!important}
+  #gameScreen.hud-scrolled .timer-box strong{font-size:19px!important}
+  #gameScreen.hud-scrolled .end-day-compact{padding:7px 10px!important;min-height:36px!important;font-size:12px!important}
+  #gameScreen.hud-scrolled .game-controls{width:100%!important;justify-content:flex-start!important}
+  #gameScreen.hud-scrolled .game-hud .stat{min-height:64px!important;padding:9px 10px!important}
+  #gameScreen.hud-collapsed .game-hud .stats-grid{display:none!important}
+  #gameScreen.hud-collapsed .game-hud .event-banner{display:none!important}
+}
+@media(max-width:375px){
+  #gameScreen.hud-scrolled .game-controls .small-button{font-size:10px!important;padding:7px 8px!important}
+  #hudStatsToggle{padding:7px 8px;font-size:11px}
+}
