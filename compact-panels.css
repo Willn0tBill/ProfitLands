@@ -54,245 +54,80 @@ body{background:var(--pl-bg)!important}
 .news-item{line-height:1.5!important}
 .finance-row,.holding{padding:11px 2px!important}
 
-/* Clean, single-source gameplay HUD layout */
-body:has(#gameScreen.active) .topbar{display:none!important}
-body:has(#gameScreen.active) .app-shell{padding-top:0!important}
-body:has(#gameScreen.active) #gameScreen{
-  position:relative!important;
-  width:100%!important;
-  min-width:0!important;
-  overflow:visible!important;
-  transform:none!important;
-  contain:none!important;
-  padding-top:0!important;
+/* Mobile-first game dashboard, replacing the old fixed 9999-z-index HUD. */
+html{scroll-padding-top:22px}
+body:has(#gameScreen.active) .topbar{display:flex!important}
+body:has(#gameScreen.active) .app-shell{padding-top:14px!important}
+#gameScreen.active{position:relative!important;transform:none!important;contain:none!important;overflow:visible!important;padding-top:0!important}
+#gameScreen::before,#gameScreen::after{content:none!important;display:none!important}
+#gameScreen .game-hud{
+  position:relative!important;inset:auto!important;z-index:1!important;
+  display:grid!important;gap:14px!important;width:100%!important;
+  margin:0 0 18px!important;padding:22px!important;
+  border:1px solid rgba(137,185,160,.22)!important;border-radius:20px!important;
+  background:linear-gradient(145deg,#14231d 0%,#111923 62%,#101720 100%)!important;
+  box-shadow:0 20px 50px rgba(0,0,0,.18)!important;
 }
-body:has(#gameScreen.active) .game-hud{
-  position:fixed!important;
-  top:0!important;
-  left:0!important;
-  right:0!important;
-  z-index:9999!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  gap:0!important;
-  width:100%!important;
-  max-width:none!important;
-  box-sizing:border-box!important;
-  margin:0!important;
-  padding:14px 24px 12px!important;
-  background:rgba(10,14,19,.985)!important;
-  border-bottom:1px solid #27313b!important;
-  box-shadow:0 10px 28px rgba(0,0,0,.22)!important;
+#gameScreen .game-hud .game-head{
+  display:flex!important;justify-content:space-between!important;align-items:flex-start!important;
+  flex-wrap:wrap!important;gap:16px!important;width:100%!important;
+  min-height:0!important;margin:0!important;position:relative!important;
 }
-body:has(#gameScreen.active) .game-hud .game-head,
-body:has(#gameScreen.active) .game-hud .stats-grid,
-body:has(#gameScreen.active) .game-hud .event-banner{
-  width:min(1210px,calc(100% - 12px))!important;
-  max-width:1210px!important;
-  margin-left:auto!important;
-  margin-right:auto!important;
-  box-sizing:border-box!important;
+#gameScreen .game-hud .empire-status{min-width:0!important;flex:1 1 280px!important}
+#gameScreen .day-row{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:14px!important;margin-top:6px!important}
+#gameScreen .day-row h2{font-size:clamp(27px,3vw,38px)!important;margin:0!important;line-height:1.15!important}
+#gameScreen .game-center-controls{position:static!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:14px!important;margin:0!important}
+#gameScreen .timer-box{min-width:0!important;text-align:left!important}
+#gameScreen .timer-box small{display:block!important;font-size:10px!important;letter-spacing:.12em!important;margin-bottom:3px!important}
+#gameScreen .timer-box strong{display:block!important;font-size:clamp(20px,3vw,29px)!important;line-height:1.1!important}
+#gameScreen .goal-progress{width:min(480px,100%)!important;height:7px!important;margin-top:15px!important;overflow:hidden!important;border:1px solid #37453e!important;border-radius:99px!important;background:#23332d!important}
+#gameScreen .goal-progress i{display:block!important;height:100%!important;background:#aef45f!important;transition:width .3s ease!important}
+#gameScreen .goal-status{display:block!important;color:#a9bbad!important;font-size:11px!important;margin-top:8px!important}
+#gameScreen .game-controls{position:static!important;display:flex!important;flex:0 1 auto!important;align-items:center!important;flex-wrap:wrap!important;gap:9px!important;margin:0!important}
+#gameScreen .game-hud .stats-grid{
+  position:static!important;inset:auto!important;transform:none!important;display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;
+  width:100%!important;margin:0!important;padding:0!important;
 }
-body:has(#gameScreen.active) .game-hud .game-head{
-  order:1!important;
-  position:relative!important;
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) auto!important;
-  align-items:center!important;
-  column-gap:36px!important;
-  min-height:88px!important;
-  margin-bottom:14px!important;
-  text-align:left!important;
+#gameScreen .game-hud .stats-grid::before,#gameScreen .game-hud .stats-grid::after{display:none!important;content:none!important}
+#gameScreen .game-hud .stat{min-width:0!important;min-height:90px!important;padding:16px!important;border:1px solid #35433e!important;border-radius:14px!important;background:#0b1519!important}
+#gameScreen .game-hud .stat small{font-size:10px!important;color:#98a9a3!important}
+#gameScreen .game-hud .stat strong{font-size:clamp(18px,2vw,25px)!important;overflow-wrap:anywhere!important}
+#gameScreen .game-hud .event-banner{margin:0!important;min-height:0!important;grid-column:1!important}
+#gameScreen .dashboard-grid,#gameScreen .bottom-grid{gap:16px!important}
+#gameScreen .bottom-grid{margin-top:16px!important}
+#gameScreen .economy-panel,#gameScreen .major-companies-panel{margin-block:16px!important}
+#gameScreen .dashboard-grid>.panel,#gameScreen .bottom-grid>.panel{min-width:0!important}
+.modal:not(.hidden){z-index:20000!important}
+.modal:not(.hidden) .modal-card{position:relative!important;z-index:20001!important}
+@media(max-width:900px){
+  #gameScreen .game-hud{padding:18px!important}
+  #gameScreen .game-hud .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
-body:has(#gameScreen.active) .game-hud .game-head > .empire-status{
-  position:static!important;
-  left:auto!important;
-  right:auto!important;
-  min-width:0!important;
-  justify-self:start!important;
-}
-body:has(#gameScreen.active) .day-row{
-  display:flex!important;
-  align-items:center!important;
-  flex-wrap:nowrap!important;
-  gap:24px!important;
-  margin-top:5px!important;
-}
-body:has(#gameScreen.active) .game-hud .game-head h2{
-  flex:0 0 auto!important;
-  margin:0!important;
-  font-size:32px!important;
-  line-height:1!important;
-  white-space:nowrap!important;
-}
-body:has(#gameScreen.active) .game-center-controls{
-  position:static!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-start!important;
-  flex:0 0 auto!important;
-  gap:14px!important;
-  margin:0!important;
-}
-body:has(#gameScreen.active) .timer-box{
-  min-width:108px!important;
-  text-align:left!important;
-}
-body:has(#gameScreen.active) .timer-box small{
-  display:block!important;
-  margin-bottom:2px!important;
-  font-size:8px!important;
-  letter-spacing:.14em!important;
-}
-body:has(#gameScreen.active) .timer-box strong{
-  display:block!important;
-  font-size:24px!important;
-  line-height:1!important;
-}
-body:has(#gameScreen.active) .end-day-compact{
-  width:auto!important;
-  min-height:40px!important;
-  margin:0!important;
-  padding:9px 14px!important;
-  white-space:nowrap!important;
-}
-body:has(#gameScreen.active) .end-day-compact span{float:none!important;margin-left:8px!important}
-body:has(#gameScreen.active) .game-controls{
-  position:static!important;
-  left:auto!important;
-  right:auto!important;
-  justify-self:end!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:9px!important;
-  margin-left:0!important;
-}
-body:has(#gameScreen.active) .goal-progress{
-  width:min(390px,100%)!important;
-  height:5px!important;
-  margin-top:11px!important;
-  overflow:hidden!important;
-  border:1px solid #2c3742!important;
-  border-radius:999px!important;
-  background:#202933!important;
-}
-body:has(#gameScreen.active) .goal-progress i{
-  display:block!important;
-  width:0;
-  height:100%!important;
-  border-radius:inherit!important;
-  background:#a8ee62!important;
-  transition:width .35s ease!important;
-}
-body:has(#gameScreen.active) .goal-status{
-  display:block!important;
-  margin-top:5px!important;
-  color:#758291!important;
-  font-size:9px!important;
-}
-body:has(#gameScreen.active) .game-hud .stats-grid{
-  order:2!important;
-  position:static!important;
-  top:auto!important;
-  left:auto!important;
-  right:auto!important;
-  transform:none!important;
-  display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:12px!important;
-  margin-top:0!important;
-  margin-bottom:0!important;
-  padding:0!important;
-}
-body:has(#gameScreen.active) .game-hud .stats-grid::before,
-body:has(#gameScreen.active) .game-hud .stats-grid::after{
-  content:none!important;
-  display:none!important;
-}
-body:has(#gameScreen.active) .game-hud .stat{
-  min-height:70px!important;
-  padding:13px 15px!important;
-  background:#10161d!important;
-  border-color:#26313b!important;
-}
-body:has(#gameScreen.active) .game-hud .stat small{font-size:8px!important}
-body:has(#gameScreen.active) .game-hud .stat strong{font-size:20px!important;margin-top:5px!important}
-body:has(#gameScreen.active) .game-hud .event-banner{
-  order:3!important;
-  position:static!important;
-  margin-top:12px!important;
-  margin-bottom:0!important;
-  padding:10px 14px!important;
-  min-height:38px!important;
-  border:1px solid #66532b!important;
-  border-radius:10px!important;
-  background:#201b10!important;
-  color:#ffd56e!important;
-}
-/* Fixed HUD spacer. Extra room is reserved when a world-event banner is visible. */
-body:has(#gameScreen.active) #gameScreen::before{
-  content:"";
-  display:block;
-  width:100%;
-  height:202px!important;
-}
-body:has(#gameScreen.active):has(.game-hud .event-banner:not(.hidden)) #gameScreen::before{
-  height:252px!important;
-}
-
-/* Content hierarchy */
-body:has(#gameScreen.active) .dashboard-grid{gap:14px!important}
-body:has(#gameScreen.active) .bottom-grid{gap:14px!important;margin-top:14px!important}
-body:has(#gameScreen.active) .economy-panel,
-body:has(#gameScreen.active) .major-companies-panel{margin-bottom:14px!important}
-
-/* Tablet */
-@media(max-width:850px){
-  body:has(#gameScreen.active) .game-hud{padding:10px 12px!important}
-  body:has(#gameScreen.active) .game-hud .game-head{
-    grid-template-columns:minmax(0,1fr) auto!important;
-    column-gap:14px!important;
-    min-height:96px!important;
-  }
-  body:has(#gameScreen.active) .day-row{
-    gap:12px!important;
-    flex-wrap:wrap!important;
-  }
-  body:has(#gameScreen.active) .game-center-controls{gap:8px!important}
-  body:has(#gameScreen.active) .timer-box{min-width:92px!important}
-  body:has(#gameScreen.active) .timer-box strong{font-size:20px!important}
-  body:has(#gameScreen.active) .game-hud .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  body:has(#gameScreen.active) #gameScreen::before{height:282px!important}
-  body:has(#gameScreen.active):has(.game-hud .event-banner:not(.hidden)) #gameScreen::before{height:332px!important}
-}
-
-/* Mobile */
 @media(max-width:600px){
-  .app-shell{width:min(100% - 18px,1180px)!important}
-  body:has(#gameScreen.active) .game-hud{padding:8px 9px 10px!important}
-  body:has(#gameScreen.active) .game-hud .game-head,
-  body:has(#gameScreen.active) .game-hud .stats-grid,
-  body:has(#gameScreen.active) .game-hud .event-banner{width:100%!important}
-  body:has(#gameScreen.active) .game-hud .game-head{
-    grid-template-columns:1fr!important;
-    row-gap:10px!important;
-    min-height:0!important;
-  }
-  body:has(#gameScreen.active) .game-controls{justify-self:start!important}
-  body:has(#gameScreen.active) .day-row{
-    align-items:flex-end!important;
-    gap:10px!important;
-    flex-wrap:wrap!important;
-  }
-  body:has(#gameScreen.active) .game-hud .game-head h2{font-size:25px!important}
-  body:has(#gameScreen.active) .game-hud .game-head .eyebrow{font-size:8px!important}
-  body:has(#gameScreen.active) .game-hud .game-controls .small-button{font-size:10px!important;padding:7px 8px!important}
-  body:has(#gameScreen.active) .goal-progress{width:100%!important}
-  body:has(#gameScreen.active) .game-hud .stats-grid{gap:8px!important}
-  body:has(#gameScreen.active) .game-hud .stat{min-height:62px!important;padding:10px 12px!important}
-  body:has(#gameScreen.active) .game-hud .stat strong{font-size:18px!important}
-  body:has(#gameScreen.active) #gameScreen::before{height:350px!important}
-  body:has(#gameScreen.active):has(.game-hud .event-banner:not(.hidden)) #gameScreen::before{height:402px!important}
+  .app-shell{width:calc(100% - 28px)!important;max-width:520px!important;margin-inline:auto!important}
+  .topbar{flex-wrap:wrap!important;gap:9px!important}
+  body:has(#gameScreen.active) .topbar{padding:0 2px!important;margin-bottom:14px!important}
+  #gameScreen .game-hud{gap:14px!important;padding:15px!important;margin-bottom:16px!important;border-radius:17px!important}
+  #gameScreen .game-hud .game-head{gap:12px!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+  #gameScreen .day-row{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  #gameScreen .game-center-controls{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:10px!important}
+  #gameScreen .timer-box strong{font-size:24px!important}
+  #gameScreen .end-day-compact{padding:10px 13px!important;min-height:44px!important;white-space:nowrap!important}
+  #gameScreen .game-controls{gap:8px!important}
+  #gameScreen .game-controls .small-button{min-height:40px!important;font-size:12px!important;padding:10px 12px!important}
+  #gameScreen .game-hud .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  #gameScreen .game-hud .stat{min-height:84px!important;padding:13px 12px!important}
+  #gameScreen .game-hud .stat small{font-size:9px!important}
+  #gameScreen .game-hud .stat strong{font-size:19px!important}
+  #gameScreen .dashboard-grid,#gameScreen .bottom-grid{grid-template-columns:minmax(0,1fr)!important}
   .panel{padding:15px!important}
+  .modal{padding:12px!important;align-items:center!important}
+  .modal-card,.modal-card.wide{width:100%!important;max-height:calc(100dvh - 30px)!important;overflow-y:auto!important}
 }
+@media(max-width:380px){
+  #gameScreen .game-hud .stat{padding:11px 9px!important}
+  #gameScreen .game-hud .stat strong{font-size:17px!important}
+  #gameScreen .game-hud .stat small{font-size:8px!important}
+}
+@media(prefers-reduced-motion:reduce){#gameScreen .goal-progress i{transition:none!important}}
