@@ -164,3 +164,14 @@ test('valid save creates a separate fallback and corrupt primary recovers previo
   assert.equal(recovered.window.state.cash,5600);
   assert.ok(recovered.window.state.news.some(x=>x.includes('RECOVERY')));
 });
+
+test('manager popularity improvements do not depend on market-cycle length',()=>{
+  for(const mode of Object.keys(modes)){
+    const h=harness(),g=h.window.ProfitLandsGrowth;
+    h.state.mode=mode;h.state.businesses=[{type:'coffee',level:1,locations:[{basePopularity:50}],popularity:50,manager:true}];
+    g.managerTick(1000000);
+    for(let elapsed=5000;elapsed<=60000;elapsed+=5000)g.managerTick(1000000+elapsed);
+    assert.ok(Math.abs(h.state.businesses[0].popularity-50.4)<1e-5,mode+' manager gain');
+    assert.ok(Math.abs(h.state.businesses[0].locations[0].basePopularity-50.4)<1e-5,mode+' location gain');
+  }
+});
