@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131a">
+  <meta name="description" content="ProfitLands display and accessibility settings.">
+  <title>Settings | ProfitLands</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../site-pages.css?v=pages01">
+  <script src="../ui-preferences.js?v=pages01" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">$</div><div><h1>ProfitLands</h1><p>WtvStudios · Settings</p></div></div>
+      <nav class="pl-header-tools" aria-label="Website navigation"><a href="../" class="pl-header-link">Home</a><a href="../play/" class="pl-header-link">Play</a></nav>
+    </header>
+    <main class="pl-settings-main">
+      <div class="pl-settings-title"><span class="eyebrow">PREFERENCES</span><h2>Make ProfitLands your own.</h2><p>Display preferences are stored only in this browser. Your empire save and account are managed separately.</p></div>
+      <section class="pl-settings-section" aria-labelledby="display-heading">
+        <h3 id="display-heading">Display & accessibility</h3>
+        <label class="pl-pref"><span><strong>Reduce animations</strong><small>Limit motion, transitions and visual movement across the game.</small></span><input type="checkbox" data-preference="reducedMotion"></label>
+        <label class="pl-pref"><span><strong>Compact dashboard</strong><small>Use smaller panels and tighter spacing to fit more information on screen.</small></span><input type="checkbox" data-preference="compactDisplay"></label>
+        <label class="pl-pref"><span><strong>High-contrast outlines</strong><small>Make panel borders and secondary labels easier to distinguish.</small></span><input type="checkbox" data-preference="highContrast"></label>
+        <p id="preferencesSaved" class="pl-setting-note" role="status" aria-live="polite"></p>
+        <div class="pl-settings-actions"><button type="button" class="secondary-button" id="resetPreferences">Reset display preferences</button></div>
+      </section>
+      <section class="pl-settings-section" aria-labelledby="account-heading">
+        <h3 id="account-heading">Your game & account</h3>
+        <p>Account sign-in, cloud saves, player identity and company name are available in the game. Settings on this page never delete your empire.</p>
+        <div class="pl-settings-actions"><a class="pl-link" href="../play/">Go to game & account</a></div>
+      </section>
+      <section class="pl-settings-section" aria-labelledby="game-heading">
+        <h3 id="game-heading">How game time works</h3>
+        <p>Your businesses produce net cash flow each second while you are actively playing. A market cycle refreshes stock prices, economic events and action points. Hidden tabs do not earn large offline catch-up rewards.</p>
+      </section>
+      <footer class="pl-home-footer"><span>ProfitLands · WtvStudios</span><a href="../">Return to homepage</a></footer>
+    </main>
+  </div>
+</body>
+</html>
