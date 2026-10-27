@@ -2,7 +2,17 @@
    achievements and HTML-driven controls. Existing save key/schema retained. */
 (function(){
   'use strict';
-  const HISTORY_LIMIT=120, SAMPLE_MS=5000, MAX_WORKERS=6;
+  const HISTORY_LIMIT=120, SAMPLE_MS=5000;
+  const WORKFORCE_TIERS=Object.freeze([
+    {netWorth:0,cap:12,label:'Startup'},
+    {netWorth:10000,cap:25,label:'Growing business'},
+    {netWorth:100000,cap:60,label:'Regional company'},
+    {netWorth:1000000,cap:150,label:'National company'},
+    {netWorth:10000000,cap:400,label:'Large corporation'},
+    {netWorth:100000000,cap:1000,label:'Enterprise group'},
+    {netWorth:1000000000,cap:2500,label:'Global conglomerate'},
+    {netWorth:1000000000000,cap:10000,label:'Trillion-dollar empire'}
+  ]);
   const $=id=>document.getElementById(id);
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const typeFor=b=>BUSINESS_TYPES.find(t=>t.id===b.type);
@@ -41,22 +51,54 @@
     if(!Number.isFinite(g.managerElapsed))g.managerElapsed=0;
     return g;
   }
+  // A company needs facilities to accommodate staff, and the empire needs
+  // enough capital to oversee its total workforce across all businesses.
+  function companyEmployeeCap(b){
+    if(!b||!typeFor(b))return 0;
+    const level=clamp(Math.floor(validNumber(b.level)||1),1,1000);
+    const locations=Array.isArray(b.locations)&&b.locations.length
+      ?b.locations.length:Math.max(1,Math.floor(validNumber(b.chainCount))+1);
+    return clamp(6+(level-1)*6+(locations-1)*12,6,5000);
+  }
+  function workforceTier(netWorth=window.netWorth?.()??state.cash){
+    const worth=Math.max(0,validNumber(netWorth));
+    let index=0;
+    for(let i=1;i<WORKFORCE_TIERS.length;i++)if(worth>=WORKFORCE_TIERS[i].netWorth)index=i;
+    return {...WORKFORCE_TIERS[index],next:WORKFORCE_TIERS[index+1]||null};
+  }
+  function totalEmployees(){
+    return (state.businesses||[]).reduce((total,b)=>total+clamp(Math.floor(validNumber(b.workers)),0,100000),0);
+  }
+  function hiringRoom(b){
+    if(!b)return 0;
+    const companyRoom=companyEmployeeCap(b)-Math.max(0,Math.floor(validNumber(b.workers)));
+    const empireRoom=workforceTier().cap-totalEmployees();
+    return Math.max(0,Math.min(companyRoom,empireRoom));
+  }
   function adjustProfit(b){
     const t=typeFor(b);if(!t)return 0;
-    const workers=clamp(Math.floor(validNumber(b.workers)),0,MAX_WORKERS),manager=b.manager===true;
+    const workers=clamp(Math.floor(validNumber(b.workers)),0,100000),manager=b.manager===true;
     const locations=Array.isArray(b.locations)?Math.max(1,b.locations.length):1;
     const level=Math.max(1,Math.floor(validNumber(b.level)||1));
     const revenue=t.baseRevenue*(1+(level-1)*.22)*locations;
     const expense=t.baseExpense*(1+(level-1)*.22)*locations;
-    const wages=workers*expense*.14+(manager?expense*.23:0);
-    const workBoost=workers*.13+(manager?.18:0);
+    // Diminishing returns limit runaway earnings with huge workforces.
+    // Salaries remain proportional to real headcount.
+    const wages=workers*expense*.055+(manager?expense*.23:0);
+    const workBoost=workers*.12/(1+workers*.025)+(manager?.18:0);
     const active=Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>Date.now();
     const bonus=active?.12:0;
     return Math.round(revenue*(workBoost+bonus)-wages);
   }
-  function staffCost(b,role){
+  function staffCost(b,role,count=1){
     const t=typeFor(b);if(!t)return Infinity;
-    return Math.round(t.cost*(role==='manager'?1.5:.38));
+    if(role==='manager')return Math.round(t.cost*1.5);
+    const amount=Math.floor(Number(count));
+    if(!Number.isInteger(amount)||amount<1||amount>25)return Infinity;
+    const workers=Math.max(0,Math.floor(validNumber(b.workers)));
+    let total=0;
+    for(let i=0;i<amount;i++)total+=Math.round(t.cost*.38*(1+(workers+i)*.025));
+    return total;
   }
   function initiativeCost(b){const t=typeFor(b);return t?Math.round(t.cost*.45):Infinity}
   function businessIndex(){return clamp(Math.floor(Number($('growthBusiness')?.value)||0),0,Math.max(0,state.businesses.length-1))}
@@ -145,20 +187,33 @@
     if(detail)detail.hidden=!b;
     if($('growthRunDecision'))$('growthRunDecision').disabled=!b;
     if(!b)return;
-    const t=typeFor(b),staff=Math.floor(validNumber(b.workers)),workerFee=staffCost(b,'worker'),managerFee=staffCost(b,'manager');
+    const staff=Math.max(0,Math.floor(validNumber(b.workers)));
+    const quantity=Math.max(1,Math.min(25,Math.floor(Number($('growthHireQuantity')?.value)||1)));
+    const room=hiringRoom(b),companyCap=companyEmployeeCap(b);
+    const workerFee=staffCost(b,'worker',quantity),managerFee=staffCost(b,'manager');
+    const empire=workforceTier();
     const ownPrice=initiativeCost(b),sector=INDUSTRIES[b.type]||['Local campaign','Run a focused short-term promotion.'];
     const put=(id,str)=>{if($(id))$(id).textContent=String(str)};
-    put('growthStaffCount',staff+' / '+MAX_WORKERS);
+    put('growthStaffCount',staff.toLocaleString()+' / '+companyCap.toLocaleString()+' in this company');
+    put('growthEmpireStaff',totalEmployees().toLocaleString()+' / '+empire.cap.toLocaleString()+' workers across your empire');
+    put('growthEmpireTier',empire.label);
+    put('growthNextStaffTier',empire.next
+      ?'Next workforce expansion at '+fmt(empire.next.netWorth)+' empire value → '+empire.next.cap.toLocaleString()+' employees.'
+      :'Maximum workforce tier unlocked.');
+    put('growthHiringRoom',room
+      ?'You can currently hire '+room.toLocaleString()+' more here. Upgrade this business, add locations, or grow your empire to increase capacity.'
+      :'No available staff positions. Upgrade this company or expand your empire to unlock more.');
+
     put('growthManagerState',b.manager===true?'Employed — maintains popularity during active play':'Not hired');
     put('growthStaffEffect',rateLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
-    put('growthHireCost',fmt(workerFee)+' upfront + ongoing wages');
+    put('growthHireCost',quantity+' employee'+(quantity===1?'':'s')+' · '+fmt(workerFee)+' upfront + ongoing wages');
     put('growthManagerCost',fmt(managerFee)+' upfront + ongoing salary');
     put('growthDecisionName',sector[0]);put('growthDecisionDescription',sector[1]);
     put('growthDecisionCost',fmt(ownPrice)+' · 1 action');
     const now=Date.now(),active=Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>now,cooldown=Number.isFinite(b.initiativeCooldownAt)&&b.initiativeCooldownAt>now;
     put('growthDecisionDuration',active?'Active · '+Math.ceil((b.initiativeUntilTime-now)/60000)+'m remaining':cooldown?'Cooldown · '+Math.ceil((b.initiativeCooldownAt-now)/60000)+'m remaining':'Ready now');
     const hire=$('growthHireWorker'),manager=$('growthHireManager'),decision=$('growthRunDecision');
-    if(hire)hire.disabled=staff>=MAX_WORKERS||state.cash<workerFee||state.actions<=0;
+    if(hire)hire.disabled=quantity>room||state.cash<workerFee||state.actions<=0;
     if(manager)manager.disabled=b.manager===true||state.cash<managerFee||state.actions<=0;
     if(decision)decision.disabled=state.actions<=0||state.cash<ownPrice||cooldown;
   }
@@ -191,9 +246,12 @@
     const b=selectedBusiness();if(!b||!state.started)return;
     const say=s=>{if(window.toast)window.toast(s)};
     if(id==='growthHireWorker'){
-      const count=clamp(Math.floor(validNumber(b.workers)),0,MAX_WORKERS);
-      if(count>=MAX_WORKERS||!spend(b,staffCost(b,'worker')))return say('More cash or a new market cycle is needed.');
-      b.workers=count+1;say('Employee hired. Productivity and wages updated.');
+      const count=Math.max(0,Math.floor(validNumber(b.workers)));
+      const quantity=Math.max(1,Math.min(25,Math.floor(Number($('growthHireQuantity')?.value)||1)));
+      if(quantity>hiringRoom(b))return say('Not enough company or empire workforce capacity. Upgrade, expand, or choose a smaller batch.');
+      if(!spend(b,staffCost(b,'worker',quantity)))return say('Not enough cash or actions to hire.');
+      b.workers=count+quantity;
+      say(quantity+' employee'+(quantity===1?'':'s')+' hired. Productivity and payroll updated.');
     }else if(id==='growthHireManager'){
       if(b.manager||!spend(b,staffCost(b,'manager')))return say('Unable to hire this manager.');
       b.manager=true;say('Manager hired. Popularity is now maintained during active play.');
@@ -221,12 +279,13 @@
       const action=e.target.closest('button[data-growth-action]');if(action)perform(action.dataset.growthAction);
     });
     $('growthBusiness')?.addEventListener('change',renderStaff);
+    $('growthHireQuantity')?.addEventListener('change',renderStaff);
     $('growthMetric')?.addEventListener('change',renderChart);
     window.addEventListener('profitlands:resume',()=>{ensure();render();});
     window.addEventListener('profitlands:newgame',()=>{state.growth={history:[],milestones:[],lastSample:0,lastManagerTick:0,managerElapsed:0};render()});
     render();
   }
-  window.ProfitLandsGrowth={ensure,adjustProfit,pushHistory,awards,onCycle,managerTick,sample,render,staffCost,initiativeCost,init,
+  window.ProfitLandsGrowth={ensure,adjustProfit,pushHistory,awards,onCycle,managerTick,sample,render,staffCost,companyEmployeeCap,workforceTier,totalEmployees,hiringRoom,WORKFORCE_TIERS,initiativeCost,init,
     reset(){state.growth={history:[],milestones:[],lastSample:0,lastManagerTick:0,managerElapsed:0};render();},
     stats(){return{milestones:ensure().milestones.length,samples:ensure().history.length}}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
