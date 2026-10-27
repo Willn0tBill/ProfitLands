@@ -375,17 +375,15 @@
     const i=businesses.indexOf(biggest);
     if(i>=0 && biggest.bankruptcyPending)setTimeout(()=>bankruptcyModal(i),0);
   }
-  function majorPanel(){
-    let panel=document.getElementById('majorCompaniesPanel');if(panel)return panel;
-    panel=document.createElement('div');panel.id='majorCompaniesPanel';panel.className='panel major-companies-panel';
-    const target=document.querySelector('.dashboard-grid');target?.parentNode.insertBefore(panel,target.nextSibling);
-    return panel;
-  }
   function renderMajor(){
-    const p=majorPanel();if(!p)return;
+    const grid=document.getElementById('majorCompaniesGrid');
+    if(!grid)return;
     const n=calcNetWorth(),t=tier();
-    p.innerHTML='<div class="panel-head"><div><span class="eyebrow">CORPORATE LADDER</span><h3>Major Companies</h3></div><span class="live-tag">SCALE '+t+'</span></div><p class="modal-sub">Major corporations unlock at net-worth thresholds. Larger companies generate more money, but their exposure to the economy and major events increases.</p><div class="major-grid">'+MAJOR.map((d,i)=>{const owned=state.majorCompanies.some(c=>c.type===d.id),unlocked=n>=d.req,active=i<t;return '<div class="major-card '+(unlocked?'unlocked ':'locked ')+'"><div><span class="major-tier">TIER '+(i+1)+'</span><h4>'+d.name+'</h4><small>'+d.desc+'</small></div><div class="major-meta"><span>Unlock '+money(d.req)+'</span><span>Risk '+['Low','Moderate','High','Very High','Extreme','Severe','Maximum'][i]+'</span></div><button class="major-buy" data-major="'+d.id+'" '+((!unlocked||owned||state.cash<d.price)?'disabled':'')+'>'+ (owned?'OWNED':unlocked?'Buy for '+money(d.price):'Locked until '+money(d.req))+'</button></div>'}).join('')+'</div>';
-    p.querySelectorAll('[data-major]').forEach(b=>b.onclick=()=>buyMajor(b.dataset.major));
+    const tag=document.getElementById('majorScale');
+    if(tag)tag.textContent='SCALE '+t;
+    // Corporation cards are a data-driven collection; only these repeat.
+    grid.innerHTML=MAJOR.map((d,i)=>{const owned=state.majorCompanies.some(c=>c.type===d.id),unlocked=n>=d.req,active=i<t;return '<div class="major-card '+(unlocked?'unlocked ':'locked ')+'"><div><span class="major-tier">TIER '+(i+1)+'</span><h4>'+d.name+'</h4><small>'+d.desc+'</small></div><div class="major-meta"><span>Unlock '+money(d.req)+'</span><span>Risk '+['Low','Moderate','High','Very High','Extreme','Severe','Maximum'][i]+'</span></div><button class="major-buy" data-major="'+d.id+'" '+((!unlocked||owned||state.cash<d.price)?'disabled':'')+'>'+ (owned?'OWNED':unlocked?'Buy for '+money(d.price):'Locked until '+money(d.req))+'</button></div>'}).join('');
+    grid.querySelectorAll('[data-major]').forEach(b=>b.onclick=()=>buyMajor(b.dataset.major));
   }
   function buyMajor(id){
     const d=MAJOR.find(x=>x.id===id);if(!d)return;
@@ -398,17 +396,37 @@
     state.news.push('CORPORATE LANDSCAPE — '+d.name+' has entered the ProfitLands economy, adding another major competitor to the corporate market.');
     save();render();
   }
+  // Structural HTML lives in /play/index.html; these functions only bind values.
+  function setPanelText(id,value){const el=document.getElementById(id);if(el)el.textContent=String(value)}
   function economyUI(){
-    let box=document.getElementById('economyPanel');if(!box){box=document.createElement('div');box.id='economyPanel';box.className='panel economy-panel';const target=document.querySelector('.dashboard-grid');target?.parentNode.insertBefore(box,target)} 
     const e=state.economy,t=tier(),events=e.activeEvents.map(a=>EVENTS.find(x=>x.id===a.id)?.title+' ('+a.days+'d)').filter(Boolean);
-    box.innerHTML='<div class="panel-head"><div><span class="eyebrow">WORLD ECONOMY</span><h3>Economic Conditions</h3></div><span class="live-tag">'+economyLabel(e.health).toUpperCase()+'</span></div><div class="economy-meter"><div><strong>'+Math.round(e.health)+'</strong><small>/ 100</small></div><div class="economy-bar"><i style="width:'+e.health+'%"></i></div></div><div class="economy-stats"><div><small>RENT INDEX</small><b>'+e.rentIndex.toFixed(2)+'×</b></div><div><small>WAGE INDEX</small><b>'+e.wageIndex.toFixed(2)+'×</b></div><div><small>DEMAND</small><b>'+Math.round(e.demandIndex*100)+'%</b></div><div><small>LOAN RATE</small><b>'+((e.loanRate)*100).toFixed(1)+'%</b></div></div><div class="economy-events"><small>ACTIVE EVENTS</small><b>'+(events.length?events.join(' · '):'No major active events')+'</b></div><div class="economy-tier">Corporate scale: <b>'+(['Starting','Local','Regional','National','Global','Conglomerate','Mega','Empire'][t]||'Starting')+'</b> · Event intensity increases as your empire grows.</div>';
+    setPanelText('economyCondition',economyLabel(e.health).toUpperCase());
+    setPanelText('economyHealth',Math.round(e.health));
+    const bar=document.getElementById('economyHealthBar');if(bar)bar.style.width=e.health+'%';
+    setPanelText('economyRent',e.rentIndex.toFixed(2)+'×');
+    setPanelText('economyWages',e.wageIndex.toFixed(2)+'×');
+    setPanelText('economyDemand',Math.round(e.demandIndex*100)+'%');
+    setPanelText('economyLoanRate',(e.loanRate*100).toFixed(1)+'%');
+    setPanelText('economyActiveEvents',events.length?events.join(' · '):'No major active events');
+    setPanelText('economyScale',['Starting','Local','Regional','National','Global','Conglomerate','Mega','Empire'][t]||'Starting');
     renderMajor();
   }
   function bankPanel(){
-    let b=document.getElementById('bankPanel');if(!b){b=document.createElement('div');b.id='bankPanel';b.className='panel bank-panel';const target=document.querySelector('.bottom-grid');target?.parentNode.insertBefore(b,target.nextSibling)}
-    const debt=state.loans.reduce((s,l)=>s+(l.balance||0),0),loan=state.loans.find(l=>!l.defaulted&&l.balance>0),can=state.cash<=0&&!loan&&state.penaltyDays<=0;
-    b.innerHTML='<div class="panel-head"><div><span class="eyebrow">BANK & CREDIT</span><h3>Financial Recovery</h3></div><span class="live-tag">'+(loan?'LOAN ACTIVE':'BANK')+'</span></div><div class="finance-row"><span>Total debt</span><b>'+money(debt)+'</b></div><div class="finance-row"><span>Credit status</span><b class="'+(state.penaltyDays?'danger':'good')+'">'+(state.penaltyDays?'LEGAL RECOVERY PERIOD':'ACTIVE')+'</b></div><div class="finance-row"><span>Loan terms</span><b>15 days · '+(state.economy.loanRate*100).toFixed(1)+'% interest</b></div><button class="primary-button" id="borrowLoan" '+(can?'':'disabled')+'>Borrow Emergency Loan</button><small class="bank-note">'+(state.cash>0?'Emergency loans become available when cash reaches $0.':state.penaltyDays?'Borrowing is paused during the recovery period.':loan?'A loan is already active.':'A loan is available now.')+'</small>';
-    b.querySelector('#borrowLoan')?.addEventListener('click',borrowLoan);
+    const debt=state.loans.reduce((s,l)=>s+(l.balance||0),0);
+    const loan=state.loans.find(l=>!l.defaulted&&l.balance>0);
+    const can=state.cash<=0&&!loan&&state.penaltyDays<=0;
+    setPanelText('bankStatusTag',loan?'LOAN ACTIVE':'BANK');
+    setPanelText('bankTotalDebt',money(debt));
+    const credit=document.getElementById('bankCreditStatus');
+    if(credit){
+      credit.textContent=state.penaltyDays?'LEGAL RECOVERY PERIOD':'ACTIVE';
+      credit.classList.toggle('danger',!!state.penaltyDays);
+      credit.classList.toggle('good',!state.penaltyDays);
+    }
+    setPanelText('bankTerms','15 days · '+(state.economy.loanRate*100).toFixed(1)+'% interest');
+    const button=document.getElementById('borrowLoan');
+    if(button){button.disabled=!can;button.onclick=borrowLoan}
+    setPanelText('bankNote',state.cash>0?'Emergency loans become available when cash reaches $0.':state.penaltyDays?'Borrowing is paused during the recovery period.':loan?'A loan is already active.':'A loan is available now.');
   }
   function borrowLoan(){
     if(state.cash>0||state.loans.some(l=>!l.defaulted&&l.balance>0)||state.penaltyDays>0)return;
