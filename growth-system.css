@@ -1,0 +1,41 @@
+/* ProfitLands v0.8 Growth Center. Styles scoped to the existing game. */
+.growth-quicknav{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 16px;padding:0 2px}
+.growth-quicknav a{color:#d2eacb;background:#14221c;border:1px solid #375144;border-radius:999px;padding:9px 13px;text-decoration:none;font-weight:700;font-size:12px}
+.growth-quicknav a:focus-visible,.growth-quicknav a:hover{outline:2px solid #a9ec77;outline-offset:2px}
+.growth-panel{margin-bottom:17px;overflow:hidden;scroll-margin-top:65px}
+#businessPanel,#stockPanel,#financePanel{scroll-margin-top:65px}
+.growth-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #344a40;padding:10px 0 12px}
+.growth-tabs button{appearance:none;min-height:42px;padding:10px 13px;background:#16251f;border:1px solid #385144;border-radius:10px;color:#c9dccd;font-size:12px;font-weight:750;cursor:pointer}
+.growth-tabs button.active,.growth-tabs button[aria-selected=true]{background:#b2f36e;color:#132016;border-color:#b2f36e}
+.growth-tabs button:focus-visible,.growth-panel select:focus-visible,.growth-actions button:focus-visible{outline:3px solid #c6ff87;outline-offset:2px}
+.growth-content{padding:17px 2px 7px}
+.growth-content[hidden],.growth-business-picker[hidden],.growth-panel [hidden]{display:none!important}
+.growth-chart-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:13px}
+.growth-chart-header strong{font-size:16px;color:#e7f7e8}
+.growth-chart-header p,.growth-help{font-size:12px;line-height:1.55;color:#aec2b4}
+.growth-chart-header p{margin-top:5px}
+.growth-chart-header label{display:flex;align-items:center;gap:8px;font-size:12px;color:#a7bbae}
+.growth-chart-header select,.growth-business-picker select{background:#122b23;color:#e7f5e6;border:1px solid #4d6858;border-radius:9px;padding:11px 13px;min-height:43px;font:inherit}
+.growth-chart{display:block;width:100%;height:205px;background:linear-gradient(180deg,#0f211c,#0c171c);border:1px solid #33463e;border-radius:12px}
+.growth-chart-caption{display:flex;color:#b1c8b7;line-height:1.6;font-size:11px;margin-top:10px}
+.growth-business-picker{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:15px 0}
+.growth-business-picker label{font-size:12px;font-weight:750;color:#c5d9cb}
+.growth-business-picker select{flex:1;min-width:170px;max-width:460px}
+.growth-summary{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;color:#d8eedc;background:#10241c;padding:13px;border-radius:10px;font-size:12px}
+.growth-net-effect{color:#b9deba;margin:12px 0;font-size:12px;font-weight:700}
+.growth-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.growth-actions button{min-width:0;display:flex;flex-direction:column;gap:5px;text-align:left;border:1px solid #5b8a63;border-radius:12px;background:#1a3728;color:#e5fae3;padding:14px;cursor:pointer}
+.growth-actions button strong{font-size:14px}.growth-actions button span{font-size:11px;color:#b8cbbc;line-height:1.45}
+.growth-actions button:disabled,.growth-decision button:disabled{cursor:not-allowed;opacity:.45;filter:grayscale(.5)}
+.growth-decision{border:1px solid #40604a;background:linear-gradient(125deg,#152c20,#122127);padding:19px;border-radius:13px;margin-top:14px}
+.growth-decision h4{font-size:18px;margin:0 0 7px;color:#e2f8d9}.growth-decision p{font-size:12px;color:#b4cbb9;line-height:1.6}
+.growth-decision-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:11px;color:#b4d8c2;margin:12px 0}
+.growth-decision button{min-height:44px;background:#b1f36b;color:#13241b;border:0;border-radius:9px;padding:10px 15px;font-size:12px;font-weight:850;cursor:pointer}
+.growth-milestones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.growth-milestone{min-width:0;display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid #34483e;border-radius:12px;background:#131d20}
+.growth-milestone.is-done{border-color:#5d9961;background:#173020}
+.growth-milestone strong{font-size:13px;color:#e1efe5}.growth-milestone span{font-size:11px;color:#adc0b4;line-height:1.5}
+.growth-milestone small{color:#a7e589;font-weight:700;font-size:11px}
+.growth-milestone-count{font-weight:750;color:#b7ed99;font-size:12px;margin:0 0 15px}
+@media(max-width:650px){.growth-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.growth-tabs button{padding:10px 6px;font-size:11px}.growth-chart{height:155px}.growth-milestones{grid-template-columns:1fr}.growth-actions{grid-template-columns:1fr}.growth-quicknav{gap:6px}.growth-quicknav a{font-size:11px;padding:8px 10px}.growth-content{padding:12px 0 0}}
+@media(prefers-reduced-motion:reduce){.growth-panel *{transition:none!important}}
