@@ -28,7 +28,7 @@
       <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Cash</span> <strong id="floatCash">$1,000</strong></span>
       <span class="floating-hud-item floating-hud-hide-mobile"><span>Actions</span> <strong id="floatActions">6</strong></span>
       <span class="floating-hud-spacer"></span>
-      <button type="button" class="floating-hud-button" id="floatingEndDay">End Day →</button>
+      <button type="button" class="floating-hud-button" id="floatingEndDay">Next Cycle →</button>
       <button type="button" class="floating-hud-button" id="floatingBackTop">Dashboard ↑</button>
     </div>
   </div>
@@ -39,7 +39,7 @@
     </header>
     <main>
       <section id="homeScreen" class="screen active">
-        <div class="hero"><div><span class="eyebrow">WTVSTUDIOS PRESENTS</span><h2>Start with $1,000.<br /><span>Build a $1 trillion empire.</span></h2><p>Buy virtual businesses, upgrade them, expand them into chains, survive changing demand, and build your way from a tiny company to a trillion-dollar empire.</p></div><div class="hero-coin">$</div></div>
+        <div class="hero"><div><span class="eyebrow">WTVSTUDIOS PRESENTS</span><h2>Start with $1,000.<br /><span>Build a $1 trillion empire.</span></h2><p>Buy virtual businesses, earn cash every second, upgrade and expand your companies, survive changing demand, and build a trillion-dollar empire.</p></div><div class="hero-coin">$</div></div>
         <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
         <div class="type-grid"><button class="type-card selected" data-type="single"><strong>Singleplayer</strong><small>Build against AI companies and the changing market.</small></button><button class="type-card" data-type="multi"><strong>Multiplayer Preview</strong><small>Prototype lobby for the shared-world multiplayer version.</small></button></div>
         <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose a game mode</h3></div>
@@ -55,8 +55,8 @@
             <div class="day-row">
               <h2>Day <span id="gameDay">1</span></h2>
               <div class="game-center-controls">
-                <div class="timer-box"><small>DAY ENDS IN</small><strong id="timer">15:00</strong></div>
-                <button id="endDay" class="small-button end-day-compact">End Day <span>→</span></button>
+                <div class="timer-box"><small>NEXT MARKET CYCLE</small><strong id="timer">15:00</strong></div>
+                <button id="endDay" class="small-button end-day-compact" title="Refresh markets, events and available actions; business cash flow continues automatically">Next Cycle <span>→</span></button>
               </div>
             </div>
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
@@ -67,19 +67,19 @@
         <div class="stats-grid" id="hudStats" aria-label="Empire statistics">
           <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>CASH BALANCE</small><strong id="cash">$1,000</strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What is Cash?</b>Money you can spend right now. Buying businesses, upgrades, property, or stocks uses cash. Daily income can add to it.</div></div>
+            <div class="stat-explanation"><div><b>What is Cash?</b>Money you can spend right now. Buying businesses, upgrades, property, or stocks uses cash. Net income increases it automatically every second while you play.</div></div>
           </div>
           <div class="stat stat-dropdown" data-stat="networth" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>TOTAL EMPIRE VALUE</small><strong id="netWorth">$1,000</strong></span><span class="stat-chevron">⌄</span>
             <div class="stat-explanation"><div><b>What is Net Worth?</b>The estimated total value of your empire: cash, stocks, businesses, and property. This is what counts toward the $1 trillion goal.</div></div>
           </div>
           <div class="stat stat-dropdown" data-stat="profit" role="button" tabindex="0" aria-expanded="false">
-            <span class="stat-main"><small>TODAY'S PROFIT</small><strong id="dailyIncome">$0</strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What is Today's Profit?</b>The money your businesses and property earned or lost during the most recently completed day. Day 1 starts at $0.</div></div>
+            <span class="stat-main"><small>NET CASH FLOW / SEC</small><strong id="dailyIncome">$0.00</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Net Cash Flow?</b>Businesses, corporations, and property earn or lose money continuously while you play. Operating expenses are already deducted. A market cycle updates demand, stocks, news, and available actions without paying an extra income bonus.</div></div>
           </div>
           <div class="stat stat-dropdown" data-stat="actions" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>ACTIONS REMAINING</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the day ends.</div></div>
+            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the market cycle ends; income keeps flowing throughout the cycle.</div></div>
           </div>
         </div>
         <div id="eventBanner" class="event-banner hidden"></div>
@@ -134,8 +134,8 @@
   <script src="platform.js"></script>
   <script src="app.js"></script>
   <script src="enhancements.js"></script>
-  <script src="economy-system.js"></script>
-  <script src="economy-render.js"></script>
+  <script src="economy-system.js?v=realtime01"></script>
+  <script src="economy-render.js?v=realtime01"></script>
   <script src="tutorial.js?v=20261026-2"></script>
   <script src="performance-motion.js"></script>
   <script src="trade-ui.js"></script>
