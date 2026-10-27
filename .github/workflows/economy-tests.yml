@@ -1,0 +1,44 @@
+name: ProfitLands Economy Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'economy-system.js'
+      - 'growth-system.js'
+      - 'balance-system.js'
+      - 'play/index.html'
+      - 'tests/**'
+      - '.github/workflows/economy-tests.yml'
+  pull_request:
+    paths:
+      - 'app.js'
+      - 'economy-system.js'
+      - 'growth-system.js'
+      - 'balance-system.js'
+      - 'play/index.html'
+      - 'tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  economy-regression:
+    name: All four economy modes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify JavaScript parses
+        run: |
+          node --check app.js
+          node --check economy-system.js
+          node --check growth-system.js
+          node --check balance-system.js
+      - name: Run economy regression suite
+        run: node --test tests/economy-balance.test.cjs
