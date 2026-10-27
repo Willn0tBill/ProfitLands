@@ -1,0 +1,53 @@
+/* ProfitLands split-page navigation and shared preferences. */
+:root{--pl-accent:#b2f565}
+.pl-header-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pl-header-link,.pl-link{
+  display:inline-flex;align-items:center;justify-content:center;min-height:40px;
+  padding:9px 13px;text-decoration:none;font-size:12px;font-weight:800;
+  border:1px solid rgba(151,196,171,.28);border-radius:10px;
+  background:#17241e;color:#d8eddb;
+}
+.pl-header-link:hover,.pl-link:hover{background:#24392c;border-color:#92d4a2;color:#fff}
+.pl-header-link:focus-visible,.pl-link:focus-visible{outline:3px solid var(--pl-accent);outline-offset:3px}
+.pl-control-link{align-self:center}
+.play-entry-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+.play-entry-actions>.primary-button,.play-entry-actions>.secondary-button{margin:0;min-height:48px}
+.play-entry-hero{min-height:270px}
+.pl-home-footer{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:28px;padding:15px 0;border-top:1px solid #365143}
+.pl-home-footer a{color:#c8e8ce;text-decoration:underline;text-underline-offset:3px}
+.pl-intro-details{margin-top:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pl-intro-details>article{padding:16px;border:1px solid #35483e;border-radius:15px;background:#111e1b}
+.pl-intro-details strong{display:block;color:#b3f16c;margin-bottom:6px}
+.pl-intro-details p{color:#b5c4b7;line-height:1.5;font-size:12px}
+.pl-saved-box{margin-top:18px;padding:20px;border:1px solid #779b78;border-radius:16px;background:linear-gradient(130deg,#173322,#152425)}
+.pl-saved-box[hidden]{display:none!important}
+.pl-saved-box h3{font-size:20px;margin:8px 0}.pl-saved-box p{color:#b9c9bd;margin-bottom:15px}
+.pl-saved-box a{display:inline-flex}
+.pl-settings-main{max-width:800px;margin:32px auto 80px}
+.pl-settings-title{margin-bottom:25px}.pl-settings-title h2{font-size:clamp(29px,5vw,45px);line-height:1.08;letter-spacing:-.04em}
+.pl-settings-title p{color:#aebfae;line-height:1.6;margin-top:12px}
+.pl-settings-section{padding:22px 24px;margin-bottom:16px;background:#121d21;border:1px solid #34483f;border-radius:20px}
+.pl-settings-section h3{font-size:20px;margin:0 0 12px}
+.pl-settings-section p{color:#abbeb4;font-size:13px;line-height:1.55}
+.pl-pref{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid #2c3b37;cursor:pointer}
+.pl-pref:last-child{border-bottom:0}.pl-pref strong{display:block;font-size:14px}.pl-pref small{display:block;color:#a4b8ad;line-height:1.5;margin-top:5px}
+.pl-pref input{width:23px;height:23px;flex-shrink:0;accent-color:#a4e85d}
+.pl-settings-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.pl-settings-actions button{cursor:pointer}
+.pl-setting-note{min-height:20px;margin-top:10px;color:#b0e89a;font-size:12px}
+.pl-reduced-motion *, .pl-reduced-motion *::before,.pl-reduced-motion *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+.pl-compact .game-hud{padding:12px!important;gap:8px!important}
+.pl-compact #gameScreen .game-hud .stat{padding:10px 12px!important;min-height:58px!important}
+.pl-compact .dashboard-grid,.pl-compact .bottom-grid{gap:10px!important}
+.pl-compact .panel{padding:14px!important}
+.pl-contrast{--pl-accent:#d3ff7f}
+.pl-contrast .panel,.pl-contrast .game-hud,.pl-contrast .stat{border-color:#86b9a0!important}
+.pl-contrast .eyebrow,.pl-contrast small{color:#c9e5d8!important}
+@media(max-width:750px){
+ .pl-header-tools{justify-content:flex-end;gap:5px}
+ .pl-header-link{min-height:34px;padding:8px 9px;font-size:11px}
+ .pl-intro-details{grid-template-columns:1fr}
+ .pl-settings-section{padding:16px}
+ .pl-settings-main{margin:16px auto 50px}
+ .pl-control-link{display:none}
+}
