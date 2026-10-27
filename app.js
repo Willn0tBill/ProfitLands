@@ -60,21 +60,41 @@ function save(){
   state.savedAt=Date.now();
   state.saveVersion=4;
   const snapshot=JSON.stringify(state);
-  try{localStorage.setItem('profitlands-v2',snapshot)}catch(e){console.warn('Local save failed',e)}
+  try{
+    const old=localStorage.getItem('profitlands-v2'),now=Date.now();
+    if(old&&old!==snapshot&&(!window.__plBackupAt||now-window.__plBackupAt>60000)){
+      try{
+        const previous=JSON.parse(old);
+        if(previous&&MODES[previous.mode]&&Number.isFinite(Number(previous.cash))&&Array.isArray(previous.businesses)){
+          localStorage.setItem('profitlands-v2-backup',old);
+          window.__plBackupAt=now;
+        }
+      }catch(e){console.warn('Previous save was invalid; recovery copy preserved.',e)}
+    }
+    localStorage.setItem('profitlands-v2',snapshot);
+  }catch(e){console.warn('Local save failed',e)}
   try{window.profitLandsPlatform?.save(state)}catch(e){console.warn('Platform save failed',e)}
   try{window.profitlandsSaveHook?.()}catch(e){console.warn('Cloud save scheduling failed',e)}
 }
 function load(){
-  try{
-    const raw=localStorage.getItem('profitlands-v2');
-    if(!raw)return;
-    const saved=JSON.parse(raw);
-    if(!saved||typeof saved!=='object'||!MODES[saved.mode]||!Number.isFinite(Number(saved.day)))throw Error('Invalid save');
-    Object.assign(state,saved);
-    restoreMarket();
-  }catch(e){console.warn('Could not restore previous save',e)}
+  const valid=s=>s&&typeof s==='object'&&MODES[s.mode]&&Number.isFinite(Number(s.day))&&Number.isFinite(Number(s.cash))&&Array.isArray(s.businesses)&&s.stocks&&typeof s.stocks==='object';
+  for(const key of ['profitlands-v2','profitlands-v2-backup']){
+    try{
+      const raw=localStorage.getItem(key);
+      if(!raw)continue;
+      const candidate=JSON.parse(raw);
+      if(!valid(candidate))throw Error('Invalid or incomplete save structure');
+      Object.assign(state,candidate);restoreMarket();
+      if(key==='profitlands-v2-backup'){
+        state.news=Array.isArray(state.news)?state.news:[];
+        state.news.push('RECOVERY — Your latest valid local backup was restored. Use Save to preserve this copy.');
+        console.warn('ProfitLands recovered a backup after the primary save was unavailable.');
+      }
+      return;
+    }catch(e){console.warn('Could not restore '+key,e)}
+  }
 }
-function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.bankrupt=false;save()}
+function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.growth={history:[],milestones:[],lastSample:0};state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
 function businessDailyProfit(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);const levelMult=1+(b.level-1)*.22;const chainMult=1+b.chainCount*.9;const popularity=b.popularity/100;const revenue=t.baseRevenue*levelMult*chainMult*(.45+popularity*.8)*(1+b.marketing*.08);const expense=t.baseExpense*levelMult*chainMult*(1+b.efficiency*.07);return Math.round(revenue-expense)}
 function netWorth(){return state.cash+STOCKS.reduce((sum,s)=>sum+s.price*(state.stocks[s.id]?.shares||0),0)+state.businesses.reduce((sum,b)=>sum+businessValue(b),0)+state.property*750}
@@ -164,7 +184,7 @@ function closeModal(id){$(id).classList.add('hidden')}
 document.querySelectorAll('.mode-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.mode=card.dataset.mode}));
 document.querySelectorAll('.type-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.playType=card.dataset.type;$('multiNotice').classList.toggle('hidden',state.playType!=='multi')}));
 window.startProfitLands=()=>{resetForMode(state.mode,state.playType);$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
-window.resumeProfitLands=()=>{if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;save();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
+window.resumeProfitLands=()=>{if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;window.ProfitLandsGrowth?.ensure?.();save();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.ProfitLandsGrowth?.render?.();window.profitLandsPlatform?.gameplayStart()};
 $('startGame').onclick=()=>{
   let progress=false;
   try{
@@ -214,7 +234,7 @@ function saveLocalSnapshot(){
   captureMarket();
   state.savedAt=Date.now();
   state.saveVersion=4;
-  try{localStorage.setItem('profitlands-v2',JSON.stringify(state))}catch(e){}
+  save();
   try{window.profitlandsSaveHook?.()}catch(e){}
 }
 window.addEventListener('pagehide',saveLocalSnapshot);
