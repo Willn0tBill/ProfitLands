@@ -87,7 +87,14 @@
         </div>
         <div id="eventBanner" class="event-banner hidden"></div>
         </div>
-        <div id="economyPanel" class="panel economy-panel" aria-label="World economy"></div>
+        
+<div id="economyPanel" class="panel economy-panel" aria-label="World economy">
+  <div class="panel-head"><div><span class="eyebrow">WORLD ECONOMY</span><h3>Economic Conditions</h3></div><span class="live-tag" id="economyCondition">NORMAL</span></div>
+  <div class="economy-meter"><div><strong id="economyHealth">60</strong><small>/ 100</small></div><div class="economy-bar"><i id="economyHealthBar" style="width:60%"></i></div></div>
+  <div class="economy-stats"><div><small>RENT INDEX</small><b id="economyRent">1.00×</b></div><div><small>WAGE INDEX</small><b id="economyWages">1.00×</b></div><div><small>DEMAND</small><b id="economyDemand">100%</b></div><div><small>LOAN RATE</small><b id="economyLoanRate">8.0%</b></div></div>
+  <div class="economy-events"><small>ACTIVE EVENTS</small><b id="economyActiveEvents">No major active events</b></div>
+  <div class="economy-tier">Corporate scale: <b id="economyScale">Starting</b> · Event intensity increases as your empire grows.</div>
+</div>
         <div class="dashboard-grid">
           <div class="panel collapsible-panel business-panel open">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">COMPANIES</span><h3>Your Businesses</h3></span><span class="panel-toggle-arrow">⌄</span></button><button id="openBusinessShop" class="small-button">+ Buy Business</button></div>
@@ -98,7 +105,12 @@
             <div class="panel-body"><div class="panel-body-inner"><div id="stockList" class="stock-list"></div></div></div>
           </div>
         </div>
-        <div id="majorCompaniesPanel" class="panel major-companies-panel" aria-label="Major corporations"></div>
+        
+<div id="majorCompaniesPanel" class="panel major-companies-panel" aria-label="Major corporations">
+  <div class="panel-head"><div><span class="eyebrow">CORPORATE LADDER</span><h3>Major Companies</h3></div><span class="live-tag" id="majorScale">SCALE 0</span></div>
+  <p class="modal-sub">Major corporations unlock at net-worth thresholds. Larger companies generate more money but face greater market exposure.</p>
+  <div class="major-grid" id="majorCompaniesGrid"></div>
+</div>
         <div class="bottom-grid">
           <div class="panel collapsible-panel actions-panel">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">YOUR EMPIRE</span><h3>Other Investments</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
@@ -120,7 +132,15 @@
           </div>
         </div>
         
-              <div id="bankPanel" class="panel bank-panel" aria-label="Bank and credit"></div>
+              
+<div id="bankPanel" class="panel bank-panel" aria-label="Bank and credit">
+  <div class="panel-head"><div><span class="eyebrow">BANK &amp; CREDIT</span><h3>Financial Recovery</h3></div><span class="live-tag" id="bankStatusTag">BANK</span></div>
+  <div class="finance-row"><span>Total debt</span><b id="bankTotalDebt">$0</b></div>
+  <div class="finance-row"><span>Credit status</span><b id="bankCreditStatus" class="good">ACTIVE</b></div>
+  <div class="finance-row"><span>Loan terms</span><b id="bankTerms">15 days · 8.0% interest</b></div>
+  <button class="primary-button" id="borrowLoan" type="button" disabled>Borrow Emergency Loan</button>
+  <small class="bank-note" id="bankNote">Emergency loans become available when cash reaches $0.</small>
+</div>
 </section>
     </main>
   </div>
