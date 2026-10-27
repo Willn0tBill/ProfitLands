@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="../compact-panels.css?v=20261026-5" />
   <link rel="stylesheet" href="../site-polish.css?v=20261026-4" />
   <link rel="stylesheet" href="../site-pages.css?v=pages01" />
-  <link rel="stylesheet" href="../growth-system.css?v=growth08" />
+  <link rel="stylesheet" href="../growth-system.css?v=growth09" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -83,7 +83,7 @@
           </div>
           <div class="stat stat-dropdown" data-stat="actions" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>ACTIONS REMAINING</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the market cycle ends; income keeps flowing throughout the cycle.</div></div>
+            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are used for purchases, hiring, upgrades and investment decisions. They refill periodically during active play, up to your world mode’s limit, and reset at the next market cycle. <span id="actionRegenStatus">Action regeneration active.</span></div></div>
           </div>
         </div>
         <div id="eventBanner" class="event-banner hidden"></div>
@@ -122,7 +122,7 @@
     </div>
   </div>
   <div class="growth-content" data-growth-page="decisions" role="tabpanel" hidden>
-    <p class="growth-help">Industry-specific initiatives increase business revenue for three market cycles, have a cooldown, and cost cash plus one action. Changes are reflected in real-time net profit.</p>
+    <p class="growth-help">Industry-specific initiatives increase revenue for 10 minutes, with a 15-minute cooldown. They cost cash and one action; effects appear in real-time net profit.</p>
     <div class="growth-decision">
       <h4 id="growthDecisionName">Local initiative</h4>
       <p id="growthDecisionDescription">Choose a business in Staff &amp; Managers to get started.</p>
@@ -208,9 +208,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="../firebase-config.js"></script>
   <script src="../platform.js"></script>
-  <script src="../app.js"></script>
+  <script src="../app.js?v=growth09"></script>
   <script src="../enhancements.js"></script>
-  <script src="../economy-system.js?v=growth08"></script>
+  <script src="../economy-system.js?v=growth09"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=20261026-2"></script>
   <script src="../performance-motion.js"></script>
@@ -225,7 +225,8 @@
   <script src="../hud-sticky.js?v=20261026-5"></script>
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js"></script>
-  <script src="../growth-system.js?v=growth08"></script>
+  <script src="../balance-system.js?v=growth09"></script>
+  <script src="../growth-system.js?v=growth09"></script>
   <script src="../play-route.js?v=pages01"></script>
 </body>
 </html>
