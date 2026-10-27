@@ -37,6 +37,8 @@
     g.history=g.history.filter(h=>h&&Number.isFinite(h.cash)&&Number.isFinite(h.netWorth)&&Number.isFinite(h.flow)).slice(-HISTORY_LIMIT);
     g.milestones=g.milestones.filter(x=>typeof x==='string').slice(0,MILESTONES.length);
     if(!Number.isFinite(g.lastSample))g.lastSample=0;
+    if(!Number.isFinite(g.lastManagerTick))g.lastManagerTick=0;
+    if(!Number.isFinite(g.managerElapsed))g.managerElapsed=0;
     return g;
   }
   function adjustProfit(b){
@@ -85,15 +87,28 @@
     if(unlocked.length&&window.toast)window.toast('Milestone unlocked: '+unlocked.join(', '));
     return unlocked;
   }
-  function onCycle(){
-    if(!state.started)return;
+  // Manager reputation maintenance accrues during active play, not by
+  // market-cycle count. This keeps Fast and Persistent worlds balanced.
+  function managerTick(now=Date.now()){
+    const g=ensure();
+    if(!state.started||document.visibilityState==='hidden'){
+      g.lastManagerTick=now;return false;
+    }
+    const elapsed=g.lastManagerTick?clamp(now-g.lastManagerTick,0,SAMPLE_MS):0;
+    g.lastManagerTick=now;
+    g.managerElapsed+=elapsed;
+    if(g.managerElapsed<60000)return false;
+    g.managerElapsed-=60000;
     for(const b of state.businesses||[]){
       if(b.manager!==true)continue;
-      b.popularity=clamp((b.popularity||55)+1.5,5,100);
-      if(Array.isArray(b.locations))for(const l of b.locations)l.basePopularity=clamp((l.basePopularity||b.popularity)+1.5,5,100);
+      b.popularity=clamp((b.popularity||55)+.4,5,100);
+      if(Array.isArray(b.locations))for(const l of b.locations){
+        l.basePopularity=clamp((l.basePopularity||b.popularity)+.4,5,100);
+      }
     }
-    awards();render();
+    return true;
   }
+  function onCycle(){awards();render()}
   function moneyLabel(n){return(Number(n)>=0?'+':'')+fmt(n)}
   function rateLabel(n){const formatted=window.ProfitLandsRealtime?.formatRate?.(n)||('$'+validNumber(n).toFixed(2));return(n>=0?'+':'')+formatted}
   function renderChart(){
@@ -134,7 +149,7 @@
     const ownPrice=initiativeCost(b),sector=INDUSTRIES[b.type]||['Local campaign','Run a focused short-term promotion.'];
     const put=(id,str)=>{if($(id))$(id).textContent=String(str)};
     put('growthStaffCount',staff+' / '+MAX_WORKERS);
-    put('growthManagerState',b.manager===true?'Employed — improves popularity each market cycle':'Not hired');
+    put('growthManagerState',b.manager===true?'Employed — maintains popularity during active play':'Not hired');
     put('growthStaffEffect',rateLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
     put('growthHireCost',fmt(workerFee)+' upfront + ongoing wages');
     put('growthManagerCost',fmt(managerFee)+' upfront + ongoing salary');
@@ -181,7 +196,7 @@
       b.workers=count+1;say('Employee hired. Productivity and wages updated.');
     }else if(id==='growthHireManager'){
       if(b.manager||!spend(b,staffCost(b,'manager')))return say('Unable to hire this manager.');
-      b.manager=true;say('Manager hired. Popularity is now managed each cycle.');
+      b.manager=true;say('Manager hired. Popularity is now maintained during active play.');
     }else if(id==='growthRunDecision'){
       if((b.initiativeCooldownAt||0)>Date.now()||!spend(b,initiativeCost(b)))return say('Not enough resources or the campaign is on cooldown.');
       b.initiativeUntilTime=Date.now()+10*60*1000;
@@ -191,7 +206,7 @@
     state.news.push('OPERATIONS — '+(b.name||typeFor(b)?.name||'Business')+' updated its management strategy.');
     awards();window.save?.();window.render?.();render();
   }
-  function sample(){if(!state.started)return;ensure();pushHistory();awards();renderChart();const section=$('growthPanel');if(section&&section.getBoundingClientRect().top<innerHeight&&section.getBoundingClientRect().bottom>0){renderMilestones();renderStaff()}}
+  function sample(){if(!state.started)return;ensure();managerTick();pushHistory();awards();renderChart();const section=$('growthPanel');if(section&&section.getBoundingClientRect().top<innerHeight&&section.getBoundingClientRect().bottom>0){renderMilestones();renderStaff()}}
   function init(){
     const panel=$('growthPanel');if(!panel)return;
     ensure();
@@ -211,8 +226,8 @@
     window.addEventListener('profitlands:newgame',()=>{state.growth={history:[],milestones:[],lastSample:0};render()});
     render();
   }
-  window.ProfitLandsGrowth={ensure,adjustProfit,pushHistory,awards,onCycle,sample,render,staffCost,initiativeCost,init,
-    reset(){state.growth={history:[],milestones:[],lastSample:0};render();},
+  window.ProfitLandsGrowth={ensure,adjustProfit,pushHistory,awards,onCycle,managerTick,sample,render,staffCost,initiativeCost,init,
+    reset(){state.growth={history:[],milestones:[],lastSample:0,lastManagerTick:0,managerElapsed:0};render();},
     stats(){return{milestones:ensure().milestones.length,samples:ensure().history.length}}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
