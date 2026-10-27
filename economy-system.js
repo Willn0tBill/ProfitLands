@@ -438,7 +438,7 @@
   }
   function reset(mode,type){
     window.resetProfitLandsMarket?.();
-    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.growth={history:[],milestones:[],lastSample:0};state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
+    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
   }
   function doEndDay(auto){
     if(!state.started)return;
@@ -457,6 +457,7 @@
     state.day++;
     window.ProfitLandsGrowth?.onCycle?.();
     state.actions=MODES[state.mode].actions;
+    window.ProfitLandsBalance?.reset?.();
     state.timeLeft=MODES[state.mode].daySeconds;
     state.dayEndsAt=Date.now()+MODES[state.mode].daySeconds*1000;
     state.trend=null;
@@ -474,6 +475,7 @@
     if(typeof window.__profitBaseRender==='function')window.__profitBaseRender();
     ensure();economyUI();bankPanel();showLiveCash();
     window.ProfitLandsGrowth?.render?.();
+    window.ProfitLandsBalance?.status?.();
     const banner=document.getElementById('eventBanner');
     if(banner){
       const e=state.economy,ev=e.activeEvents.map(a=>{const x=EVENTS.find(y=>y.id===a.id);return x?x.title+' · '+a.days+'d':''}).filter(Boolean);
@@ -491,6 +493,7 @@
       if(!state.started)return;
       const now=Date.now();
       settleIncome(now);
+      window.ProfitLandsBalance?.tick?.(now);
       showLiveCash();
       if(now-lastLiveDetails>=5000){
         lastLiveDetails=now;
@@ -499,6 +502,7 @@
         window.renderBusinesses?.();
         window.renderFinance?.();
         window.ProfitLandsGrowth?.sample?.();
+        window.ProfitLandsBalance?.status?.();
       }
       if(now-lastLiveSave>=15000){
         lastLiveSave=now;
