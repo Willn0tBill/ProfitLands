@@ -223,7 +223,7 @@
     $('growthBusiness')?.addEventListener('change',renderStaff);
     $('growthMetric')?.addEventListener('change',renderChart);
     window.addEventListener('profitlands:resume',()=>{ensure();render();});
-    window.addEventListener('profitlands:newgame',()=>{state.growth={history:[],milestones:[],lastSample:0};render()});
+    window.addEventListener('profitlands:newgame',()=>{state.growth={history:[],milestones:[],lastSample:0,lastManagerTick:0,managerElapsed:0};render()});
     render();
   }
   window.ProfitLandsGrowth={ensure,adjustProfit,pushHistory,awards,onCycle,managerTick,sample,render,staffCost,initiativeCost,init,
