@@ -118,3 +118,49 @@ test('game HTML references growth and balance modules and retains save-compatibl
   assert.ok(economy.includes('ProfitLandsGrowth?.adjustProfit'));
   assert.ok(economy.includes('ProfitLandsBalance?.tick'));
 });
+
+function bootAppWithStorage(storage){
+  const elements=new Map();
+  const get=id=>{
+    if(!elements.has(id))elements.set(id,{
+      id,textContent:'',innerHTML:'',style:{},disabled:false,
+      classList:{add(){},remove(){},toggle(){},contains(){return false}},
+      addEventListener(){},remove(){},onclick:null
+    });
+    return elements.get(id);
+  };
+  const document={
+    getElementById:get,querySelectorAll(){return[]},querySelector(){return null},
+    addEventListener(){},readyState:'complete'
+  };
+  const window={addEventListener(){}};
+  const ctx={window,document,localStorage:storage,console,Date,Math,
+    setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},clearInterval(){},
+    confirm(){return true}
+  };
+  vm.createContext(ctx);
+  new vm.Script(fs.readFileSync(path.join(root,'app.js'),'utf8'),{filename:'app.js'}).runInContext(ctx);
+  return {window,get};
+}
+test('valid save creates a separate fallback and corrupt primary recovers previous progress',()=>{
+  const keys=new Map();
+  const storage={
+    getItem(k){return keys.get(k)||null},
+    setItem(k,v){keys.set(k,v)},
+    removeItem(k){keys.delete(k)}
+  };
+  const stocks=Object.fromEntries(['nova','harbor','atlas','skyline'].map(k=>[k,{shares:0}]));
+  const starting={mode:'standard',playType:'single',day:8,cash:5600,actions:4,
+    stocks,businesses:[],property:0,news:[],timeLeft:600,started:false};
+  storage.setItem('profitlands-v2',JSON.stringify(starting));
+  const first=bootAppWithStorage(storage);
+  assert.equal(first.window.state.cash,5600);
+  first.window.state.cash=8900;
+  first.window.save();
+  assert.equal(JSON.parse(storage.getItem('profitlands-v2')).cash,8900);
+  assert.equal(JSON.parse(storage.getItem('profitlands-v2-backup')).cash,5600);
+  storage.setItem('profitlands-v2','not-json');
+  const recovered=bootAppWithStorage(storage);
+  assert.equal(recovered.window.state.cash,5600);
+  assert.ok(recovered.window.state.news.some(x=>x.includes('RECOVERY')));
+});
