@@ -103,6 +103,7 @@
     <button type="button" role="tab" data-growth-tab="decisions" aria-selected="false">Industry Decisions</button>
     <button type="button" role="tab" data-growth-tab="milestones" aria-selected="false">Milestones</button>
   </div>
+  <div class="growth-business-picker"><label for="growthBusiness">Focused business</label><select id="growthBusiness" aria-label="Choose a company to hire for or launch an initiative"><option value="0">Select a business</option></select></div>
   <div class="growth-content" data-growth-page="analytics" role="tabpanel">
     <div class="growth-chart-header"><div><strong>Live financial history</strong><p>Understand how purchases, upgrades, and expenses change your empire.</p></div><label>Display
       <select id="growthMetric" aria-label="Chart metric"><option value="netWorth">Empire value</option><option value="cash">Cash balance</option><option value="flow">Net flow per second</option></select></label></div>
@@ -112,7 +113,7 @@
   </div>
   <div class="growth-content" data-growth-page="staff" role="tabpanel" hidden>
     <p class="growth-help">Employees improve revenue but add ongoing wages. Managers improve productivity and help maintain popularity each market cycle. Hiring uses one action.</p>
-    <div class="growth-business-picker"><label for="growthBusiness">Manage a company</label><select id="growthBusiness"><option value="0">Select a business</option></select></div>
+    
     <p id="growthBusinessEmpty" class="growth-help">Buy a business to unlock hiring and industry decisions.</p>
     <div id="growthBusinessDetails" hidden>
       <div class="growth-summary"><span>Employees: <strong id="growthStaffCount">0 / 6</strong></span><span id="growthManagerState">Not hired</span></div>
@@ -125,7 +126,7 @@
     <p class="growth-help">Industry-specific initiatives increase revenue for 10 minutes, with a 15-minute cooldown. They cost cash and one action; effects appear in real-time net profit.</p>
     <div class="growth-decision">
       <h4 id="growthDecisionName">Local initiative</h4>
-      <p id="growthDecisionDescription">Choose a business in Staff &amp; Managers to get started.</p>
+      <p id="growthDecisionDescription">Choose a business above to get started.</p>
       <div class="growth-decision-meta"><span id="growthDecisionCost">Cost varies</span><span id="growthDecisionDuration">Ready now</span></div>
       <button type="button" id="growthRunDecision" data-growth-action="growthRunDecision">Launch initiative</button>
     </div>
