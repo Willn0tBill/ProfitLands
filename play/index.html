@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="../compact-panels.css?v=20261026-5" />
   <link rel="stylesheet" href="../site-polish.css?v=20261026-4" />
   <link rel="stylesheet" href="../site-pages.css?v=pages01" />
+  <link rel="stylesheet" href="../growth-system.css?v=growth08" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -88,6 +89,54 @@
         <div id="eventBanner" class="event-banner hidden"></div>
         </div>
         
+<nav class="growth-quicknav" aria-label="Game sections">
+  <a href="#growthPanel">Analytics &amp; Growth</a>
+  <a href="#businessPanel">Businesses</a>
+  <a href="#stockPanel">Stocks</a>
+  <a href="#financePanel">Finances</a>
+</nav>
+<section id="growthPanel" class="panel growth-panel" aria-labelledby="growthTitle">
+  <div class="panel-head"><div><span class="eyebrow">BUSINESS EXPANSION · V0.8</span><h3 id="growthTitle">Your Empire at a Glance</h3></div><span class="live-tag">LIVE</span></div>
+  <div class="growth-tabs" role="tablist" aria-label="Empire expansion">
+    <button type="button" role="tab" data-growth-tab="analytics" aria-selected="true" class="active">Analytics</button>
+    <button type="button" role="tab" data-growth-tab="staff" aria-selected="false">Staff &amp; Managers</button>
+    <button type="button" role="tab" data-growth-tab="decisions" aria-selected="false">Industry Decisions</button>
+    <button type="button" role="tab" data-growth-tab="milestones" aria-selected="false">Milestones</button>
+  </div>
+  <div class="growth-content" data-growth-page="analytics" role="tabpanel">
+    <div class="growth-chart-header"><div><strong>Live financial history</strong><p>Understand how purchases, upgrades, and expenses change your empire.</p></div><label>Display
+      <select id="growthMetric" aria-label="Chart metric"><option value="netWorth">Empire value</option><option value="cash">Cash balance</option><option value="flow">Net flow per second</option></select></label></div>
+    <svg id="growthChart" class="growth-chart" viewBox="0 0 600 195" role="img" aria-label="ProfitLands financial history chart" preserveAspectRatio="none"></svg>
+    <div id="growthChartLabels" class="growth-chart-caption">Your chart begins when you start playing.</div>
+    <p id="growthSaveStatus" class="growth-help"></p>
+  </div>
+  <div class="growth-content" data-growth-page="staff" role="tabpanel" hidden>
+    <p class="growth-help">Employees improve revenue but add ongoing wages. Managers improve productivity and help maintain popularity each market cycle. Hiring uses one action.</p>
+    <div class="growth-business-picker"><label for="growthBusiness">Manage a company</label><select id="growthBusiness"><option value="0">Select a business</option></select></div>
+    <p id="growthBusinessEmpty" class="growth-help">Buy a business to unlock hiring and industry decisions.</p>
+    <div id="growthBusinessDetails" hidden>
+      <div class="growth-summary"><span>Employees: <strong id="growthStaffCount">0 / 6</strong></span><span id="growthManagerState">Not hired</span></div>
+      <div class="growth-net-effect" id="growthStaffEffect">No staffing changes yet</div>
+      <div class="growth-actions"><button type="button" id="growthHireWorker" data-growth-action="growthHireWorker"><strong>Hire employee</strong><span id="growthHireCost">Cost</span></button>
+        <button type="button" id="growthHireManager" data-growth-action="growthHireManager"><strong>Hire manager</strong><span id="growthManagerCost">Cost</span></button></div>
+    </div>
+  </div>
+  <div class="growth-content" data-growth-page="decisions" role="tabpanel" hidden>
+    <p class="growth-help">Industry-specific initiatives increase business revenue for three market cycles, have a cooldown, and cost cash plus one action. Changes are reflected in real-time net profit.</p>
+    <div class="growth-decision">
+      <h4 id="growthDecisionName">Local initiative</h4>
+      <p id="growthDecisionDescription">Choose a business in Staff &amp; Managers to get started.</p>
+      <div class="growth-decision-meta"><span id="growthDecisionCost">Cost varies</span><span id="growthDecisionDuration">Ready now</span></div>
+      <button type="button" id="growthRunDecision" data-growth-action="growthRunDecision">Launch initiative</button>
+    </div>
+  </div>
+  <div class="growth-content" data-growth-page="milestones" role="tabpanel" hidden>
+    <p class="growth-help">Earn one-time rewards for growing your empire. Each milestone can be claimed automatically only once per save.</p>
+    <p id="growthMilestonesCount" class="growth-milestone-count">0 / 9 milestones completed</p>
+    <div id="growthMilestones" class="growth-milestones"></div>
+  </div>
+</section>
+
 <div id="economyPanel" class="panel economy-panel" aria-label="World economy">
   <div class="panel-head"><div><span class="eyebrow">WORLD ECONOMY</span><h3>Economic Conditions</h3></div><span class="live-tag" id="economyCondition">NORMAL</span></div>
   <div class="economy-meter"><div><strong id="economyHealth">60</strong><small>/ 100</small></div><div class="economy-bar"><i id="economyHealthBar" style="width:60%"></i></div></div>
@@ -96,11 +145,11 @@
   <div class="economy-tier">Corporate scale: <b id="economyScale">Starting</b> · Event intensity increases as your empire grows.</div>
 </div>
         <div class="dashboard-grid">
-          <div class="panel collapsible-panel business-panel open">
+          <div id="businessPanel" class="panel collapsible-panel business-panel open">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">COMPANIES</span><h3>Your Businesses</h3></span><span class="panel-toggle-arrow">⌄</span></button><button id="openBusinessShop" class="small-button">+ Buy Business</button></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="businessList" class="business-list"></div></div></div>
           </div>
-          <div class="panel collapsible-panel market-panel open">
+          <div id="stockPanel" class="panel collapsible-panel market-panel open">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">MARKET</span><h3>Stocks</h3></span><span class="panel-toggle-arrow">⌄</span></button><span class="live-tag">LIVE</span></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="stockList" class="stock-list"></div></div></div>
           </div>
@@ -126,7 +175,7 @@
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">PROFITLANDS NEWS</span><h3>Latest</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="newsFeed"></div></div></div>
           </div>
-          <div class="panel collapsible-panel finance-panel">
+          <div id="financePanel" class="panel collapsible-panel finance-panel">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">FINANCES</span><h3>Company Health</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="financeInfo"></div></div></div>
           </div>
@@ -161,7 +210,7 @@
   <script src="../platform.js"></script>
   <script src="../app.js"></script>
   <script src="../enhancements.js"></script>
-  <script src="../economy-system.js?v=pages02"></script>
+  <script src="../economy-system.js?v=growth08"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=20261026-2"></script>
   <script src="../performance-motion.js"></script>
@@ -176,6 +225,7 @@
   <script src="../hud-sticky.js?v=20261026-5"></script>
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js"></script>
+  <script src="../growth-system.js?v=growth08"></script>
   <script src="../play-route.js?v=pages01"></script>
 </body>
 </html>
