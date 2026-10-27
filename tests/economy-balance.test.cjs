@@ -175,3 +175,63 @@ test('manager popularity improvements do not depend on market-cycle length',()=>
     assert.ok(Math.abs(h.state.businesses[0].locations[0].basePopularity-50.4)<1e-5,mode+' location gain');
   }
 });
+
+test('company staffing grows with upgrades and additional locations',()=>{
+  const h=harness(),g=h.window.ProfitLandsGrowth;
+  const b={type:'coffee',level:1,workers:0,locations:[{id:'downtown'}]};
+  assert.equal(g.companyEmployeeCap(b),6,'small business should begin with six seats');
+  b.level=3;
+  assert.equal(g.companyEmployeeCap(b),18,'business upgrades create additional jobs');
+  b.locations.push({id:'suburbs'});
+  assert.equal(g.companyEmployeeCap(b),30,'second location adds twelve positions');
+  b.locations.push({id:'tourist'});
+  assert.equal(g.companyEmployeeCap(b),42,'third location increases capacity again');
+});
+test('empire net worth unlocks total workforce tiers progressively',()=>{
+  const h=harness(),g=h.window.ProfitLandsGrowth;
+  const expectations=[
+    [1000,12],[10000,25],[100000,60],[1000000,150],
+    [10000000,400],[100000000,1000],[1000000000,2500],
+    [1000000000000,10000]
+  ];
+  for(const [worth,capacity] of expectations){
+    h.state.cash=worth;
+    assert.equal(g.workforceTier().cap,capacity,'worth '+worth);
+  }
+  h.state.cash=9999;
+  assert.equal(g.workforceTier().cap,12,'tier must not unlock early');
+  assert.equal(g.workforceTier().next.netWorth,10000);
+});
+test('hiring obeys both company capacity and total empire capacity',()=>{
+  const h=harness(),g=h.window.ProfitLandsGrowth;
+  h.state.cash=1000;
+  const first={type:'coffee',level:3,workers:5,locations:[{id:'downtown'}]};
+  const second={type:'restaurant',level:3,workers:5,locations:[{id:'downtown'}]};
+  h.state.businesses=[first,second];
+  assert.equal(g.totalEmployees(),10);
+  assert.equal(g.hiringRoom(first),2,'global startup capacity limits hiring despite larger facility');
+  h.state.cash=100000;
+  assert.equal(g.hiringRoom(first),13,'with more empire capital company limit now binds');
+  first.workers=18;
+  assert.equal(g.hiringRoom(first),0,'full company cannot hire more');
+  // If value drops, no one gets silently fired, but recruitment stops.
+  h.state.cash=1000;
+  assert.equal(first.workers,18);
+  assert.equal(g.hiringRoom(second),0,'over-capacity empire cannot hire');
+});
+test('bulk hiring prices rise with each worker and staff profit has diminishing returns',()=>{
+  const h=harness(),g=h.window.ProfitLandsGrowth;
+  const b={type:'factory',level:9,workers:0,locations:[{id:'industrial'}]};
+  const one=g.staffCost(b,'worker',1);
+  const five=g.staffCost(b,'worker',5);
+  assert.ok(five>one*5,'subsequent recruits have greater hiring cost');
+  b.workers=20;
+  assert.ok(g.staffCost(b,'worker',5)>five,'larger teams cost more to hire');
+  assert.equal(g.staffCost(b,'worker',26),Infinity,'batches have a safe limit');
+  b.workers=1;const oneWorkerProfit=g.adjustProfit(b);
+  b.workers=2;const twoWorkerProfit=g.adjustProfit(b);
+  b.workers=100;const hundredProfit=g.adjustProfit(b);
+  assert.ok(oneWorkerProfit>0,'one worker should be useful');
+  assert.ok(twoWorkerProfit>oneWorkerProfit,'second worker should improve gross operations');
+  assert.ok(hundredProfit<oneWorkerProfit*100,'large staffs should not be a linear money exploit');
+});
