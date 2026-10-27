@@ -11,7 +11,7 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 The main game now includes a **Growth Center** in `/play/` with four sections:
 
 - **Analytics** — live, saved history of cash, empire value and net flow per second. History retains the latest 120 samples (roughly ten minutes of active play).
-- **Employees and managers** — hire up to six employees per business. Employees increase sales productivity but deduct ongoing wages; managers add a productivity bonus, ongoing salary and modest popularity maintenance on each market cycle. Hiring costs cash and one action.
+- **Employees and managers** — hire up to six employees per business. Employees increase sales productivity but deduct ongoing wages; managers add a productivity bonus, ongoing salary and modest popularity maintenance during active play (not tied to market-cycle duration). Hiring costs cash and one action.
 - **Industry decisions** — each of the eight business industries has a distinct promotion or operational initiative. Initiatives require cash and one action, give a ten-minute revenue bonus, and have a fifteen-minute cooldown. Effects use real time rather than market-cycle count so world-speed selection does not change promotion duration.
 - **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire.
 - **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
