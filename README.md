@@ -11,11 +11,30 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 The main game now includes a **Growth Center** in `/play/` with four sections:
 
 - **Analytics** — live, saved history of cash, empire value and net flow per second. History retains the latest 120 samples (roughly ten minutes of active play).
-- **Employees and managers** — hire up to six employees per business. Employees increase sales productivity but deduct ongoing wages; managers add a productivity bonus, ongoing salary and modest popularity maintenance during active play (not tied to market-cycle duration). Hiring costs cash and one action.
+- **Employees and managers** — company hiring capacity grows with its level and number of locations, while a shared empire-wide workforce limit expands with net worth. Hire 1, 5, 10, or 25 employees per action. Productivity has diminishing returns and every worker adds ongoing payroll costs. Managers add a productivity bonus, ongoing salary and popularity maintenance during active play.
 - **Industry decisions** — each of the eight business industries has a distinct promotion or operational initiative. Initiatives require cash and one action, give a ten-minute revenue bonus, and have a fifteen-minute cooldown. Effects use real time rather than market-cycle count so world-speed selection does not change promotion duration.
 - **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire.
 - **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
 - **Recovery saves** — the existing `profitlands-v2` save schema remains compatible; a previous valid save is stored at `profitlands-v2-backup` and can restore progress if the primary local save becomes corrupt.
+
+### Workforce progression
+
+There are **two complementary limits**: a company can hire only the workers its own upgraded facilities can support, and the sum of workers in all companies cannot exceed the empire-wide cap.
+
+A new company starts with 6 positions, gaining **6 additional positions per company level** and **12 additional positions for each new location**. Company capacity is capped at 5,000 to keep very large saves manageable.
+
+| Empire net worth | Total employee allowance |
+|---|---:|
+| Starting empire | 12 |
+| $10,000 | 25 |
+| $100,000 | 60 |
+| $1 million | 150 |
+| $10 million | 400 |
+| $100 million | 1,000 |
+| $1 billion | 2,500 |
+| $1 trillion | 10,000 |
+
+The **Growth Center → Staff & Managers** panel shows the current company and empire limits, the next unlock, and a batch hiring selector. Hiring consumes one management action per batch of up to 25 workers; each successive worker costs a little more to recruit. Wages apply continuously and productivity gains taper off as teams become very large. If net worth falls and the global cap drops, existing workers remain employed, but additional recruitment is blocked until there is room.
 
 ### Action balance
 
