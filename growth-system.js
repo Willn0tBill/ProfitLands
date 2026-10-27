@@ -95,6 +95,7 @@
     awards();render();
   }
   function moneyLabel(n){return(Number(n)>=0?'+':'')+fmt(n)}
+  function rateLabel(n){const formatted=window.ProfitLandsRealtime?.formatRate?.(n)||('$'+validNumber(n).toFixed(2));return(n>=0?'+':'')+formatted}
   function renderChart(){
     const svg=$('growthChart'),labels=$('growthChartLabels');if(!svg)return;
     const g=ensure(),points=g.history,metric=$('growthMetric')?.value||'netWorth';
@@ -111,7 +112,7 @@
     const d=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)).join(' ');
     el('path',{d,fill:'none',stroke:metric==='flow'?'#e6bd78':'#adf26f','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'});
     const last=coords.at(-1);el('circle',{cx:last[0],cy:last[1],r:4,fill:'#f6f5e5'});
-    if(labels)labels.textContent='Low '+fmt(min)+' · Latest '+moneyLabel(values.at(-1))+' · High '+fmt(max)+' · '+points.length+' samples';
+    if(labels)labels.textContent='Low '+(metric==='flow'?rateLabel(min):fmt(min))+' · Latest '+(metric==='flow'?rateLabel(values.at(-1)):moneyLabel(values.at(-1)))+' · High '+(metric==='flow'?rateLabel(max):fmt(max))+' · '+points.length+' samples';
   }
   function updateSelect(){
     const select=$('growthBusiness');if(!select)return;
@@ -127,13 +128,14 @@
     const b=selectedBusiness(),empty=$('growthBusinessEmpty'),detail=$('growthBusinessDetails');
     if(empty)empty.hidden=!!b;
     if(detail)detail.hidden=!b;
+    if($('growthRunDecision'))$('growthRunDecision').disabled=!b;
     if(!b)return;
     const t=typeFor(b),staff=Math.floor(validNumber(b.workers)),workerFee=staffCost(b,'worker'),managerFee=staffCost(b,'manager');
     const ownPrice=initiativeCost(b),sector=INDUSTRIES[b.type]||['Local campaign','Run a focused short-term promotion.'];
     const put=(id,str)=>{if($(id))$(id).textContent=String(str)};
     put('growthStaffCount',staff+' / '+MAX_WORKERS);
     put('growthManagerState',b.manager===true?'Employed — improves popularity each market cycle':'Not hired');
-    put('growthStaffEffect',moneyLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
+    put('growthStaffEffect',rateLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
     put('growthHireCost',fmt(workerFee)+' upfront + ongoing wages');
     put('growthManagerCost',fmt(managerFee)+' upfront + ongoing salary');
     put('growthDecisionName',sector[0]);put('growthDecisionDescription',sector[1]);
