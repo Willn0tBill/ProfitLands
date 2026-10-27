@@ -12,8 +12,11 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 - Fast, Standard, Long, and Persistent worlds
 - Four different day lengths and action limits
 - Multiple business types with different economics
-- Random daily business income based on popularity/demand
-- Business operating expenses and daily profit/loss
+- **Real-time net cash flow:** owned businesses, corporations, and property generate or lose cash every second while you're playing
+- Operating revenue and expenses are calculated together, so unprofitable companies drain cash too
+- Every 60 seconds of active play realizes one previous "daily profit" unit; this makes earnings continuous while maintaining the economy's cost structure
+- Day/market cycles still update news, stocks, popularity, and action budgets, but **do not pay an extra profit lump sum**
+- No unlimited offline earnings: inactive/hidden tabs do not accumulate long catch-up payouts
 - Business upgrades
 - Marketing and efficiency upgrades
 - 10× original-price chain expansion
@@ -36,7 +39,7 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 | Long | 1 hour | 10 |
 | Persistent | 24 hours | 12 |
 
-Each world mode can be started as **Singleplayer** or the current **Multiplayer prototype**.
+Each world mode can be started as **Singleplayer** or the current **Multiplayer prototype**. Mode day lengths still determine when market news, stock prices, and the action budget refresh; passive business cash flow is independent of day boundaries.
 
 ## Business system
 
@@ -44,7 +47,7 @@ Businesses are not generic income generators. Each type has its own starting cos
 
 A business can be upgraded and expanded into a chain. Opening the second location costs **10× the original business purchase price**. Later locations become progressively more expensive.
 
-Daily profit changes because popularity changes from day to day. This means a business can have a great day, an average day, or a losing day.
+Net profit changes as market conditions, location demand, wages, rent, supply pressure, and popularity fluctuate. Cash balances update during play rather than waiting for you to press Next Cycle. That button changes markets and refreshes actions; it does not duplicate earnings.
 
 ## Multiplayer note
 
