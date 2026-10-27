@@ -46,9 +46,9 @@
     const level=Math.max(1,Math.floor(validNumber(b.level)||1));
     const revenue=t.baseRevenue*(1+(level-1)*.22)*locations;
     const expense=t.baseExpense*(1+(level-1)*.22)*locations;
-    const wages=workers*expense*.15+(manager?expense*.28:0);
-    const workBoost=workers*.045+(manager?.075:0);
-    const active=Number.isFinite(b.initiativeUntil)&&b.initiativeUntil>=state.day;
+    const wages=workers*expense*.14+(manager?expense*.23:0);
+    const workBoost=workers*.13+(manager?.18:0);
+    const active=Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>Date.now();
     const bonus=active?.12:0;
     return Math.round(revenue*(workBoost+bonus)-wages);
   }
@@ -140,11 +140,12 @@
     put('growthManagerCost',fmt(managerFee)+' upfront + ongoing salary');
     put('growthDecisionName',sector[0]);put('growthDecisionDescription',sector[1]);
     put('growthDecisionCost',fmt(ownPrice)+' · 1 action');
-    put('growthDecisionDuration',b.initiativeUntil>=state.day?'Active until market cycle '+b.initiativeUntil:b.initiativeCooldown>=state.day?'Ready on cycle '+(b.initiativeCooldown+1):'Ready now');
+    const now=Date.now(),active=Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>now,cooldown=Number.isFinite(b.initiativeCooldownAt)&&b.initiativeCooldownAt>now;
+    put('growthDecisionDuration',active?'Active · '+Math.ceil((b.initiativeUntilTime-now)/60000)+'m remaining':cooldown?'Cooldown · '+Math.ceil((b.initiativeCooldownAt-now)/60000)+'m remaining':'Ready now');
     const hire=$('growthHireWorker'),manager=$('growthHireManager'),decision=$('growthRunDecision');
     if(hire)hire.disabled=staff>=MAX_WORKERS||state.cash<workerFee||state.actions<=0;
     if(manager)manager.disabled=b.manager===true||state.cash<managerFee||state.actions<=0;
-    if(decision)decision.disabled=state.actions<=0||state.cash<ownPrice||b.initiativeCooldown>=state.day;
+    if(decision)decision.disabled=state.actions<=0||state.cash<ownPrice||cooldown;
   }
   function renderMilestones(){
     const list=$('growthMilestones');if(!list)return;
@@ -182,9 +183,10 @@
       if(b.manager||!spend(b,staffCost(b,'manager')))return say('Unable to hire this manager.');
       b.manager=true;say('Manager hired. Popularity is now managed each cycle.');
     }else if(id==='growthRunDecision'){
-      if(b.initiativeCooldown>=state.day||!spend(b,initiativeCost(b)))return say('Not enough resources or the campaign is on cooldown.');
-      b.initiativeUntil=state.day+2;b.initiativeCooldown=state.day+3;
-      say('Industry initiative started for three market cycles.');
+      if((b.initiativeCooldownAt||0)>Date.now()||!spend(b,initiativeCost(b)))return say('Not enough resources or the campaign is on cooldown.');
+      b.initiativeUntilTime=Date.now()+10*60*1000;
+      b.initiativeCooldownAt=Date.now()+15*60*1000;
+      say('Industry initiative active for 10 minutes with a 15-minute cooldown.');
     }else return;
     state.news.push('OPERATIONS — '+(b.name||typeFor(b)?.name||'Business')+' updated its management strategy.');
     awards();window.save?.();window.render?.();render();
