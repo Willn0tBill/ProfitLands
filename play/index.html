@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10131a" />
+  <title>Play ProfitLands | Your Empire — WtvStudios</title>
+  <meta name="description" content="Play ProfitLands: build businesses, earn cash per second, trade stocks, and manage your empire." />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../enhancements.css" />
+  <link rel="stylesheet" href="../trade-ui.css" />
+  <link rel="stylesheet" href="../sticky-news.css" />
+  <link rel="stylesheet" href="../player-system.css" />
+  <link rel="stylesheet" href="../economy-system.css" />
+  <link rel="stylesheet" href="../tutorial.css" />
+  <link rel="stylesheet" href="../performance-motion.css" />
+  <link rel="stylesheet" href="../mobile.css" />
+  <link rel="stylesheet" href="../mobile-controls.css" />
+  <link rel="stylesheet" href="../top-stats.css" />
+  <link rel="stylesheet" href="../compact-panels.css?v=20261026-5" />
+  <link rel="stylesheet" href="../site-polish.css?v=20261026-4" />
+  <link rel="stylesheet" href="../site-pages.css?v=pages01" />
+  <script src="../ui-preferences.js?v=pages01" defer></script>
+</head>
+<body class="pl-play-page">
+  <div id="floatingHud" role="region" aria-label="Live empire status" hidden>
+    <div class="floating-hud-inner">
+      <span class="floating-hud-item"><span>Day</span> <strong id="floatDay">1</strong></span>
+      <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Remaining</span><strong id="floatTimer">15:00</strong></span>
+      <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Cash</span> <strong id="floatCash">$1,000</strong></span>
+      <span class="floating-hud-item floating-hud-hide-mobile"><span>Actions</span> <strong id="floatActions">6</strong></span>
+      <span class="floating-hud-spacer"></span>
+      <button type="button" class="floating-hud-button" id="floatingEndDay">Next Cycle →</button>
+      <button type="button" class="floating-hud-button" id="floatingBackTop">Dashboard ↑</button>
+    </div>
+  </div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">$</div><div><h1>ProfitLands</h1><p>WtvStudios · Build. Invest. Compete.</p></div></div>
+      <div class="pl-header-tools"><div class="mode-pill"><span id="modeName">Standard</span><span class="dot"></span><span id="playType">Singleplayer</span></div><a class="pl-header-link" href="../">Home</a><a class="pl-header-link" href="../settings/">Settings</a></div>
+    </header>
+    <main>
+      <section id="homeScreen" class="screen active">
+  <div class="hero play-entry-hero"><div><span class="eyebrow">PROFITLANDS GAME</span><h2>Build your empire.</h2><p>Continue your saved game or choose a world mode to start fresh. Your businesses now earn cash every second during active play.</p></div><div class="hero-coin">$</div></div>
+  <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
+  <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Multiplayer Preview</strong><small>Prototype setup; real online multiplayer is not yet available.</small></button></div>
+  <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose a market cycle</h3></div>
+  <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min cycle · 4 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min cycle · 6 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr cycle · 10 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr cycle · 12 actions</small></button></div>
+  <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
+  <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
+  <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
+</section>
+<section id="gameScreen" class="screen">
+        <div class="game-hud">
+        <div class="game-head">
+          <div class="empire-status">
+            <span class="eyebrow">EMPIRE DASHBOARD</span>
+            <div class="day-row">
+              <h2>Day <span id="gameDay">1</span></h2>
+              <div class="game-center-controls">
+                <div class="timer-box"><small>NEXT MARKET CYCLE</small><strong id="timer">15:00</strong></div>
+                <button id="endDay" class="small-button end-day-compact" title="Refresh markets, events and available actions; business cash flow continues automatically">Next Cycle <span>→</span></button>
+              </div>
+            </div>
+            <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
+            <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
+          </div>
+          <div class="game-controls"><a class="pl-header-link pl-control-link" href="../">Home</a><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
+        </div>
+        <div class="stats-grid" id="hudStats" aria-label="Empire statistics">
+          <div class="stat stat-dropdown" data-stat="cash" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>CASH BALANCE</small><strong id="cash">$1,000</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Cash?</b>Money you can spend right now. Buying businesses, upgrades, property, or stocks uses cash. Net income increases it automatically every second while you play.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="networth" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>TOTAL EMPIRE VALUE</small><strong id="netWorth">$1,000</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Net Worth?</b>The estimated total value of your empire: cash, stocks, businesses, and property. This is what counts toward the $1 trillion goal.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="profit" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>NET CASH FLOW / SEC</small><strong id="dailyIncome">$0.00</strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What is Net Cash Flow?</b>Businesses, corporations, and property earn or lose money continuously while you play. Operating expenses are already deducted. A market cycle updates demand, stocks, news, and available actions without paying an extra income bonus.</div></div>
+          </div>
+          <div class="stat stat-dropdown" data-stat="actions" role="button" tabindex="0" aria-expanded="false">
+            <span class="stat-main"><small>ACTIONS REMAINING</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are your moves for the current day. Buying, upgrading, trading, and other decisions can use them. They reset when the market cycle ends; income keeps flowing throughout the cycle.</div></div>
+          </div>
+        </div>
+        <div id="eventBanner" class="event-banner hidden"></div>
+        </div>
+        <div id="economyPanel" class="panel economy-panel" aria-label="World economy"></div>
+        <div class="dashboard-grid">
+          <div class="panel collapsible-panel business-panel open">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">COMPANIES</span><h3>Your Businesses</h3></span><span class="panel-toggle-arrow">⌄</span></button><button id="openBusinessShop" class="small-button">+ Buy Business</button></div>
+            <div class="panel-body"><div class="panel-body-inner"><div id="businessList" class="business-list"></div></div></div>
+          </div>
+          <div class="panel collapsible-panel market-panel open">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="true"><span class="panel-toggle-copy"><span class="eyebrow">MARKET</span><h3>Stocks</h3></span><span class="panel-toggle-arrow">⌄</span></button><span class="live-tag">LIVE</span></div>
+            <div class="panel-body"><div class="panel-body-inner"><div id="stockList" class="stock-list"></div></div></div>
+          </div>
+        </div>
+        <div id="majorCompaniesPanel" class="panel major-companies-panel" aria-label="Major corporations"></div>
+        <div class="bottom-grid">
+          <div class="panel collapsible-panel actions-panel">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">YOUR EMPIRE</span><h3>Other Investments</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
+            <div class="panel-body"><div class="panel-body-inner"><div class="action-list"><button class="action-button" data-action="property"><span>🏠</span><div><b>Buy property</b><small>Steady value and rental income</small></div><em>$750</em></button><button class="action-button" data-action="research"><span>🔬</span><div><b>Research the market</b><small>Reveal a trend for tomorrow</small></div><em>$150</em></button></div></div></div>
+          </div>
+          <div class="panel collapsible-panel holdings-panel">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">PORTFOLIO</span><h3>Your Holdings</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
+            <div class="panel-body"><div class="panel-body-inner"><div id="holdings"></div></div></div>
+          </div>
+        </div>
+        <div class="bottom-grid">
+          <div class="panel collapsible-panel news-panel">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">PROFITLANDS NEWS</span><h3>Latest</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
+            <div class="panel-body"><div class="panel-body-inner"><div id="newsFeed"></div></div></div>
+          </div>
+          <div class="panel collapsible-panel finance-panel">
+            <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">FINANCES</span><h3>Company Health</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
+            <div class="panel-body"><div class="panel-body-inner"><div id="financeInfo"></div></div></div>
+          </div>
+        </div>
+        
+              <div id="bankPanel" class="panel bank-panel" aria-label="Bank and credit"></div>
+</section>
+    </main>
+  </div>
+  <div id="businessModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="businessModal">×</button><span class="eyebrow">BUSINESS MARKET</span><h2>Choose a business</h2><p class="modal-sub">Every business has different economics, upgrade paths, risks, and chain potential.</p><div id="businessChoices" class="business-choices"></div></div></div>
+  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal">×</button><div id="manageContent"></div></div></div>
+  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="tradeModal">×</button><div id="tradeContent"></div></div></div>
+  <div id="endGameModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="endGameModal">×</button><div id="endGameContent"></div></div></div>
+  <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game options will live here as ProfitLands grows.</p><div class="settings-list"><div class="setting-row"><div><b>Audio</b><small>Sound effects and game audio · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Music</b><small>Background music · Coming soon</small></div><span>SOON</span></div><div class="setting-row"><div><b>Company Changes</b><small>Change your company identity and other profile options.</small></div><span>PROFILE</span></div><div class="setting-row"><div><b>More Game Options</b><small>Additional gameplay and display settings can be added here later.</small></div><span>SOON</span></div></div></div></div>
+  <div id="economyModal" class="modal hidden"><div class="modal-card wide economy-modal-content" role="dialog" aria-modal="true" aria-label="Financial recovery"></div></div>
+  <div id="toast" class="toast"></div>
+
+  <!-- Firebase Web SDK. Firebase Auth + Firestore are used for accounts and private cloud saves. -->
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <script src="../platform.js"></script>
+  <script src="../app.js"></script>
+  <script src="../enhancements.js"></script>
+  <script src="../economy-system.js?v=realtime01"></script>
+  <script src="../economy-render.js?v=realtime01"></script>
+  <script src="../tutorial.js?v=20261026-2"></script>
+  <script src="../performance-motion.js"></script>
+  <script src="../trade-ui.js"></script>
+  <script src="../sticky-news.js"></script>
+  <script src="../player-system.js"></script>
+  <script src="../modal-dismiss.js"></script>
+  <script src="../mobile-fixes.js"></script>
+  <script src="../mobile-controls.js"></script>
+  <script src="../top-stats.js"></script>
+  <script src="../compact-panels.js"></script>
+  <script src="../hud-sticky.js?v=20261026-5"></script>
+  <script src="../crazygames.js"></script>
+  <script src="../firebase-auth.js"></script>
+  <script src="../play-route.js?v=pages01"></script>
+</body>
+</html>
