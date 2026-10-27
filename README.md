@@ -6,6 +6,38 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and work toward a **$1 trillion empire**.
 
+## Version 0.8 — Business Expansion
+
+The main game now includes a **Growth Center** in `/play/` with four sections:
+
+- **Analytics** — live, saved history of cash, empire value and net flow per second. History retains the latest 120 samples (roughly ten minutes of active play).
+- **Employees and managers** — hire up to six employees per business. Employees increase sales productivity but deduct ongoing wages; managers add a productivity bonus, ongoing salary and modest popularity maintenance on each market cycle. Hiring costs cash and one action.
+- **Industry decisions** — each of the eight business industries has a distinct promotion or operational initiative. Initiatives require cash and one action, give a ten-minute revenue bonus, and have a fifteen-minute cooldown. Effects use real time rather than market-cycle count so world-speed selection does not change promotion duration.
+- **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire.
+- **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
+- **Recovery saves** — the existing `profitlands-v2` save schema remains compatible; a previous valid save is stored at `profitlands-v2-backup` and can restore progress if the primary local save becomes corrupt.
+
+### Action balance
+
+| Mode | Market cycle | Max actions | Active-play action refill |
+|---|---:|---:|---:|
+| Fast | 5 minutes | 4 | 90 seconds |
+| Standard | 15 minutes | 6 | 120 seconds |
+| Long | 1 hour | 10 | 180 seconds |
+| Persistent | 24 hours | 12 | 300 seconds |
+
+Cash earned per **active minute** is independent of mode. Market cycle duration changes market refresh and action resets, not the real-time income formula.
+
+### Running tests
+
+The automated regression suite runs with Node.js 22 or newer and no third-party packages:
+
+```sh
+node --test tests/economy-balance.test.cjs
+```
+
+Tests cover all four mode calculations, action regeneration, earnings adjustments for all eight business industries, initiative expiry, achievement rewards, bounded chart history and local save backup recovery. GitHub Actions runs these tests automatically.
+
 ## Current prototype
 
 - Singleplayer and multiplayer setup modes
@@ -53,6 +85,6 @@ Net profit changes as market conditions, location demand, wages, rent, supply pr
 
 The multiplayer option is currently a **local prototype/setup layer**. Real-time internet multiplayer requires an online backend, accounts, synchronization, and a shared-world server. Those systems are intentionally separate from this client-side prototype so the core economy can be tested first.
 
-## Next major systems
+## Future systems
 
 Potential future versions can add real online multiplayer, accounts, persistent shared worlds, player-to-player trading, loans, corporate acquisitions, alliances, supply chains, diplomacy, sabotage/defense, leaderboards, and deeper AI competitors.
