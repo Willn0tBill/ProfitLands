@@ -133,3 +133,30 @@ test('company management visibly shows controls and staff for every location',()
  assert.equal((markup.match(/data-site-action="manager"/g)||[]).length,2);
  assert.ok(markup.includes('Staff & management'));
 });
+
+test('per-location economy calculations respond only to that location changes',()=>{
+ const h=harness(),b=h.b,ops=h.ops;
+ const source=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+ const begin=source.indexOf('  function locationProfit(b,l,i){');
+ const end=source.indexOf('  function businessProfit(b){',begin);
+ assert.ok(begin>=0&&end>begin,'location profit implementation available');
+ const locationProfit=new Function(
+  'BUSINESS_TYPES','state','riskFor','tier','LOCS','activeEffect','window',
+  source.slice(begin,end)+';return locationProfit;'
+ )([{id:'coffee',cost:500,baseRevenue:115,baseExpense:48}],{
+   day:1,economy:{health:60,demandIndex:1,rentIndex:1,wageIndex:1,supplyIndex:1}
+ },()=>({econ:1,cost:1,weather:.7,vol:.15}),()=>0,{
+   downtown:{demand:1.22,rent:1.3},tourist:{demand:1.35,rent:1.85}
+ },()=>1,{ProfitLandsLocationOps:ops});
+ const baseDowntown=locationProfit(b,b.locations[0],0);
+ const baseTourist=locationProfit(b,b.locations[1],1);
+ b.locations[0].level++;
+ assert.ok(locationProfit(b,b.locations[0],0)!==baseDowntown);
+ assert.equal(locationProfit(b,b.locations[1],1),baseTourist,'independent upgrade');
+ b.locations[0].marketing++;
+ assert.equal(locationProfit(b,b.locations[1],1),baseTourist,'independent marketing');
+ b.locations[0].efficiency++;
+ assert.equal(locationProfit(b,b.locations[1],1),baseTourist,'independent efficiency');
+ b.locations[0].workers++;
+ assert.equal(locationProfit(b,b.locations[1],1),baseTourist,'independent payroll');
+});
