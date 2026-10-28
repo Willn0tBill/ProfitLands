@@ -1,0 +1,110 @@
+/* ProfitLands Business Arcade: native management-console mini-games */
+#gameScreen .pl-arcade-panel{background:transparent!important;border:0!important;padding:0!important;min-width:0}
+#gameScreen .pl-arcade-panel>.panel-head{
+ border:1px solid #3c634e;background:linear-gradient(120deg,#183728 0%,#152621 65%,#253c32 100%);
+ border-radius:16px;padding:18px 20px;margin-bottom:12px!important;align-items:center;
+}
+#gameScreen .pl-arcade-panel>.panel-head h3{font-size:22px!important;margin:5px 0 0!important;color:#f1fcee}
+.pl-arcade-subtitle{color:#a9c6b2;font-size:12px;line-height:1.55;padding:0 3px;margin:8px 0 18px}
+.pl-arcade-tag{background:#a8e878;color:#162d1f;border-radius:9px;font-size:10px;padding:8px 10px;font-weight:900;letter-spacing:.07em;white-space:nowrap}
+.pl-arcade-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.pl-arcade-meta>div{background:#162820;border:1px solid #345640;border-radius:12px;min-height:82px;padding:13px 14px}
+.pl-arcade-meta span{display:block;color:#91b6a0;font-size:10px;font-weight:800;letter-spacing:.08em}
+.pl-arcade-meta strong{display:block;color:#f1ffe8;font-size:22px;font-weight:900;line-height:1.2;margin-top:9px;font-variant-numeric:tabular-nums}
+.pl-arcade-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.pl-arcade-game{
+ min-height:276px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden;
+ padding:18px 18px 16px;border:1px solid #3c6150;border-radius:16px;
+ background:linear-gradient(155deg,#172d23,#101e1d 75%);box-shadow:0 12px 28px #0002;
+}
+.pl-arcade-game:before{
+ content:"";position:absolute;inset:auto -40px -120px auto;width:220px;height:220px;
+ background:radial-gradient(circle,#a8ed8130,transparent 65%);pointer-events:none;
+}
+.pl-arcade-amber{border-color:#706747;background:linear-gradient(160deg,#363021,#191e1c 75%)}
+.pl-arcade-amber:before{background:radial-gradient(circle,#f5c97122,transparent 65%)}
+.pl-arcade-blue{border-color:#435e77;background:linear-gradient(160deg,#1a3040,#141c22 75%)}
+.pl-arcade-blue:before{background:radial-gradient(circle,#80bbeb22,transparent 65%)}
+.pl-arcade-game-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pl-arcade-game-icon{
+ display:grid;place-items:center;width:52px;height:52px;border-radius:13px;
+ font-size:29px;background:#203e2a;border:1px solid #477250;
+}
+.pl-arcade-blue .pl-arcade-game-icon{font-size:13px;font-weight:900;letter-spacing:.05em;background:#244158;border-color:#4a779c}
+.pl-arcade-amber .pl-arcade-game-icon{background:#4b4228;border-color:#8f7a48}
+.pl-arcade-pill{font-size:9px;font-weight:900;letter-spacing:.11em;color:#abc6b1;background:#25382a;border:1px solid #405f48;border-radius:999px;padding:5px 9px}
+.pl-arcade-game h3{font-size:19px!important;color:#eaf9e7;margin:7px 0 0!important;letter-spacing:-.02em}
+.pl-arcade-game p{font-size:12px;color:#b2cbb7;line-height:1.55;margin:0;flex:1}
+.pl-arcade-game-bottom{display:flex;align-items:end;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid #40584a}
+.pl-arcade-game-bottom>span{font-size:9px;color:#94baa1;letter-spacing:.05em;font-weight:850}
+.pl-arcade-game-bottom>span b{display:block;font-size:17px;color:#ecfbe8;font-variant-numeric:tabular-nums}
+.pl-arcade-game button,.pl-arcade-result-buttons button{
+ border:0;min-height:41px;padding:10px 14px;border-radius:10px;
+ background:#b0f286;color:#172c1c;font-size:12px;font-weight:900;cursor:pointer;
+}
+.pl-arcade-game button:hover,.pl-arcade-result-buttons button:hover{background:#ceffa9}
+.pl-arcade-game button:focus-visible,.pl-arcade-session button:focus-visible,.pl-arcade-result button:focus-visible{outline:3px solid #d5fda1;outline-offset:3px}
+.pl-arcade-help{margin:14px 0 6px;border-radius:11px;border:1px solid #3a6244;background:#16281c;padding:12px 14px;font-size:11px;line-height:1.6;color:#acc4ac}
+.pl-arcade-help strong{color:#d9e9cb}
+.pl-arcade-session{
+ max-width:800px;margin:auto;background:linear-gradient(150deg,#1a2b25,#101c1c);
+ border:1px solid #466e52;border-radius:17px;padding:20px;min-height:350px;
+ box-shadow:0 14px 38px #0003;
+}
+.pl-arcade-session-head{display:flex;align-items:center;justify-content:space-between;gap:13px}
+.pl-arcade-session-head h3{font-size:24px!important;color:#e9fde1;margin:5px 0!important}
+.pl-arcade-overline{font-size:10px;color:#9cc6a4;letter-spacing:.16em;font-weight:900}
+.pl-arcade-quit{
+ border:1px solid #688677;color:#e3f6df;background:#264236;border-radius:9px;
+ min-height:38px;padding:8px 11px;font-size:11px;font-weight:900;cursor:pointer;
+}
+.pl-arcade-session-stats{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:#c5deca;font-weight:650;margin:15px 0 9px}
+.pl-arcade-session-stats b{font-variant-numeric:tabular-nums;font-size:21px;color:#e6fbdc}
+.pl-arcade-track{height:8px;overflow:hidden;border-radius:999px;background:#344a3c;position:relative}
+.pl-arcade-track span{display:block;background:linear-gradient(90deg,#77d897,#cbf883);height:100%;border-radius:999px;transition:width .15s linear}
+.pl-arcade-clicker-stage{display:grid;place-items:center;min-height:255px;position:relative;isolation:isolate;overflow:hidden}
+.pl-arcade-clicker-glow{position:absolute;z-index:-1;width:290px;height:290px;border-radius:50%;background:radial-gradient(circle,#5e9d5930,transparent 65%);}
+.pl-arcade-tap{
+ width:185px;min-height:185px;border-radius:50%;border:4px solid #a5ed8f;
+ background:radial-gradient(circle at 35% 25%,#5d8e62,#1b5038 78%);
+ box-shadow:inset 0 7px 13px #b4fdb02a,0 15px 32px #0006,0 0 0 10px #3e684046;
+ display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;
+ cursor:pointer;color:#f4ffec;font-size:14px;font-weight:950;letter-spacing:.05em;
+ touch-action:manipulation;user-select:none;
+}
+.pl-arcade-tap:active{transform:scale(.95);box-shadow:inset 0 8px 26px #0005,0 0 0 4px #a2ea7c33}
+.pl-arcade-tap .pl-arcade-cup{font-size:55px;line-height:1}
+.pl-arcade-tap small{font-size:9px;font-weight:600;color:#c8ecc7;letter-spacing:0}
+.pl-arcade-feedback{text-align:center;color:#a9c8b1;font-size:11px;min-height:22px}
+.pl-arcade-instruction{font-size:clamp(16px,2vw,21px);color:#e8f9e3;font-weight:750;line-height:1.45;text-align:center;margin:26px auto 20px;max-width:640px}
+.pl-arcade-instruction strong{color:#b2f68d}
+.pl-arcade-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 10px}
+.pl-arcade-options button{
+ min-height:76px;background:#203e2e;border:1px solid #4f8056;border-radius:11px;
+ color:#e2f6db;font-size:13px;font-weight:800;cursor:pointer;padding:12px;
+}
+.pl-arcade-options button:hover{background:#305c40;border-color:#b5f38d}
+.pl-arcade-rules{font-size:10px;color:#8eaf9c;text-align:center;line-height:1.5;margin:13px 0 0}
+.pl-arcade-result{
+ background:linear-gradient(145deg,#1d402b,#132822);border:1px solid #578b5d;
+ border-radius:18px;padding:30px 22px;max-width:600px;margin:auto;text-align:center;
+}
+.pl-arcade-result-icon{display:grid;place-items:center;margin:0 auto 17px;width:55px;height:55px;
+ background:#b6f18e;color:#193920;border-radius:50%;font-size:30px;font-weight:900}
+.pl-arcade-result h3{font-size:25px!important;color:#effbe7;margin:10px 0!important}
+.pl-arcade-result p{font-size:12px;color:#b5d2bc;line-height:1.6}
+.pl-arcade-result-amount{font-size:clamp(27px,4vw,38px);font-weight:950;letter-spacing:-.025em;color:#c5f49f;padding:8px}
+.pl-arcade-result-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;margin-top:24px}
+@media(max-width:1100px){.pl-arcade-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:690px){
+ .pl-arcade-grid,.pl-arcade-meta{grid-template-columns:minmax(0,1fr)}
+ .pl-arcade-game{min-height:200px}
+ .pl-arcade-session{padding:13px;min-height:300px}
+ .pl-arcade-options{grid-template-columns:minmax(0,1fr)}
+ .pl-arcade-options button{min-height:48px}
+ .pl-arcade-clicker-stage{min-height:215px}
+ .pl-arcade-tap{width:150px;min-height:150px}
+ .pl-arcade-tap .pl-arcade-cup{font-size:42px}
+ .pl-arcade-result{padding:20px 14px}
+}
+@media(prefers-reduced-motion:reduce){.pl-arcade-track span,.pl-arcade-tap{transition:none!important}}
