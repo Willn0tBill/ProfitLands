@@ -47,4 +47,16 @@ jobs:
           node --check progression.js
           node --check huge-money.js
       - name: Run economy regression suite
-        run: node --test tests/economy-balance.test.cjs
+        id: regression
+        shell: bash
+        run: |
+          set +e
+          node --test tests/economy-balance.test.cjs > /tmp/profitlands-test.log 2>&1
+          outcome=$?
+          cat /tmp/profitlands-test.log
+          fails=$(grep '^not ok ' /tmp/profitlands-test.log | head -n 3 | cut -c1-125 | tr '\n' ';' || true)
+          echo "failing=${fails}" >> "$GITHUB_OUTPUT"
+          exit "$outcome"
+      - name: "Failed cases: ${{ steps.regression.outputs.failing }}"
+        if: failure()
+        run: echo "See failing test cases above"
