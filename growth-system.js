@@ -110,7 +110,12 @@
     const flow=window.ProfitLandsRealtime?.rate?.()||0;
     const worth=window.netWorth?.()||state.cash;
     const last=g.history.at(-1);
+    const moneyApi=window.ProfitLandsMoney;
     const item={t:now,cash:validNumber(state.cash),netWorth:validNumber(worth),flow:validNumber(flow)};
+    if(moneyApi){
+      item.cashRaw=moneyApi.raw(moneyApi.balance());
+      item.netWorthRaw=moneyApi.raw(moneyApi.netWorth(worth-state.cash));
+    }
     if(last&&Math.abs(now-last.t)<1000)g.history[g.history.length-1]=item;
     else g.history.push(item);
     if(g.history.length>HISTORY_LIMIT)g.history.splice(0,g.history.length-HISTORY_LIMIT);
@@ -122,7 +127,7 @@
     const g=ensure(),worth=window.netWorth?.()||state.cash,unlocked=[];
     for(const m of MILESTONES){
       if(g.milestones.includes(m.id)||!m.test(state,worth))continue;
-      g.milestones.push(m.id);state.cash+=m.reward;
+      g.milestones.push(m.id);if(window.ProfitLandsMoney)window.ProfitLandsMoney.gain(m.reward);else state.cash+=m.reward;
       state.news.push('MILESTONE — '+m.title+' completed. Reward: '+fmt(m.reward)+'.');
       unlocked.push(m.title);
     }
@@ -159,7 +164,15 @@
     svg.replaceChildren();
     const ns='http://www.w3.org/2000/svg';
     function el(name,attrs){const x=document.createElementNS(ns,name);for(const[k,v]of Object.entries(attrs))x.setAttribute(k,String(v));svg.appendChild(x);return x}
-    const values=points.map(p=>validNumber(p[metric]));
+    const moneyApi=window.ProfitLandsMoney;
+    const isHuge=moneyApi&&metric!=='flow'&&points.some(p=>p[metric+'Raw']&&moneyApi.parse(p[metric+'Raw']).e>280);
+    const values=points.map(p=>{
+      if(!isHuge)return validNumber(p[metric]);
+      const raw=p[metric+'Raw'];
+      if(!raw)return Math.log10(Math.max(1,validNumber(p[metric])));
+      const n=moneyApi.parse(raw);
+      return n.m>0?n.e+Math.log10(n.m):0;
+    });
     if(!values.length){if(labels)labels.textContent='Cash history begins when you start playing.';return}
     let min=Math.min(...values),max=Math.max(...values),range=max-min;
     if(range<.0001){min-=Math.max(1,Math.abs(max)*.05);max+=Math.max(1,Math.abs(max)*.05);range=max-min}
@@ -169,7 +182,9 @@
     const d=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)).join(' ');
     el('path',{d,fill:'none',stroke:metric==='flow'?'#e6bd78':'#adf26f','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'});
     const last=coords.at(-1);el('circle',{cx:last[0],cy:last[1],r:4,fill:'#f6f5e5'});
-    if(labels)labels.textContent='Low '+(metric==='flow'?rateLabel(min):fmt(min))+' · Latest '+(metric==='flow'?rateLabel(values.at(-1)):moneyLabel(values.at(-1)))+' · High '+(metric==='flow'?rateLabel(max):fmt(max))+' · '+points.length+' samples';
+    if(labels)labels.textContent=isHuge
+      ?'Logarithmic scale · Current '+moneyApi.format(points.at(-1)[metric+'Raw']||points.at(-1)[metric])+' · '+points.length+' samples'
+      :'Low '+(metric==='flow'?rateLabel(min):fmt(min))+' · Latest '+(metric==='flow'?rateLabel(values.at(-1)):moneyLabel(values.at(-1)))+' · High '+(metric==='flow'?rateLabel(max):fmt(max))+' · '+points.length+' samples';
   }
   function updateSelect(){
     const select=$('growthBusiness');if(!select)return;
@@ -213,9 +228,9 @@
     const now=Date.now(),active=Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>now,cooldown=Number.isFinite(b.initiativeCooldownAt)&&b.initiativeCooldownAt>now;
     put('growthDecisionDuration',active?'Active · '+Math.ceil((b.initiativeUntilTime-now)/60000)+'m remaining':cooldown?'Cooldown · '+Math.ceil((b.initiativeCooldownAt-now)/60000)+'m remaining':'Ready now');
     const hire=$('growthHireWorker'),manager=$('growthHireManager'),decision=$('growthRunDecision');
-    if(hire)hire.disabled=quantity>room||state.cash<workerFee||state.actions<=0;
-    if(manager)manager.disabled=b.manager===true||state.cash<managerFee||state.actions<=0;
-    if(decision)decision.disabled=state.actions<=0||state.cash<ownPrice||cooldown;
+    if(hire)hire.disabled=quantity>room||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(workerFee):state.cash<workerFee)||state.actions<=0;
+    if(manager)manager.disabled=b.manager===true||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(managerFee):state.cash<managerFee)||state.actions<=0;
+    if(decision)decision.disabled=state.actions<=0||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(ownPrice):state.cash<ownPrice)||cooldown;
   }
   function renderMilestones(){
     const list=$('growthMilestones');if(!list)return;
@@ -239,8 +254,10 @@
     if(saved)saved.textContent='History and milestones are saved with your empire. Chart keeps the latest '+HISTORY_LIMIT+' samples.';
   }
   function spend(b,amount,action=true){
-    if(!b||state.actions<(action?1:0)||state.cash<amount)return false;
-    state.cash-=amount;if(action)state.actions--;return true;
+    if(!b||state.actions<(action?1:0))return false;
+    if(window.ProfitLandsMoney){if(!window.ProfitLandsMoney.spend(amount))return false}
+    else{if(state.cash<amount)return false;state.cash-=amount}
+    if(action)state.actions--;return true;
   }
   function perform(id){
     const b=selectedBusiness();if(!b||!state.started)return;
