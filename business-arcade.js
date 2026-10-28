@@ -218,7 +218,7 @@ function init(){
  });
  document.addEventListener('keydown',e=>{
   if(!session||session.id!=='rush'||view!=='playing'||e.code!=='Space'||e.repeat)return;
-  if(e.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+  if(e.target?.closest?.('input,textarea,select,button,[contenteditable="true"]'))return; // Native Space click handles focused buttons once.
   if(window.ProfitLandsWorkspace?.active?.()!=='arcade')return;
   e.preventDefault();press('serve');
  });
