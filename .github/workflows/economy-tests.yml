@@ -10,6 +10,7 @@ on:
       - 'balance-system.js'
       - 'progression.js'
       - 'huge-money.js'
+      - 'location-operations.js'
       - 'play/index.html'
       - 'tests/**'
       - '.github/workflows/economy-tests.yml'
@@ -21,6 +22,7 @@ on:
       - 'balance-system.js'
       - 'progression.js'
       - 'huge-money.js'
+      - 'location-operations.js'
       - 'play/index.html'
       - 'tests/**'
   workflow_dispatch:
@@ -46,12 +48,13 @@ jobs:
           node --check balance-system.js
           node --check progression.js
           node --check huge-money.js
+          node --check location-operations.js
       - name: Run economy regression suite
         id: regression
         shell: bash
         run: |
           set +e
-          node --test tests/economy-balance.test.cjs > /tmp/profitlands-test.log 2>&1
+          node --test tests/*.test.cjs > /tmp/profitlands-test.log 2>&1
           outcome=$?
           cat /tmp/profitlands-test.log
           fails=$(grep '^not ok ' /tmp/profitlands-test.log | head -n 3 | cut -c1-125 | tr '\n' ';' || true)
