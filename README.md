@@ -99,14 +99,20 @@ Each new location starts with **6 employee positions** and gains **6 more for ea
 
 The **Growth Center → Staff & Managers** panel shows the current company and empire limits, the next unlock, and a batch hiring selector. Hiring consumes one management action per batch of up to 25 workers; each successive worker costs a little more to recruit. Wages apply continuously and productivity gains taper off as teams become very large. If net worth falls and the global cap drops, existing workers remain employed, but additional recruitment is blocked until there is room.
 
+### Automatic market cycles and faster turns (v1.2)
+
+The **Next Cycle** button has been removed. Market cycles now advance only when their countdown expires. Market effects, stock changes, events, loan timers, and action budgets continue updating automatically. Real-time earnings remain separate and are not paid again at cycle boundaries.
+
+Each world mode has a **10× larger action pool** and **10× faster active-play regeneration**. Existing saves are migrated one time using `actionCapacityVersion: 2`: remaining old actions multiply by 10 without altering cash, companies, or market progress. The new limits also apply on each automatic cycle reset. Actions still do not accumulate while the game is hidden in the background.
+
 ### Action balance
 
 | Mode | Market cycle | Max actions | Active-play action refill |
 |---|---:|---:|---:|
-| Fast | 5 minutes | 4 | 90 seconds |
-| Standard | 15 minutes | 6 | 120 seconds |
-| Long | 1 hour | 10 | 180 seconds |
-| Persistent | 24 hours | 12 | 300 seconds |
+| Fast | 5 minutes (automatic) | 40 | 9 seconds |
+| Standard | 15 minutes (automatic) | 60 | 12 seconds |
+| Long | 1 hour (automatic) | 100 | 18 seconds |
+| Persistent | 24 hours (automatic) | 120 | 30 seconds |
 
 Cash earned per **active minute** is independent of mode. Market cycle duration changes market refresh and action resets, not the real-time income formula.
 
@@ -124,7 +130,7 @@ Tests cover all four mode calculations, action regeneration, earnings adjustment
 
 - Singleplayer and multiplayer setup modes
 - Fast, Standard, Long, and Persistent worlds
-- Four different day lengths and action limits
+- Four automatic market-cycle lengths with 10× larger action limits
 - Multiple business types with different economics
 - **Real-time net cash flow:** owned businesses, corporations, and property generate or lose cash every second while you're playing
 - Operating revenue and expenses are calculated together, so unprofitable companies drain cash too
@@ -148,10 +154,10 @@ Tests cover all four mode calculations, action regeneration, earnings adjustment
 
 | Mode | Day length | Actions/day |
 |---|---:|---:|
-| Fast | 5 minutes | 4 |
-| Standard | 15 minutes | 6 |
-| Long | 1 hour | 10 |
-| Persistent | 24 hours | 12 |
+| Fast | 5 minutes | 40 |
+| Standard | 15 minutes | 60 |
+| Long | 1 hour | 100 |
+| Persistent | 24 hours | 120 |
 
 Each world mode can be started as **Singleplayer** or the current **Multiplayer prototype**. Mode day lengths still determine when market news, stock prices, and the action budget refresh; passive business cash flow is independent of day boundaries.
 
@@ -161,7 +167,7 @@ Businesses are not generic income generators. Each type has its own starting cos
 
 A business can be upgraded and expanded into a chain. Opening the second location costs **10× the original business purchase price**. Later locations become progressively more expensive.
 
-Net profit changes as market conditions, location demand, wages, rent, supply pressure, and popularity fluctuate. Cash balances update during play rather than waiting for you to press Next Cycle. That button changes markets and refreshes actions; it does not duplicate earnings.
+Net profit changes as market conditions, location demand, wages, rent, supply pressure, and popularity fluctuate. Cash balances update every second during active play. Market cycles now advance automatically when the timer reaches zero, refreshing the economy and action budget without requiring a button or awarding duplicated income.
 
 ## Multiplayer note
 
