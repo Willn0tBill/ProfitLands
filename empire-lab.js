@@ -32,7 +32,7 @@ const RESEARCH=[
  {id:'automation',label:'Corporate automation',cost:6500,info:'Allows managed branches to auto-adjust prices.'}
 ];
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
-const fmt=v=>window.ProfitLandsMoney?.format(v)||window.money?.(v)||'$'+Number(v).toLocaleString('en-US');
+const fmt=v=>window.ProfitLandsMoney?.format?.(v)||window.money?.(v)||'$'+Number(v).toLocaleString('en-US');
 const clean=t=>String(t??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const amount=n=>Number.isFinite(Number(n))?Number(n):0;
 let currentTab='store',currentSite=null,lastTick=0,lastSave=0;
