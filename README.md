@@ -17,13 +17,26 @@ The main game now includes a **Growth Center** in `/play/` with four sections:
 - **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
 - **Recovery saves** — the existing `profitlands-v2` save schema remains compatible; a previous valid save is stored at `profitlands-v2-backup` and can restore progress if the primary local save becomes corrupt.
 
+### Large-number economy engine
+
+ProfitLands uses `huge-money.js` for an authoritative scientific-notation cash ledger (`state.cashHuge`). Existing saves with numeric `state.cash` are automatically migrated. The old `state.cash` field is retained as a finite compatibility mirror for older modules; never treat that mirror as the authoritative balance at large scales.
+
+- Balances such as `1e1000`, `1e2000` or `1e1000000` can be represented, displayed, saved and restored without producing JavaScript `Infinity`.
+- Earning, buying businesses, employee hiring, stock purchases, recoveries and other cash transactions use the shared ledger, and next-wealth milestones continue beyond `Number.MAX_VALUE`.
+- The cash ledger supports exponents up to `1e9` and approximately **14 significant digits**. This is extremely large but not mathematically infinite; at large scales, much smaller transactions can have no visible effect because of limited significant digits.
+- Business revenue/expense calculations, stock prices, company valuations, loans and some gameplay analytics still use regular JavaScript `Number` values. The upgrade focuses on making the **cash ledger and wealth milestones** large-number-safe; complete arbitrary-precision finance simulation would require migrating these systems too.
+- `state.cashHuge` is a string in existing local/cloud save payloads, so JSON serialization works without BigInt errors. The local save recovery mechanism remains in place.
+- The late-game history chart switches to a logarithmic scale for extremely high cash or empire values.
+
+To extend the economy, use `window.ProfitLandsMoney.gain(amount)`, `spend(amount)`, `canAfford(amount)`, `set(amount)`, and `netWorth(extraAssets)` rather than directly mutating `state.cash`.
+
 ### Endless empire progression
 
 **ProfitLands has no final net-worth target.** The dashboard progress bar always points toward the *next* wealth milestone. Reaching one automatically advances it to a larger target, including after $1 trillion. No victory screen or forced reset is triggered.
 
 The company ladder can still unlock its currently available corporations at $1 trillion, but it is not a game-ending tier. Wealth values above $1 trillion use readable units such as T, Qa (quadrillion), Qi (quintillion), and scientific notation for larger numbers.
 
-**Technical note:** Like other JavaScript games that use ordinary floating-point numbers for money, the prototype is limited by JavaScript's finite numeric range. “Endless” describes open-ended progression without a defined winner or final milestone, rather than mathematically infinite currency.
+**Technical note:** Cash now uses the large-number ledger, so it is no longer limited by JavaScript's 1.8e308 maximum. It still has an explicit exponent and significant-digit limit, and not every other game system uses the large-number format.
 
 ### Workforce progression
 
