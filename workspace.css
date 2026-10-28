@@ -142,6 +142,19 @@ body.pl-workspace-enabled #gameScreen.active>.pl-workspace-shell{
  font-size:clamp(13px,1.5vw,19px)!important;margin-top:3px!important;line-height:1.1!important;
  font-variant-numeric:tabular-nums;
 }
+/* A stat explanation opens as a floating popover, not a taller dashboard. */
+#gameScreen .pl-workspace-hud .stat-dropdown.open .stat-explanation{
+ position:absolute;top:calc(100% + 7px);left:0;
+ display:block;grid-template-rows:none;opacity:1;
+ min-width:195px;width:min(300px,80vw);
+ margin:0!important;padding:12px!important;
+ background:#14241d;border:1px solid #52755a;border-radius:11px;
+ box-shadow:0 12px 30px #000a;z-index:90;
+}
+#gameScreen .pl-workspace-hud .stat-dropdown.open .stat-explanation>div{
+ overflow:visible;font-size:11px;line-height:1.55;color:#cad9cf;
+}
+#gameScreen .pl-workspace-hud .stat-dropdown:last-child .stat-explanation{left:auto;right:0}
 #gameScreen .pl-workspace-hud .game-hud .goal-progress,
 #gameScreen .pl-workspace-hud .game-hud .goal-status{display:none!important}
 /* Preserve the previous HUD minimize feature in the new fixed-size console. */
