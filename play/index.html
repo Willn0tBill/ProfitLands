@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="../site-polish.css?v=20261026-4" />
   <link rel="stylesheet" href="../site-pages.css?v=pages01" />
   <link rel="stylesheet" href="../growth-system.css?v=staffing11" />
+  <link rel="stylesheet" href="../location-operations.css?v=locations09" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -115,6 +116,7 @@
     <p class="growth-help">Grow from a small team into a large workforce. A company's level and locations determine how many staff it can hold, while your empire's total employee allowance rises with net worth. Every hire adds productivity and payroll expenses.</p>
     
     <p id="growthBusinessEmpty" class="growth-help">Buy a business to unlock hiring and industry decisions.</p>
+    <div class="growth-business-picker"><label for="growthStaffLocation">Staff location</label><select id="growthStaffLocation" aria-label="Choose location for employees and manager"><option value="0">Location 1</option></select></div>
     <div id="growthBusinessDetails" hidden>
       <div class="growth-summary"><span>Company team: <strong id="growthStaffCount">0 / 6</strong></span><span id="growthManagerState">Not hired</span></div>
       <div class="growth-empire-capacity">
@@ -226,7 +228,7 @@
   <script src="../progression.js?v=huge01"></script>
   <script src="../app.js?v=huge01"></script>
   <script src="../enhancements.js?v=huge01"></script>
-  <script src="../economy-system.js?v=huge01"></script>
+  <script src="../economy-system.js?v=locations09"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=endless01"></script>
   <script src="../performance-motion.js"></script>
@@ -242,7 +244,8 @@
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js"></script>
   <script src="../balance-system.js?v=growth09"></script>
-  <script src="../growth-system.js?v=huge01"></script>
+  <script src="../growth-system.js?v=locations09"></script>
+  <script src="../location-operations.js?v=locations09"></script>
   <script src="../play-route.js?v=pages01"></script>
 </body>
 </html>
