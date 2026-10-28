@@ -6,6 +6,20 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Business Arcade and game-style UI (v1.3)
+
+ProfitLands now includes an optional **Business Arcade** as the eighth management-console view (Alt+8). It uses the same game, save data and large-number ledger as the rest of the empire.
+
+- **Coffee Rush:** an original 20-second clicker. Tap or press Space to fulfill orders; higher scores earn more in-game cash.
+- **Delivery Dispatch:** a 20-second routing challenge with up to eight deliveries.
+- **Deal Desk:** choose sound business decisions across five short business scenarios.
+- **Small rewards, no management-action costs:** cash prizes are capped at $110, $96 and $90 respectively, and only the first **three successful rounds in any rolling five-minute window** award in-game cash. Additional rounds are playable as practice, with no payout. This avoids disrupting the existing 10× action economy.
+- **Save compatibility:** arcade personal bests, completed rounds and payouts live in the optional `state.arcade` object. Older saves work unchanged; starting a new empire resets arcade stats along with other new-game data.
+- **Visible, active-play only:** quitting, changing workspace views or hiding the browser stops the active round; no background earnings are granted by mini-games.
+- **Cosmetic UI improvements:** a consistent theme for business cards, stock listings, dashboards, finance screens, news and nav, implemented in `game-polish.css`.
+
+The arcade is fully in-game: it does not make real-money payments, connect to a gambling service, or depend on actual multiplayer.
+
 ## Professional business console (v1.1)
 
 The main `/play/` game now behaves like a **desktop management application**, not a long web page. The old game panels are reparented into one fixed-height workspace without cloning them or changing their IDs, so their existing gameplay functions continue working.
