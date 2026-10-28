@@ -200,7 +200,7 @@ document.querySelectorAll('.action-button').forEach(btn=>btn.onclick=()=>action(
 $('endDay').onclick=()=>endDay(false);
 $('endGame').onclick=()=>{
  if(!state.started)return;
- $('endGameContent').innerHTML='<span class="eyebrow">END GAME</span><h2>Save and leave this empire?</h2><p class="modal-sub">Your current game will stay saved. You can return to it later.</p><div class="confirm-actions"><button id="cancelEndGame" class="secondary-button">Keep Playing</button><button id="confirmEndGame" class="primary-button">Save & End Game</button></div>';
+ $('endGameContent').innerHTML='<span class="eyebrow">SAVE & EXIT</span><h2>Leave your empire for now?</h2><p class="modal-sub">Your empire keeps its progress. There is no final wealth goal, and you can return later.</p><div class="confirm-actions"><button id="cancelEndGame" class="secondary-button">Keep Playing</button><button id="confirmEndGame" class="primary-button">Save & Exit</button></div>';
  $('endGameModal').classList.remove('hidden');
  $('cancelEndGame').onclick=()=>closeModal('endGameModal');
  $('confirmEndGame').onclick=async()=>{
