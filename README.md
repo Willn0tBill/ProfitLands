@@ -11,7 +11,7 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 The main game now includes a **Growth Center** in `/play/` with four sections:
 
 - **Analytics** — live, saved history of cash, empire value and net flow per second. History retains the latest 120 samples (roughly ten minutes of active play).
-- **Employees and managers** — company hiring capacity grows with its level and number of locations, while a shared empire-wide workforce limit expands with net worth. Hire 1, 5, 10, or 25 employees per action. Productivity has diminishing returns and every worker adds ongoing payroll costs. Managers add a productivity bonus, ongoing salary and popularity maintenance during active play.
+- **Employees and managers** — each location has its own hiring capacity based on its level, while a shared empire-wide workforce limit expands with net worth. Hire 1, 5, 10, or 25 employees per action. Productivity has diminishing returns and every worker adds ongoing payroll costs. Managers add a productivity bonus, ongoing salary and popularity maintenance during active play.
 - **Industry decisions** — each of the eight business industries has a distinct promotion or operational initiative. Initiatives require cash and one action, give a ten-minute revenue bonus, and have a fifteen-minute cooldown. Effects use real time rather than market-cycle count so world-speed selection does not change promotion duration.
 - **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire. Reaching $1T is still a milestone, never the end of the game.
 - **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
@@ -37,6 +37,21 @@ To extend the economy, use `window.ProfitLandsMoney.gain(amount)`, `spend(amount
 The company ladder can still unlock its currently available corporations at $1 trillion, but it is not a game-ending tier. Wealth values above $1 trillion use readable units such as T, Qa (quadrillion), Qi (quintillion), and scientific notation for larger numbers.
 
 **Technical note:** Cash now uses the large-number ledger, so it is no longer limited by JavaScript's 1.8e308 maximum. It still has an explicit exponent and significant-digit limit, and not every other game system uses the large-number format.
+
+### Per-location management (v0.9)
+
+Each business location now has **independent economics and management**, visible by opening a business card:
+
+- **Upgrade location:** increases only that branch's level and revenue potential, priced for its local rent.
+- **Local marketing:** raises only that branch's popularity and marketing effectiveness, priced for local demand.
+- **Improve efficiency:** reduces only that branch's operating expenses, with a location-specific upgrade price.
+- **Sell location:** removes only that branch, its staff and improvements, and returns a branch-specific resale value. Selling the last location closes the company.
+- **Staff & manager:** hire employees in batches of 1, 5, 10 or 25 directly within each location. Each branch has its own employees, payroll, productivity and manager. Managers improve only their assigned branch.
+- **Expansion:** adding a new location opens a fresh Level 1 branch with no employees or manager.
+
+The existing Growth Center's employee tab now includes a location selector. Its total workforce allowance still scales with empire net worth, while each site's capacity starts at six employees and expands by six per location upgrade. Existing game saves are **migrated in place** the first time branch management loads: old company-wide upgrades are inherited by existing branches, and prior employees/manager move to the first branch. New branches do not inherit these improvements.
+
+Existing economy, cloud save, and large-number cash systems remain compatible. Regression tests are in `tests/location-operations.test.cjs` and run alongside existing economy tests.
 
 ### Workforce progression
 
