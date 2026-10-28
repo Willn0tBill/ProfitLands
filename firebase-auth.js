@@ -57,8 +57,10 @@
 
       if(chosen){
         const resumeState=JSON.parse(JSON.stringify(chosen));
+        state.actionCapacityVersion=0;
         Object.assign(state,resumeState);
         window.ProfitLandsMoney?.attach?.(state);
+        window.ProfitLandsBalance?.migrate?.();
         window.restoreProfitLandsMarket?.();
         state.started=false;
 
