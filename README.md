@@ -4,7 +4,7 @@
 
 > Build. Invest. Compete.
 
-ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and work toward a **$1 trillion empire**.
+ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
 ## Version 0.8 — Business Expansion
 
@@ -13,9 +13,17 @@ The main game now includes a **Growth Center** in `/play/` with four sections:
 - **Analytics** — live, saved history of cash, empire value and net flow per second. History retains the latest 120 samples (roughly ten minutes of active play).
 - **Employees and managers** — company hiring capacity grows with its level and number of locations, while a shared empire-wide workforce limit expands with net worth. Hire 1, 5, 10, or 25 employees per action. Productivity has diminishing returns and every worker adds ongoing payroll costs. Managers add a productivity bonus, ongoing salary and popularity maintenance during active play.
 - **Industry decisions** — each of the eight business industries has a distinct promotion or operational initiative. Initiatives require cash and one action, give a ten-minute revenue bonus, and have a fifteen-minute cooldown. Effects use real time rather than market-cycle count so world-speed selection does not change promotion duration.
-- **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire.
+- **Milestones** — nine achievement checkpoints with a one-time in-game cash reward per saved empire. Reaching $1T is still a milestone, never the end of the game.
 - **Balanced actions** — one action gradually refills during visible, active gameplay, with a different refill interval per mode. Actions do not accumulate while the browser is backgrounded.
 - **Recovery saves** — the existing `profitlands-v2` save schema remains compatible; a previous valid save is stored at `profitlands-v2-backup` and can restore progress if the primary local save becomes corrupt.
+
+### Endless empire progression
+
+**ProfitLands has no final net-worth target.** The dashboard progress bar always points toward the *next* wealth milestone. Reaching one automatically advances it to a larger target, including after $1 trillion. No victory screen or forced reset is triggered.
+
+The company ladder can still unlock its currently available corporations at $1 trillion, but it is not a game-ending tier. Wealth values above $1 trillion use readable units such as T, Qa (quadrillion), Qi (quintillion), and scientific notation for larger numbers.
+
+**Technical note:** Like other JavaScript games that use ordinary floating-point numbers for money, the prototype is limited by JavaScript's finite numeric range. “Endless” describes open-ended progression without a defined winner or final milestone, rather than mathematically infinite currency.
 
 ### Workforce progression
 
@@ -77,7 +85,7 @@ Tests cover all four mode calculations, action regeneration, earnings adjustment
 - Research and market trends
 - News/events
 - Financial warnings and bankruptcy/crisis conditions
-- $1 trillion empire goal
+- Endless wealth progression: completing one wealth milestone automatically reveals the next ($1T → $10T → $100T → $1Qa → …)
 - Local browser save
 - Responsive interface
 
