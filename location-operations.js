@@ -10,6 +10,9 @@ const type=b=>BUSINESS_TYPES.find(t=>t.id===b?.type);
 const canPay=amount=>window.ProfitLandsMoney?window.ProfitLandsMoney.canAfford(amount):state.cash>=amount;
 const siteNames={downtown:'Downtown',suburbs:'Suburbs',tourist:'Tourist District',university:'University District',waterfront:'Waterfront',tech:'Tech District',industrial:'Industrial Park'};
 const icons={downtown:'🏙️',suburbs:'🏘️',tourist:'🌴',university:'🎓',waterfront:'🌊',tech:'💻',industrial:'🏭'};
+const minimizedLocations=new Set();
+const siteKey=(b,l,index)=>b.name+'|'+(l.labId||l.id||index)+'|'+index;
+
 function locations(b){return Array.isArray(b?.locations)?b.locations:[]}
 function normalize(b){
   if(!b||!type(b))return b;
@@ -111,10 +114,13 @@ function view(b,l,index){
   const hireCost=price(b,l,'hire',1);
   const level=safe(l.level)||1;
   const actions=state.actions>0;
+  const minimized=minimizedLocations.has(siteKey(b,l,index));
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
     '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
-    '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong></div>'+
+    '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong>'+
+    '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
+    '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
     '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Open Products, Pricing & Operations →</button></div>'+ 
     '<div class="site-operation-actions">'+
     button('upgrade','⬆ Upgrade location','Level '+(level+1)+' · '+moneyText(price(b,l,'upgrade')),!actions||!canPay(price(b,l,'upgrade')))+
@@ -126,7 +132,7 @@ function view(b,l,index){
     '<div class="site-staff-actions">'+
     button('hire','Hire employees',moneyText(hireCost)+' for 1 employee',!actions||room(l)<1||!canPay(hireCost))+
     button('manager',l.manager?'Manager employed':'Hire manager',l.manager?'Maintains local popularity':moneyText(price(b,l,'manager'))+' plus salary',l.manager||!actions||!canPay(price(b,l,'manager')))+
-    '</div></div></section>';
+    '</div></div></div></section>';
 }
 function open(index,focused=0){
   normalizeAll();
@@ -147,10 +153,34 @@ function open(index,focused=0){
     '<div class="mini-stat"><small>ACTIONS</small><b>'+state.actions+'</b></div></div>'+
     '<div class="finance-row"><span>Company balance</span><b class="'+(bBalance<0?'danger':'good')+'">'+moneyText(bBalance)+'</b></div>'+
     '<p class="site-help">Each location has separate upgrades, marketing, efficiency, staffing, and resale value. Costs depend on location rent and demand.</p>'+
+    '<div class="site-list-toolbar"><button type="button" data-site-bulk="collapse">− Minimize locations</button><button type="button" data-site-bulk="expand">+ Expand locations</button></div>'+
     '<div class="site-operation-list">'+locs.map((l,i)=>view(b,l,i)).join('')+'</div>'+
     '<div class="chain-box"><b>🏢 Chain expansion</b><p class="modal-sub">Choose a new district and add another independently managed location.</p>'+
     '<button class="chain-button" id="siteExpand" '+(!actions||!canPay(expansion)?'disabled':'')+'>Choose Location #'+(locs.length+1)+' · '+moneyText(expansion)+'</button></div>';
   modal.classList.remove('hidden');
+  e.querySelectorAll('[data-site-bulk]').forEach(button=>{
+    button.onclick=()=>{
+      const collapse=button.dataset.siteBulk==='collapse';
+      for(let i=0;i<locs.length;i++){
+        const key=siteKey(b,locs[i],i);
+        if(collapse)minimizedLocations.add(key);else minimizedLocations.delete(key);
+      }
+      open(index);
+    };
+  });
+  e.querySelectorAll('[data-site-toggle]').forEach(button=>{
+    button.onclick=()=>{
+      const i=Number(button.dataset.siteToggle),l=locs[i];
+      if(!l)return;
+      const key=siteKey(b,l,i),collapse=!minimizedLocations.has(key);
+      if(collapse)minimizedLocations.add(key);else minimizedLocations.delete(key);
+      const section=e.querySelector('[data-site-section="'+i+'"]');
+      const content=section?.querySelector('.site-operation-body');
+      if(content)content.hidden=collapse;
+      button.setAttribute('aria-expanded',String(!collapse));
+      button.textContent=collapse?'+ Expand':'− Minimize';
+    };
+  });
   e.querySelectorAll('[data-site-action]').forEach(button=>{
     button.onclick=()=>{
       const n=Number(button.dataset.site),kind=button.dataset.siteAction,qty=e.querySelector('[data-site-qty="'+n+'"]');
