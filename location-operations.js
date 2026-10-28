@@ -101,7 +101,7 @@ function doAction(bIndex,lIndex,kind,quantity=1){
     toast(kind==='hire'?quantity+' employee(s) hired at '+l.name+'.':l.name+': '+kind+' completed.');
   }
   save();render();window.ProfitLandsGrowth?.render?.();
-  if(state.businesses[bIndex])open(bIndex,Math.min(lIndex,state.businesses[bIndex].locations.length-1));
+  if(b.locations.length&&state.businesses.includes(b))open(state.businesses.indexOf(b),Math.min(lIndex,b.locations.length-1));
   return true;
 }
 function view(b,l,index){
@@ -154,6 +154,19 @@ function open(index,focused=0){
       const n=Number(button.dataset.site),kind=button.dataset.siteAction,qty=e.querySelector('[data-site-qty="'+n+'"]');
       doAction(index,n,kind,kind==='hire'?Number(qty?.value||1):1);
     };
+  });
+  e.querySelectorAll('[data-site-qty]').forEach(select=>{
+    const refresh=()=>{
+      const i=Number(select.dataset.siteQty),branch=locs[i];
+      const hire=e.querySelector('[data-site-action="hire"][data-site="'+i+'"]');
+      if(!branch||!hire)return;
+      const quantity=Number(select.value)||1,cost=price(b,branch,'hire',quantity);
+      const note=hire.querySelector('small');
+      if(note)note.textContent=quantity+' employee'+(quantity===1?'':'s')+' · '+moneyText(cost);
+      hire.disabled=!state.actions||room(branch)<quantity||!canPay(cost);
+    };
+    select.addEventListener('change',refresh);
+    refresh();
   });
   const expand=$('siteExpand');
   if(expand)expand.onclick=()=>window.manageAction?.(index,'chain');
