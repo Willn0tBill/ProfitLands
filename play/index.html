@@ -64,7 +64,7 @@
               </div>
             </div>
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
-            <div id="goalStatus" class="goal-status">$1T Empire Goal · 0.000000% complete</div>
+            <div id="goalStatus" class="goal-status">Next wealth milestone: $10,000 · 0.0% of current stage</div>
           </div>
           <div class="game-controls"><a class="pl-header-link pl-control-link" href="../">Home</a><button id="helpTutorial" type="button" class="small-button">? Help</button><button id="endGame" class="small-button danger-button">End Game</button><button id="openSettings" class="small-button settings-button">⚙ Settings</button></div>
         </div>
@@ -75,7 +75,7 @@
           </div>
           <div class="stat stat-dropdown" data-stat="networth" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>TOTAL EMPIRE VALUE</small><strong id="netWorth">$1,000</strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What is Net Worth?</b>The estimated total value of your empire: cash, stocks, businesses, and property. This is what counts toward the $1 trillion goal.</div></div>
+            <div class="stat-explanation"><div><b>What is Net Worth?</b>The estimated total value of your empire: cash, stocks, businesses, and property. Your wealth keeps growing, and each milestone unlocks the next with no final goal.</div></div>
           </div>
           <div class="stat stat-dropdown" data-stat="profit" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>NET CASH FLOW / SEC</small><strong id="dailyIncome">$0.00</strong></span><span class="stat-chevron">⌄</span>
@@ -222,9 +222,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="../firebase-config.js"></script>
   <script src="../platform.js"></script>
-  <script src="../app.js?v=growth09"></script>
+  <script src="../progression.js?v=endless01"></script>
+  <script src="../app.js?v=endless01"></script>
   <script src="../enhancements.js"></script>
-  <script src="../economy-system.js?v=growth10"></script>
+  <script src="../economy-system.js?v=endless01"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=20261026-2"></script>
   <script src="../performance-motion.js"></script>
