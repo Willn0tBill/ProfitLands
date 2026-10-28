@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="../site-pages.css?v=pages01" />
   <link rel="stylesheet" href="../growth-system.css?v=staffing11" />
   <link rel="stylesheet" href="../location-operations.css?v=locations09" />
+  <link rel="stylesheet" href="../empire-lab.css?v=lab10" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -91,11 +92,27 @@
         </div>
         
 <nav class="growth-quicknav" aria-label="Game sections">
+  <a href="#empireLab">Empire Operations (New)</a>
   <a href="#growthPanel">Analytics &amp; Growth</a>
   <a href="#businessPanel">Businesses</a>
   <a href="#stockPanel">Stocks</a>
   <a href="#financePanel">Finances</a>
 </nav>
+<section id="empireLab" class="panel empire-lab-panel" aria-labelledby="empireLabTitle">
+  <div class="panel-head"><div><span class="eyebrow">PROFITLANDS V1.0 · PLAYABLE PREVIEW</span><h3 id="empireLabTitle">Empire Operations Lab</h3></div><span class="live-tag">PREVIEW</span></div>
+  <p class="empire-lab-intro">Try inventory, employee roles, product pricing, warehouses, automated supply lines, rival acquisitions, global expansion, HQ research, and public-company funding. All changes use your existing in-game cash and save data.</p>
+  <div class="empire-lab-tabs" role="tablist" aria-label="Empire management systems">
+    <button type="button" role="tab" data-lab-tab="store" class="active" aria-selected="true">Store & Staff</button>
+    <button type="button" role="tab" data-lab-tab="logistics" aria-selected="false">Logistics</button>
+    <button type="button" role="tab" data-lab-tab="world" aria-selected="false">Cities & Rivals</button>
+    <button type="button" role="tab" data-lab-tab="hq" aria-selected="false">Corporate HQ</button>
+    <button type="button" role="tab" data-lab-tab="market" aria-selected="false">Market Demo</button>
+  </div>
+  <div id="empireLabContent" class="empire-lab-content" role="tabpanel" aria-live="polite"></div>
+  <p id="empireLabStats" class="empire-lab-footnote" role="status">Empire systems ready.</p>
+  <p class="empire-lab-warning">Shared Market is an offline AI simulation. It is not live multiplayer, and there are no real-world payments.</p>
+</section>
+
 <section id="growthPanel" class="panel growth-panel" aria-labelledby="growthTitle">
   <div class="panel-head"><div><span class="eyebrow">BUSINESS EXPANSION · V0.8</span><h3 id="growthTitle">Your Empire at a Glance</h3></div><span class="live-tag">LIVE</span></div>
   <div class="growth-tabs" role="tablist" aria-label="Empire expansion">
@@ -246,6 +263,7 @@
   <script src="../balance-system.js?v=growth09"></script>
   <script src="../growth-system.js?v=locations09"></script>
   <script src="../location-operations.js?v=locations09"></script>
+  <script src="../empire-lab.js?v=lab10"></script>
   <script src="../play-route.js?v=pages01"></script>
 </body>
 </html>
