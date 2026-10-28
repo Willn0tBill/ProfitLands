@@ -74,7 +74,7 @@ function allSites(){
  return a;
 }
 function chosen(){const list=allSites();return list.find(x=>x.id===currentSite)||list[0]||null}
-function selectSite(id){currentSite=typeof id==='object'?id.labId:id;currentTab='store';render();$('empireLab')?.scrollIntoView?.({behavior:'smooth',block:'start'})}
+function selectSite(id){currentSite=typeof id==='object'?id.labId:id;currentTab='store';window.ProfitLandsLayout?.open?.('empireLab');render();$('empireLab')?.scrollIntoView?.({behavior:'smooth',block:'start'})}
 function have(n){return money?money.canAfford(n):game().cash>=n}
 function charge(cost,usesAction=false){
  const s=game();
