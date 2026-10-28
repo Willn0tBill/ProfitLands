@@ -16,6 +16,8 @@ on:
       - 'empire-demo.js'
       - 'layout-panels.js'
       - 'layout-panels.css'
+      - 'workspace.js'
+      - 'workspace.css'
       - 'preview/index.html'
       - 'play/index.html'
       - 'tests/**'
@@ -34,6 +36,8 @@ on:
       - 'empire-demo.js'
       - 'layout-panels.js'
       - 'layout-panels.css'
+      - 'workspace.js'
+      - 'workspace.css'
       - 'preview/index.html'
       - 'play/index.html'
       - 'tests/**'
@@ -64,6 +68,7 @@ jobs:
           node --check empire-lab.js
           node --check empire-demo.js
           node --check layout-panels.js
+          node --check workspace.js
       - name: Run economy regression suite
         id: regression
         shell: bash
