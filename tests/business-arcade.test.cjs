@@ -78,7 +78,7 @@ test('Deal Desk rewards correct business decisions and records personal best',()
 });
 test('reward rate is capped to three completed rounds in a rolling five-minute window',()=>{
  const h=harness(),api=h.api;
- let time=500000;
+ let time=Date.now();
  for(let i=0;i<4;i++){
   assert.equal(api.start('rush',time),true);
   for(let tap=0;tap<5;tap++)api.press('serve',undefined,time+1+tap);
