@@ -144,6 +144,12 @@ body.pl-workspace-enabled #gameScreen.active>.pl-workspace-shell{
 }
 #gameScreen .pl-workspace-hud .game-hud .goal-progress,
 #gameScreen .pl-workspace-hud .game-hud .goal-status{display:none!important}
+/* Preserve the previous HUD minimize feature in the new fixed-size console. */
+#gameScreen .pl-workspace-hud .game-hud.pl-panel-minimized .stats-grid,
+#gameScreen .pl-workspace-hud .game-hud.pl-panel-minimized .event-banner{
+ display:none!important;
+}
+
 #gameScreen .pl-workspace-hud .game-hud .event-banner{
  margin:0!important;padding:5px 9px!important;font-size:11px!important;
 }
