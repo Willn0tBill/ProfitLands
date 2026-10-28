@@ -42,10 +42,11 @@ function ensure(){
  const state=game();if(!state)return null;
  let p=state.empireLab;
  if(!p||p.version!==1){
-   p={version:1,warehouse:0,warehouseStock:0,route:null,regions:['local'],hq:0,research:[],rivals:RIVALS.map(x=>({...x})),publicCompanies:[],trades:[],reputation:0,lastTick:0,nextId:1,log:[]};
+   p={version:1,warehouse:0,trucks:0,warehouseStock:0,route:null,regions:['local'],hq:0,research:[],rivals:RIVALS.map(x=>({...x})),publicCompanies:[],trades:[],reputation:0,lastTick:0,nextId:1,log:[]};
    state.empireLab=p;
  }
  p.regions=Array.isArray(p.regions)?p.regions:['local'];
+ p.trucks=Math.max(0,Math.floor(amount(p.trucks)));
  p.research=Array.isArray(p.research)?p.research:[];
  p.rivals=Array.isArray(p.rivals)?p.rivals:RIVALS.map(x=>({...x}));
  p.trades=Array.isArray(p.trades)?p.trades:[];
@@ -100,8 +101,9 @@ function forecast(site){
  const demand=clamp(1-(price-1)*1.15,.35,1.3);
  const staffed=Math.max(0,amount(lab.roles.sales));
  const productive=Math.max(0,amount(lab.roles.production));
- const rival=ensure().rivals.filter(x=>x.type===site.b.type).reduce((n,x)=>n+x.share*.15,0);
- const customerBoost=ensure().research.includes('customers')?.08:0;
+ const p=game()?.empireLab;
+ const rival=(p?.rivals||[]).filter(x=>x.type===site.b.type).reduce((n,x)=>n+x.share*.15,0);
+ const customerBoost=p?.research?.includes('customers')?.08:0;
  const stocked=lab.stock>=1?1:.25;
  const factor=clamp((price*demand)*(1+Math.min(.15,staffed*.025))*(1+Math.min(.2,productive*.025))*(1+customerBoost)*(1+r.demand*.06)*stocked*(1-rival),.05,2.5);
  return{factor,bonus:r.tax,region:r};
@@ -116,7 +118,10 @@ function act(action,opt={}){
  const p=ensure(),s=game(),site=chosen(),lab=site?.l.lab,qty=clamp(Math.trunc(amount(opt.qty)||1),1,100);
  let message='',ok=false;
  const requireSite=()=>site&&lab;
- if(action==='enable'){
+ if(action==='manage'){
+   if(!site)return false;
+   window.openManage?.(site.bi);return true;
+ }else if(action==='enable'){
    if(!requireSite())return false;
    lab.enabled=true;ok=true;message='Store operations activated for '+site.l.name+'.';
  }else if(action==='buyStock'){
@@ -140,21 +145,25 @@ function act(action,opt={}){
  }else if(action==='buyWarehouse'){
    const cost=Math.round(1400*2**p.warehouse);if(!charge(cost,true))return false;
    p.warehouse++;ok=true;message='Warehouse level '+p.warehouse+' built.';
+ }else if(action==='buyTruck'){
+   if(!p.warehouse)return false;
+   const cost=Math.round(900*1.7**p.trucks);if(!charge(cost,true))return false;
+   p.trucks++;ok=true;message='Delivery vehicle #'+p.trucks+' added to your fleet.';
  }else if(action==='warehouseStock'){
    if(!p.warehouse)return false;
    const cost=Math.round(qty*7*(p.research.includes('inventory')?.85:1));if(!charge(cost))return false;
    p.warehouseStock=clamp(p.warehouseStock+qty,0,p.warehouse*1200);ok=true;message='Warehouse received '+qty+' units.';
  }else if(action==='route'){
-   if(!requireSite()||!p.warehouse)return false;
+   if(!requireSite()||!p.warehouse||!p.trucks)return false;
    p.route={siteId:site.id,auto:false};ok=true;message='Supply route linked to '+site.l.name+'.';
  }else if(action==='dispatch'){
-   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||p.warehouseStock<qty)return false;
+   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||!p.trucks||p.warehouseStock<qty)return false;
    const fee=Math.max(1,Math.round((9+qty*.5)*(p.research.includes('routes')?.6:1)));
    if(!charge(fee))return false;
    p.warehouseStock-=qty;target.l.lab.stock+=qty;ok=true;
    message=qty+' units shipped to '+target.l.name+' for '+fmt(fee)+'.';
  }else if(action==='autoRoute'){
-   if(!p.route)return false;
+   if(!p.route||!p.trucks)return false;
    p.route.auto=!p.route.auto;ok=true;message='Automated warehouse deliveries '+(p.route.auto?'enabled':'paused')+'.';
  }else if(action==='autoRestock'){
    if(!requireSite()||!site.l.manager)return false;
@@ -199,6 +208,20 @@ function act(action,opt={}){
      locations:[{id:'downtown',name:'Acquired Headquarters',icon:'🏢',rent:1.1,demand:1.15,basePopularity:65}]};
    s.businesses.push(acquired);p.rivals=p.rivals.filter(x=>x.id!==rival.id);
    ok=true;message=rival.name+' acquired for '+fmt(rival.value)+'.';
+ }else if(action==='merge'){
+   if(!site)return false;
+   const idx=Number(opt.merge);
+   const second=s.businesses[idx];
+   if(!Number.isInteger(idx)||!second||second===site.b||second.type!==site.b.type)return false;
+   if((p.publicCompanies||[]).some(x=>x.companyId===second.labCompanyId||x.companyId===site.b.labCompanyId))return false;
+   const value=window.ProfitLandsEconomy?.businessValue?.(second)||companyType(second)?.cost||500;
+   const fee=Math.max(100,Math.round(value*.05));
+   if(!charge(fee,true))return false;
+   site.b.locations.push(...(second.locations||[]));
+   site.b.chainCount=site.b.locations.length-1;
+   site.b.financialBalance=(site.b.financialBalance||0)+(second.financialBalance||0);
+   s.businesses.splice(idx,1);
+   ok=true;message='Merged '+second.name+' into '+site.b.name+' for '+fmt(fee)+'.';
  }else if(action==='marketSell'){
    if(!requireSite()||lab.stock<qty)return false;
    lab.stock-=qty;
@@ -236,6 +259,11 @@ function tick(now=Date.now()){
    }
  }
  p.lastTick=now;
+ if(now-(p.lastRivalTick||0)>30000){
+   p.lastRivalTick=now;
+   // Deterministic activity: rivals expand or contract their competitive share.
+   for(const r of p.rivals)r.share=clamp(r.share+Math.sin(now/30000+r.value)*.012,.04,.38);
+ }
  if(now-lastSave>15000){lastSave=now;window.save?.()}
  renderStats();
 }
@@ -258,7 +286,7 @@ function render(){
    else content+='<div class="lab-metrics"><span>Business <b>'+clean(b.name)+'</b></span><span>Stock <b>'+lab.stock.toFixed(1)+' units</b></span><span>Price <b>'+lab.price.toFixed(2)+'×</b></span><span>Staff assigned <b>'+assigned+'/'+workers+'</b></span></div>'+
      '<p>Products: '+products(b).map(clean).join(' · ')+'</p>'+
      (!lab.enabled?button('enable','Activate store simulation (free)'):'<p class="lab-status">Store simulation active · Inventory shortages will reduce local revenue.</p>')+
-     '<div class="lab-actions">'+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),false,'data-qty="20"')+
+     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),false,'data-qty="20"')+
      button('priceDown','Lower prices 5%')+button('priceUp','Raise prices 5%')+'</div>'+
      '<h4>Employee roles</h4><p>Assign your existing employees. Hire more through the location-management window. Assignments are free.</p>'+
      '<div class="lab-role-grid">'+['sales','production','logistics'].map(role=>'<div><b>'+role+'</b><span>'+amount(roles[role])+' employees</span>'+
@@ -269,12 +297,12 @@ function render(){
  }else if(currentTab==='logistics'){
    const route=allSites().find(x=>x.id===p.route?.siteId);
    content='<h3>Warehouses & Supply Lines</h3><p>Buy stock centrally and ship it to your locations. Delivery fees consume cash; researched logistics lowers the cost.</p>'+
-     '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
-     '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+
+     '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Delivery vehicles <b>'+p.trucks+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
+     '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+button('buyTruck','Purchase delivery vehicle · '+fmt(900*1.7**p.trucks),!p.warehouse||!have(900*1.7**p.trucks))+
      button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse,'data-qty="50"')+'</div>'+
      '<label>Delivery destination <select id="labSite">'+optionsSite()+'</select></label>'+
-     '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!has)+
-     button('dispatch','Send 10 units · pay delivery fee',!p.route||p.warehouseStock<10,'data-qty="10"')+
+     '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!p.trucks||!has)+
+     button('dispatch','Send 10 units · pay delivery fee',!p.route||!p.trucks||p.warehouseStock<10,'data-qty="10"')+
      button('autoRoute',p.route?.auto?'Pause supply deliveries':'Auto-deliver when stock is low',!p.route)+'</div>';
  }else if(currentTab==='world'){
    content='<h3>Cities, Countries & AI Rivals</h3><p>Expand into new markets with their own rent, demand, and taxes. Rival businesses compete for customers; you can acquire them.</p>'+
@@ -287,7 +315,10 @@ function render(){
      button('buyHQ','Build / upgrade HQ · '+fmt(6000*3**p.hq),!have(6000*3**p.hq))+
      '<h4>Corporate research</h4><div class="lab-cards">'+RESEARCH.map(r=>'<div class="lab-card"><strong>'+clean(r.label)+'</strong><span>'+clean(r.info)+'</span>'+button('research',p.research.includes(r.id)?'Researched':'Research · '+fmt(r.cost),!p.hq||p.research.includes(r.id)||!have(r.cost),'data-research="'+r.id+'"')+'</div>').join('')+'</div>'+
      '<label>Company for an IPO <select id="labSite">'+optionsSite()+'</select></label>'+
-     button('ipo','Launch this company IPO (sell 20% of future revenue)',!p.hq||!has);
+     button('ipo','Launch this company IPO (sell 20% of future revenue)',!p.hq||!has)+
+     '<h4>Mergers</h4><p>Combine two companies in the same industry. The acquired company’s locations, staff and existing operations move into the surviving chain. A 5% integration fee and one management action apply.</p>'+
+     '<label>Company to merge <select id="labMergeSource">'+s.businesses.map((x,i)=>'<option value="'+i+'">'+clean(x.name)+'</option>').join('')+'</select></label>'+
+     button('merge','Merge selected company into the focused company',s.businesses.length<2||!has);
  }else if(currentTab==='market'){
    content='<h3>Shared Market Concept Demo</h3><p><strong>Offline simulation only.</strong> No other players are connected, no real-world payments occur, and these orders only change your local empire. This previews what a server-backed multiplayer market might feel like.</p>'+
      '<div class="lab-metrics"><span>Reputation <b>'+p.reputation+'</b></span><span>Simulated transactions <b>'+p.trades.length+'</b></span><span>Demo participants <b>4 AI firms</b></span></div>'+
@@ -303,6 +334,7 @@ function renderStats(){
  const p=game()?.empireLab;if(!p)return;
  const t=$('empireLabStats');if(t)t.textContent='HQ '+p.hq+' · '+p.regions.length+' regions · '+p.rivals.length+' rival companies · '+p.trades.length+' demo trades';
 }
+function boxValue(id){return $(id)?.value??''}
 function bind(){
  const root=$('empireLab');if(!root)return;
  root.addEventListener('click',e=>{
@@ -313,7 +345,7 @@ function bind(){
    const map={priceDown:['price',{delta:-.05}],priceUp:['price',{delta:.05}],
      roleDown:['role',{role:el.dataset.role,delta:-1}],roleUp:['role',{role:el.dataset.role,delta:1}]};
    const [action,opt]=map[name]||[name,{}];
-   const ok=act(action,{...opt,qty:Number(el.dataset.qty||1),region:el.dataset.region,rival:el.dataset.rival,research:el.dataset.research});
+   const ok=act(action,{...opt,qty:Number(el.dataset.qty||1),region:el.dataset.region,rival:el.dataset.rival,research:el.dataset.research,merge:boxValue('labMergeSource')});
    if(!ok){window.toast?.('This action requires more cash, actions, inventory, staff, or an unlocked feature.');render()}
  });
  ensure();render();
