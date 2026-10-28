@@ -1,0 +1,58 @@
+/* Persistent section minimization — functionality stays mounted in the DOM. */
+.pl-view-toolbar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+ margin:12px 0 8px;padding:12px 14px;
+ border:1px solid #3a5b47;border-radius:13px;background:#14231b;
+}
+.pl-view-toolbar .pl-view-title{color:#daf4d4;font-size:12px;font-weight:850;margin-right:6px}
+.pl-view-toolbar .pl-view-count{color:#9eb7aa;font-size:11px;flex:1 1 155px}
+.pl-view-toolbar button,.pl-layout-toggle,.pl-modal-minimize,.pl-modal-restore{
+ color:#d9eee0;background:#22392d;border:1px solid #506b56;
+ border-radius:9px;min-height:38px;padding:8px 12px;
+ font-size:12px;font-weight:800;cursor:pointer;
+}
+.pl-view-toolbar button:hover,.pl-layout-toggle:hover,.pl-modal-minimize:hover,.pl-modal-restore:hover{
+ border-color:#b5f17a;background:#2a4a32;color:#f6fff1;
+}
+.pl-view-toolbar button:focus-visible,.pl-layout-toggle:focus-visible,.pl-modal-minimize:focus-visible,.pl-modal-restore:focus-visible,.pl-section-links summary:focus-visible{
+ outline:3px solid #b9f27a;outline-offset:3px;
+}
+#gameScreen .panel-head .pl-layout-toggle{margin-left:auto;flex:0 0 auto;white-space:nowrap;font-size:11px;min-height:36px}
+#gameScreen .panel.pl-panel-minimized{padding-bottom:13px!important}
+#gameScreen .panel.pl-panel-minimized>.pl-panel-content,
+#gameScreen .pl-panel-content[hidden]{display:none!important}
+#gameScreen .pl-panel-content:not([hidden]){display:block}
+#gameScreen .pl-panel-minimized>.panel-head{margin-bottom:0!important}
+#gameScreen .pl-layout-toggle.pl-hud-toggle{white-space:nowrap}
+#gameScreen .game-hud.pl-panel-minimized .stats-grid,
+#gameScreen .game-hud.pl-panel-minimized .goal-progress,
+#gameScreen .game-hud.pl-panel-minimized .goal-status,
+#gameScreen .game-hud.pl-panel-minimized .event-banner{display:none!important}
+#gameScreen .game-hud.pl-panel-minimized{margin-bottom:10px!important;padding:13px!important}
+#gameScreen .game-hud.pl-panel-minimized .day-row h2{font-size:22px!important}
+.pl-section-links{
+ border:1px solid #304b3c;background:#11221a;
+ border-radius:12px;margin:0 0 14px;padding:0 12px;
+}
+.pl-section-links summary{cursor:pointer;list-style:revert;color:#c5e9c4;font-size:12px;font-weight:800;padding:11px 4px}
+.pl-section-links .growth-quicknav{margin:0 0 11px;padding:0 1px}
+.pl-modal-minimize{
+ position:absolute;top:11px;right:55px;z-index:3;
+ min-height:34px;font-size:11px;
+}
+.pl-modal-restore{
+ position:fixed;bottom:max(16px,env(safe-area-inset-bottom));right:16px;z-index:21000;
+ border-color:#c3f88c;background:#284734;color:#e4ffd2;
+ box-shadow:0 7px 28px #000a;
+}
+.pl-modal-restore[hidden]{display:none!important}
+@media(max-width:650px){
+ .pl-view-toolbar{padding:10px;gap:7px}
+ .pl-view-toolbar button{flex:1 1 auto;min-height:42px}
+ .pl-view-toolbar .pl-view-count{flex:1 1 100%;order:10}
+ #gameScreen .panel-head .pl-layout-toggle{padding:8px 9px;min-height:40px}
+ #gameScreen .game-hud.pl-panel-minimized{padding:12px!important}
+ .pl-modal-minimize{top:10px;right:50px;padding:7px 9px}
+ .pl-modal-restore{bottom:max(15px,env(safe-area-inset-bottom));right:12px}
+}
+@media(prefers-reduced-motion:reduce){.pl-layout-toggle,.pl-panel-content,.pl-modal-restore{transition:none!important}}
