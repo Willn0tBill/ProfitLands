@@ -285,3 +285,75 @@ test('endless progress is wired into both full and realtime dashboards',()=>{
   assert.ok(!economy.includes('net/GOAL'));
   assert.ok(html.includes('Next wealth milestone'));
 });
+
+function loadHugeMoney(){
+  const window={};
+  const context={window,Number,Math,console};
+  vm.createContext(context);
+  new vm.Script(fs.readFileSync(path.join(root,'huge-money.js'),'utf8'),{filename:'huge-money.js'}).runInContext(context);
+  return{window,api:window.ProfitLandsMoney,context};
+}
+test('huge-number cash ledger migrates existing saves and supports spending and deposits',()=>{
+  const{api}=loadHugeMoney(),state={cash:1000};
+  api.attach(state);
+  assert.equal(state.cashHuge,'1e3');
+  assert.equal(api.canAfford(1001),false);
+  assert.equal(api.spend(225),true);
+  assert.equal(state.cash,775);
+  api.gain(25);
+  assert.equal(state.cash,800);
+  assert.equal(api.format(api.balance()),'$800');
+  assert.equal(api.spend(801),false);
+});
+test('huge-number ledger supports 1e1000, 1e2000 and exponent one million',()=>{
+  const{api}=loadHugeMoney(),state={cash:1000};
+  api.attach(state);
+  api.set('1e1000');
+  assert.equal(state.cashHuge,'1e1000');
+  assert.ok(Number.isFinite(state.cash),'numeric compatibility mirror must remain finite');
+  assert.equal(api.format(api.balance()),'$1e1000');
+  assert.equal(api.canAfford('1e1001'),false);
+  assert.equal(api.canAfford('5e999'),true);
+  assert.equal(api.spend('5e999'),true);
+  assert.equal(state.cashHuge,'5e999');
+  api.gain('5e999');
+  assert.equal(state.cashHuge,'1e1000');
+  assert.equal(api.raw(api.mul('1e1000','1e1000')),'1e2000');
+  assert.equal(api.raw(api.parse('1e1000000')),'1e1000000');
+});
+test('canonical huge balances survive JSON snapshots and Cloud-style restore',()=>{
+  const{api}=loadHugeMoney(),initial={cash:1000};
+  api.attach(initial);
+  api.set('7.25e1000');
+  const saved=JSON.parse(JSON.stringify(initial));
+  assert.equal(saved.cashHuge,'7.25e1000');
+  const restored={...saved};
+  api.attach(restored);
+  assert.equal(api.raw(api.balance()),'7.25e1000');
+  assert.equal(api.format(api.balance()),'$7.25e1000');
+  assert.equal(api.raw(api.sub(api.balance(),'2.25e1000')),'5e1000');
+});
+test('arbitrary-exponent wealth checkpoints continue beyond numeric Number.MAX_VALUE',()=>{
+  const {api,window,context}=loadHugeMoney();
+  context.document={getElementById(){return null}};
+  new vm.Script(fs.readFileSync(path.join(root,'progression.js'),'utf8'),{filename:'progression.js'}).runInContext(context);
+  const milestone=window.ProfitLandsProgression.milestone('1e1000');
+  assert.equal(milestone.targetRaw,'1e1001');
+  assert.equal(milestone.targetLabel,'$1e1001');
+  assert.equal(milestone.endless,true);
+  assert.equal(window.ProfitLandsProgression.milestone('7e1000').percent>60,true);
+  assert.equal(window.ProfitLandsProgression.milestone('1e1000000').targetRaw,'1.000e1000001'.replace('1.000','1'));
+});
+test('gameplay scripts keep canonical huge balances on major mutation paths',()=>{
+  const files=['app.js','economy-system.js','enhancements.js','growth-system.js','trade-ui.js','firebase-auth.js'];
+  for(const file of files){
+    const source=fs.readFileSync(path.join(root,file),'utf8');
+    assert.ok(source.includes('ProfitLandsMoney'),file+' is wired into huge money');
+  }
+  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+  assert.ok(html.indexOf('huge-money.js')<html.indexOf('app.js'),'huge money loads before game state');
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  assert.ok(app.includes('cashHuge'),'save migration support');
+  const market=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+  assert.ok(market.includes('ProfitLandsMoney.gain(realized)'),'realtime earnings must hit canonical cash');
+});
