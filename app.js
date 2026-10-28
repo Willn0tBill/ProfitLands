@@ -43,7 +43,7 @@ const BUSINESS_TYPES=[
 {id:'software',name:'Software Company',icon:'💻',cost:2500000,baseRevenue:330000,baseExpense:170000,volatility:.45,desc:'High-growth technology company with high demand volatility.'},
 {id:'logistics',name:'Logistics Company',icon:'📦',cost:10000000,baseRevenue:1250000,baseExpense:770000,volatility:.24,desc:'Moves goods across ProfitLands and benefits from strong commerce.'}
 ];
-const state={mode:'standard',playType:'single',day:1,cash:1000,stocks:{},businesses:[],property:0,actions:60,actionCapacityVersion:2,timeLeft:900,news:[],trend:null,started:false,lastDayProfit:0,bankrupt:false};
+const state={mode:'standard',playType:'single',day:1,cash:1000,stocks:{},businesses:[],property:0,actions:60,actionCapacityVersion:0,timeLeft:900,news:[],trend:null,started:false,lastDayProfit:0,bankrupt:false};
 let timerHandle=null;
 let dayEnding=false;
 function syncTime(){if(!state.started||!state.dayEndsAt)return;state.timeLeft=Math.max(0,Math.ceil((state.dayEndsAt-Date.now())/1000));}
@@ -87,7 +87,9 @@ function load(){
       if(!raw)continue;
       const candidate=JSON.parse(raw);
       if(!valid(candidate))throw Error('Invalid or incomplete save structure');
+      state.actionCapacityVersion=0;
       Object.assign(state,candidate);window.ProfitLandsMoney?.attach?.(state);restoreMarket();
+      window.ProfitLandsBalance?.migrate?.();
       if(key==='profitlands-v2-backup'){
         state.news=Array.isArray(state.news)?state.news:[];
         state.news.push('RECOVERY — Your latest valid local backup was restored. Use Save to preserve this copy.');
