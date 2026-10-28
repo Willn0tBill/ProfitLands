@@ -30,7 +30,6 @@
     queued=true;
     window.requestAnimationFrame(refresh);
   }
-  bar.querySelector('#floatingEndDay')?.addEventListener('click', () => el('endDay')?.click());
   bar.querySelector('#floatingBackTop')?.addEventListener('click', () => {
     hud.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'start'});
   });
