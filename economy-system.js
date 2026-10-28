@@ -141,7 +141,9 @@
   function majorValue(c){return c.value||0}
   function calcNetWorth(){
     const stockValue=STOCKS.reduce((s,x)=>s+x.price*(state.stocks?.[x.id]?.shares||0),0);
-    return Math.max(0,state.cash)+stockValue+(state.businesses||[]).reduce((s,b)=>s+businessValue2(b),0)+(state.property||0)*750+(state.majorCompanies||[]).reduce((s,c)=>s+majorValue(c),0)-state.loans.reduce((s,l)=>s+(l.balance||0),0);
+    const extra=stockValue+(state.businesses||[]).reduce((s,b)=>s+businessValue2(b),0)+(state.property||0)*750+(state.majorCompanies||[]).reduce((s,c)=>s+majorValue(c),0)-state.loans.reduce((s,l)=>s+(l.balance||0),0);
+    if(window.ProfitLandsMoney)return window.ProfitLandsMoney.number(window.ProfitLandsMoney.netWorth(extra));
+    return Math.max(0,state.cash)+extra;
   }
   function majorDaily(c){
     const d=MAJOR.find(x=>x.id===c.type);if(!d)return 0;
@@ -281,12 +283,12 @@
   function perSecond(){return projectedProfit()/INCOME_UNIT_SECONDS}
   function showLiveCash(){
     const cash=document.getElementById('cash'),worth=document.getElementById('netWorth'),rate=document.getElementById('dailyIncome'),floatCash=document.getElementById('floatCash');
-    if(cash)cash.textContent=money(state.cash);
-    if(floatCash)floatCash.textContent=money(state.cash);
-    if(worth)worth.textContent=money(calcNetWorth());
+    if(cash)cash.textContent=money(window.ProfitLandsMoney?.balance?.()||state.cash);
+    if(floatCash)floatCash.textContent=money(window.ProfitLandsMoney?.balance?.()||state.cash);
+    if(worth)worth.textContent=money(window.ProfitLandsMoney?.netWorth?.(calcNetWorth()-state.cash)||calcNetWorth());
     const flow=perSecond();
     if(rate)rate.textContent=(flow>=0?'+':'')+rateMoney(flow);
-    window.ProfitLandsProgression?.render(calcNetWorth());
+    window.ProfitLandsProgression?.render(window.ProfitLandsMoney?.netWorth?.(calcNetWorth()-state.cash)||calcNetWorth());
   }
   function settleIncome(now=Date.now()){
     if(!state.started||!document.getElementById('gameScreen')?.classList.contains('active')){
@@ -315,7 +317,8 @@
     });
     realized+=((state.property||0)*12)*multiplier;
     if(!Number.isFinite(realized))return 0;
-    state.cash=Math.max(-1e15,(Number(state.cash)||0)+realized);
+    if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}
+    else state.cash=Math.max(-1e15,(Number(state.cash)||0)+realized);
     state.liveDayProfit+=realized;
     state.liveTotalProfit+=realized;
     return realized;
@@ -333,7 +336,7 @@
     const modal=document.getElementById('economyModal')||makeModal();
     modal.querySelector('.economy-modal-content').innerHTML='<span class="eyebrow">FINANCIAL RECOVERY</span><h2>Recovery opportunity</h2><p class="modal-sub">A legal recovery opportunity is available while your account is in default. Choose a way to rebuild cash and address the debt.</p><div class="recovery-grid"><button class="recovery-choice" data-recovery="work"><b>Temporary Contract</b><small>Earn a guaranteed recovery payment through a short-term contract.</small></button><button class="recovery-choice" data-recovery="negotiate"><b>Negotiate a Payment Plan</b><small>Reduce the immediate pressure and extend the repayment schedule.</small></button><button class="recovery-choice" data-recovery="sell"><b>Liquidate Remaining Assets</b><small>Convert part of your remaining assets into cash.</small></button></div>';
     modal.classList.remove('hidden');
-    modal.querySelectorAll('[data-recovery]').forEach(b=>b.onclick=()=>{const kind=b.dataset.recovery;if(kind==='work'){state.cash+=Math.min(50000,Math.max(2500,def.balance*.08));def.balance=Math.max(0,def.balance*.92)}else if(kind==='negotiate'){def.dueDay=state.day+10;def.balance=Math.max(0,def.balance*.95);def.defaulted=false;def.recoveryOffered=false}else{const assets=(state.businesses||[]).reduce((s,x)=>s+businessValue2(x),0)*.35;state.cash+=Math.round(assets);state.businesses=[];def.balance=Math.max(0,def.balance-assets*.2)}save();render();modal.classList.add('hidden')});
+    modal.querySelectorAll('[data-recovery]').forEach(b=>b.onclick=()=>{const kind=b.dataset.recovery;if(kind==='work'){(window.ProfitLandsMoney?window.ProfitLandsMoney.gain(Math.min(50000,Math.max(2500,def.balance*.08))):state.cash+=Math.min(50000,Math.max(2500,def.balance*.08)));def.balance=Math.max(0,def.balance*.92)}else if(kind==='negotiate'){def.dueDay=state.day+10;def.balance=Math.max(0,def.balance*.95);def.defaulted=false;def.recoveryOffered=false}else{const assets=(state.businesses||[]).reduce((s,x)=>s+businessValue2(x),0)*.35;(window.ProfitLandsMoney?window.ProfitLandsMoney.gain(Math.round(assets)):state.cash+=Math.round(assets));state.businesses=[];def.balance=Math.max(0,def.balance-assets*.2)}save();render();modal.classList.add('hidden')});
   }
   function makeModal(){
     let m=document.getElementById('economyModal');if(m)return m;
@@ -348,7 +351,7 @@
     m.classList.remove('hidden');
     document.getElementById('continueRisk').onclick=()=>{b.financialBalance-=Math.round(b.originalCost*.15);m.classList.add('hidden');save();render()};
     document.getElementById('fileBankruptcy').onclick=()=>{
-      state.cash=recoveryPayout;
+      if(window.ProfitLandsMoney)window.ProfitLandsMoney.set(recoveryPayout);else state.cash=recoveryPayout;
       state.businesses=[];
       Object.keys(state.stocks||{}).forEach(id=>{state.stocks[id].shares=0});
       state.property=0;
@@ -384,11 +387,11 @@
   }
   function buyMajor(id){
     const d=MAJOR.find(x=>x.id===id);if(!d)return;
-    if(calcNetWorth()<d.req)return toast('Reach the required net worth first.');
+    if(window.ProfitLandsMoney?window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.netWorth(calcNetWorth()-state.cash),d.req)<0:calcNetWorth()<d.req)return toast('Reach the required net worth first.');
     if(state.majorCompanies.some(c=>c.type===id))return toast('You already own this corporation.');
-    if(state.cash<d.price)return toast('You need enough cash to purchase this corporation.');
+    if(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(d.price):state.cash<d.price)return toast('You need enough cash to purchase this corporation.');
     if(state.actions<=0)return toast('No actions left.');
-    state.cash-=d.price;state.actions--;
+    if(window.ProfitLandsMoney)window.ProfitLandsMoney.spend(d.price);else state.cash-=d.price;state.actions--;
     state.majorCompanies.push({type:id,name:d.name,value:d.price,financialBalance:0});
     state.news.push('CORPORATE LANDSCAPE — '+d.name+' has entered the ProfitLands economy, adding another major competitor to the corporate market.');
     save();render();
@@ -429,13 +432,13 @@
     if(state.cash>0||state.loans.some(l=>!l.defaulted&&l.balance>0)||state.penaltyDays>0)return;
     const amount=Math.max(1000,Math.min(100000000,Math.round(Math.max(1000,Math.abs(totalBusinessProfit())*3+5000))));
     const balance=Math.round(amount*(1+state.economy.loanRate));
-    state.cash+=amount;state.loans.push({principal:amount,balance,dueDay:state.day+15,daysLeft:15,defaulted:false,recoveryOffered:false});
+    if(window.ProfitLandsMoney)window.ProfitLandsMoney.gain(amount);else state.cash+=amount;state.loans.push({principal:amount,balance,dueDay:state.day+15,daysLeft:15,defaulted:false,recoveryOffered:false});
     state.news.push('CREDIT MARKETS — Emergency lending activity increased today as several companies sought short-term financing to cover operating costs.');
     save();render();
   }
   function reset(mode,type){
     window.resetProfitLandsMarket?.();
-    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
+    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
   }
   function doEndDay(auto){
     if(!state.started)return;
