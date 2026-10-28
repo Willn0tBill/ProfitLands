@@ -11,6 +11,8 @@ on:
       - 'progression.js'
       - 'huge-money.js'
       - 'location-operations.js'
+      - 'empire-lab.js'
+      - 'empire-lab.css'
       - 'play/index.html'
       - 'tests/**'
       - '.github/workflows/economy-tests.yml'
@@ -23,6 +25,8 @@ on:
       - 'progression.js'
       - 'huge-money.js'
       - 'location-operations.js'
+      - 'empire-lab.js'
+      - 'empire-lab.css'
       - 'play/index.html'
       - 'tests/**'
   workflow_dispatch:
@@ -49,6 +53,7 @@ jobs:
           node --check progression.js
           node --check huge-money.js
           node --check location-operations.js
+          node --check empire-lab.js
       - name: Run economy regression suite
         id: regression
         shell: bash
