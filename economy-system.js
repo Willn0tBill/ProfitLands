@@ -36,7 +36,7 @@
     {id:'global',req:1e9,name:'Global Corporation',desc:'An international company exposed to global markets and supply chains.',price:800000000,rev:30000000,expense:22000000,vol:.29},
     {id:'conglomerate',req:1e10,name:'Conglomerate',desc:'A giant multi-industry company with several major business divisions.',price:8000000000,rev:320000000,expense:250000000,vol:.35},
     {id:'mega',req:1e11,name:'Mega Corporation',desc:'A world-scale corporation where small market changes can move billions.',price:80000000000,rev:3500000000,expense:2900000000,vol:.42},
-    {id:'empire',req:1e12,name:'Global Empire',desc:'The final corporate tier, operating at enormous global scale.',price:850000000000,rev:40000000000,expense:35000000000,vol:.50}
+    {id:'empire',req:1e12,name:'Global Empire',desc:'A world-scale corporation and a launching point for further empire expansion.',price:850000000000,rev:40000000000,expense:35000000000,vol:.50}
   ];
   const EVENTS=[
     {id:'consumer_boom',title:'Consumer Spending Surges',type:'economic',duration:2,weight:10,text:'Consumers increased spending across several major markets today, giving retailers, restaurants, and entertainment businesses a noticeable boost.',effects:{health:5,demand:1.08,stocks:.018}},
@@ -286,10 +286,7 @@
     if(worth)worth.textContent=money(calcNetWorth());
     const flow=perSecond();
     if(rate)rate.textContent=(flow>=0?'+':'')+rateMoney(flow);
-    const net=calcNetWorth(),goal=Math.max(0,net/GOAL*100);
-    const goalBar=document.getElementById('goalProgressFill'),goalLabel=document.getElementById('goalStatus');
-    if(goalBar)goalBar.style.width=Math.min(100,goal)+'%';
-    if(goalLabel)goalLabel.textContent='$1T Empire Goal · '+goal.toFixed(6)+'% complete';
+    window.ProfitLandsProgression?.render(calcNetWorth());
   }
   function settleIncome(now=Date.now()){
     if(!state.started||!document.getElementById('gameScreen')?.classList.contains('active')){
