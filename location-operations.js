@@ -137,6 +137,7 @@ function open(index,focused=0){
   const total=window.businessDailyProfit?.(b)||0;
   const bBalance=num(b.financialBalance);
   const expansion=Math.round(t.cost*10*(1+(locs.length-1)*.35));
+  const actions=state.actions>0;
   e.innerHTML='<div class="manage-head"><div><span class="eyebrow">COMPANY & LOCATION MANAGEMENT</span><h2>'+t.icon+' '+b.name+'</h2><p class="modal-sub">'+t.desc+'</p></div>'+
     '<strong class="'+(total<0?'danger':'good')+'">'+(total>=0?'+':'')+moneyText(total/period)+'/sec</strong></div>'+
     '<div class="manage-stats"><div class="mini-stat"><small>LOCATIONS</small><b>'+locs.length+'</b></div>'+
