@@ -14,24 +14,24 @@ function locations(b){return Array.isArray(b?.locations)?b.locations:[]}
 function normalize(b){
   if(!b||!type(b))return b;
   if(!locations(b).length)b.locations=[{id:'downtown',name:'Downtown',icon:'🏙️',demand:1.22,rent:1.3,basePopularity:num(b.popularity)||55}];
-  if(b.locationManagementVersion===1)return b;
-  // Migrate legacy company-wide upgrades to each existing branch; preserve
-  // legacy employees and manager by assigning them to the first location.
-  const oldWorkers=safe(b.workers);
+  const migrating=b.locationManagementVersion!==1;
+  const oldWorkers=migrating?safe(b.workers):0;
+  // Fill defaults on every pass, including newly opened branches on an already
+  // migrated company. New branches start at level 1 with no staff/manager.
   for(let i=0;i<b.locations.length;i++){
     const l=b.locations[i];
     l.name=l.name||siteNames[l.id]||'Location '+(i+1);
     l.icon=l.icon||icons[l.id]||'🏢';
-    l.level=Math.max(1,safe(l.level??b.level??1));
-    l.marketing=safe(l.marketing??b.marketing??0);
-    l.efficiency=safe(l.efficiency??b.efficiency??0);
-    l.workers=safe(l.workers??(i===0?oldWorkers:0));
-    l.manager=typeof l.manager==='boolean'?l.manager:(i===0&&b.manager===true);
+    l.level=Math.max(1,safe(l.level??(migrating?b.level:1)??1));
+    l.marketing=safe(l.marketing??(migrating?b.marketing:0)??0);
+    l.efficiency=safe(l.efficiency??(migrating?b.efficiency:0)??0);
+    l.workers=safe(l.workers??(migrating&&i===0?oldWorkers:0));
+    l.manager=typeof l.manager==='boolean'?l.manager:(migrating&&i===0&&b.manager===true);
     l.basePopularity=clamp(num(l.basePopularity??b.popularity??55),5,100);
     l.rent=num(l.rent)||1;l.demand=num(l.demand)||1;
   }
   b.locationManagementVersion=1;
-  b.workers=0;b.manager=false;
+  if(migrating){b.workers=0;b.manager=false}
   b.chainCount=b.locations.length-1;
   return b;
 }
