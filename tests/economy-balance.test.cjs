@@ -6,7 +6,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const root=path.join(__dirname,'..');
-const modes={fast:{daySeconds:300,actions:4},standard:{daySeconds:900,actions:6},long:{daySeconds:3600,actions:10},persistent:{daySeconds:86400,actions:12}};
+const modes={fast:{daySeconds:300,actions:40},standard:{daySeconds:900,actions:60},long:{daySeconds:3600,actions:100},persistent:{daySeconds:86400,actions:120}};
 const types=[
   ['coffee',500,115,48],['restaurant',2000,390,190],['gamestore',5000,760,420],
   ['hotel',25000,3300,1900],['dealership',100000,12500,7900],['factory',500000,62000,41000],
@@ -356,4 +356,54 @@ test('gameplay scripts keep canonical huge balances on major mutation paths',()=
   assert.ok(app.includes('cashHuge'),'save migration support');
   const market=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
   assert.ok(market.includes('ProfitLandsMoney.gain(realized)'),'realtime earnings must hit canonical cash');
+});
+
+test('10x faster action regeneration is balanced consistently across all four modes',()=>{
+  const h=harness(),x=h.window.ProfitLandsBalance;
+  const expected={fast:[40,9],standard:[60,12],long:[100,18],persistent:[120,30]};
+  for(const [mode,[cap,seconds]] of Object.entries(expected)){
+    const projected=x.evaluateMode(mode,200,30);
+    assert.equal(projected.maxActions,cap,mode+' cap');
+    assert.equal(projected.startingActions,cap,mode+' starting actions');
+    assert.equal(projected.regenSeconds,seconds,mode+' fast regen');
+    assert.equal(projected.baseIncome,6000,mode+' earnings stay real-time');
+  }
+});
+test('old save action budgets migrate by 10x without resetting progress',()=>{
+  const h=harness(),x=h.window.ProfitLandsBalance;
+  for(const [mode,oldCap] of [['fast',4],['standard',6],['long',10],['persistent',12]]){
+    h.state.mode=mode;
+    h.state.actionCapacityVersion=0;
+    h.state.actions=oldCap-1;
+    h.state.day=7;
+    h.state.cash=54321;
+    assert.equal(x.migrate(),true,mode+' migration happens');
+    assert.equal(h.state.actions,(oldCap-1)*10,mode+' remaining action ratio');
+    assert.equal(x.migrate(),false,mode+' never double-migrates');
+    assert.equal(h.state.day,7);
+    assert.equal(h.state.cash,54321);
+  }
+});
+test('auto-only market cycles have no manual button or input listener',()=>{
+  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+  const float=fs.readFileSync(path.join(root,'hud-sticky.js'),'utf8');
+  assert.ok(html.includes('NEXT AUTO CYCLE'));
+  assert.ok(!html.includes('id="endDay"'));
+  assert.ok(!html.includes('id="floatingEndDay"'));
+  assert.ok(!html.includes('Next Cycle →'));
+  assert.ok(!app.includes("$('endDay').onclick"));
+  assert.ok(!economy.includes("end.addEventListener('click'"));
+  assert.ok(!float.includes("floatingEndDay"));
+  assert.ok(economy.includes('if(left<=0&&!window.__profitEnding)'),'timer still handles automatic cycles');
+  assert.ok(economy.includes('doEndDay(true)'),'auto advance still updates market state');
+});
+test('action budgets are set on new game and reset with automatic market cycles',()=>{
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+  assert.ok(app.includes('actions:40')&&app.includes('actions:60')&&app.includes('actions:100')&&app.includes('actions:120'));
+  assert.ok(app.includes('actionCapacityVersion=2'));
+  assert.ok(economy.includes('state.actions=MODES[state.mode].actions'));
+  assert.ok(economy.includes('ProfitLandsBalance?.reset'));
 });
