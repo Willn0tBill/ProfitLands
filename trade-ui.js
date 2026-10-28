@@ -14,7 +14,7 @@
     const s=STOCKS.find(x=>x.id===id);if(!s)return;
     ensureModal();
     const h=state.stocks[id]||{shares:0};
-    const maxBuy=Math.max(0,Math.floor(state.cash/s.price));
+    const maxBuy=Math.max(0,Math.min(999999,Math.floor(state.cash/s.price),window.ProfitLandsMoney&&!window.ProfitLandsMoney.canAfford(s.price)?0:999999));
     const content=document.getElementById('tradeContent');
     content.innerHTML=`<div class="trade-head"><div><h2>${s.name}</h2><p class="modal-sub">${s.ticker} · ${s.sector} · ${s.risk} risk</p></div><strong class="trade-price">${money(s.price)}</strong></div><div class="trade-tabs"><button type="button" class="trade-tab active" data-side="buy">Buy</button><button type="button" class="trade-tab" data-side="sell">Sell</button></div><div class="trade-position"><span>Owned</span><b>${h.shares} share${h.shares===1?'':'s'}</b></div><label class="trade-label" for="tradeQty">Shares</label><div class="quantity-row"><button type="button" class="qty-button" id="qtyMinus">−</button><input id="tradeQty" type="number" min="1" max="${Math.max(1,maxBuy,h.shares)}" value="1" inputmode="numeric"><button type="button" class="qty-button" id="qtyPlus">+</button></div><div class="trade-total"><span>Total</span><b id="tradeTotal">${money(s.price)}</b></div><div class="trade-limit" id="tradeLimit">You can buy up to ${maxBuy} share${maxBuy===1?'':'s'} with your current cash.</div><button type="button" class="primary-button trade-submit" id="tradeSubmit">Buy ${s.ticker}</button>`;
     const modal=document.getElementById('tradeModal');
@@ -39,11 +39,11 @@
       if(!Number.isFinite(q)||q<1)return;
       if(state.actions<=0){toast('No actions left.');return}
       if(side==='buy'){
-        const cost=q*s.price;if(q>maxBuy||state.cash<cost){toast('Not enough cash for that trade.');return}
-        state.cash-=cost;state.stocks[id].shares+=q;state.actions--;state.news.push(`You bought ${q} share${q===1?'':'s'} of ${s.ticker}.`);toast(`Bought ${q} ${s.ticker} share${q===1?'':'s'}.`);
+        const cost=q*s.price;if(q>maxBuy||(window.ProfitLandsMoney?!window.ProfitLandsMoney.spend(cost):state.cash<cost)){toast('Not enough cash for that trade.');return}
+        if(!window.ProfitLandsMoney)state.cash-=cost;state.stocks[id].shares+=q;state.actions--;state.news.push(`You bought ${q} share${q===1?'':'s'} of ${s.ticker}.`);toast(`Bought ${q} ${s.ticker} share${q===1?'':'s'}.`);
       }else{
         if(q>h.shares){toast('You do not own that many shares.');return}
-        state.cash+=q*s.price;state.stocks[id].shares-=q;state.actions--;state.news.push(`You sold ${q} share${q===1?'':'s'} of ${s.ticker}.`);toast(`Sold ${q} ${s.ticker} share${q===1?'':'s'}.`);
+        (window.ProfitLandsMoney?window.ProfitLandsMoney.gain(q*s.price):state.cash+=q*s.price);state.stocks[id].shares-=q;state.actions--;state.news.push(`You sold ${q} share${q===1?'':'s'} of ${s.ticker}.`);toast(`Sold ${q} ${s.ticker} share${q===1?'':'s'}.`);
       }
       save();render();modal.classList.add('hidden');
     };
