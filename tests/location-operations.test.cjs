@@ -160,3 +160,14 @@ test('per-location economy calculations respond only to that location changes',(
  b.locations[0].workers++;
  assert.equal(locationProfit(b,b.locations[1],1),baseTourist,'independent payroll');
 });
+
+test('each location has an independent minimize toggle that preserves its action markup',()=>{
+ const h=harness();h.ops.open(0);
+ const markup=h.dom.get('manageContent').innerHTML;
+ assert.equal((markup.match(/data-site-toggle="/g)||[]).length,2);
+ assert.equal((markup.match(/class="site-operation-body"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-bulk="/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="hire"/g)||[]).length,2);
+ assert.ok(markup.includes('Minimize locations'));
+ assert.ok(markup.includes('Expand locations'));
+});
