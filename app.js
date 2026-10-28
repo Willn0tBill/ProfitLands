@@ -97,7 +97,7 @@ function load(){
     }catch(e){console.warn('Could not restore '+key,e)}
   }
 }
-function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.growth={history:[],milestones:[],lastSample:0};state.bankrupt=false;save()}
+function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.empireLab=null;state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.growth={history:[],milestones:[],lastSample:0};state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
 function businessDailyProfit(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);const levelMult=1+(b.level-1)*.22;const chainMult=1+b.chainCount*.9;const popularity=b.popularity/100;const revenue=t.baseRevenue*levelMult*chainMult*(.45+popularity*.8)*(1+b.marketing*.08);const expense=t.baseExpense*levelMult*chainMult*(1+b.efficiency*.07);return Math.round(revenue-expense)}
 function netWorth(){const extra=STOCKS.reduce((sum,s)=>sum+s.price*(state.stocks[s.id]?.shares||0),0)+state.businesses.reduce((sum,b)=>sum+businessValue(b),0)+state.property*750;return window.ProfitLandsMoney?window.ProfitLandsMoney.number(window.ProfitLandsMoney.netWorth(extra)):state.cash+extra}
@@ -218,7 +218,7 @@ $('endGame').onclick=()=>{
   toast('Game saved. You can continue your empire later.');
  };
 };
-window.state=state;window.ProfitLandsMoney?.attach?.(state);window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null;clearInterval(window.__profitTimer);window.__profitTimer=null};window.restoreProfitLandsMarket=restoreMarket;window.resetProfitLandsMarket=resetMarket;
+window.state=state;window.BUSINESS_TYPES=BUSINESS_TYPES;window.ProfitLandsMoney?.attach?.(state);window.save=save;window.toast=toast;window.syncProfitLandsTime=syncTime;window.stopProfitLandsTimer=()=>{clearInterval(timerHandle);timerHandle=null;clearInterval(window.__profitTimer);window.__profitTimer=null};window.restoreProfitLandsMarket=restoreMarket;window.resetProfitLandsMarket=resetMarket;
 $('openSettings').onclick=()=>{$('settingsModal').classList.remove('hidden')};
 load();
 /* Always open on the home screen, but do not rewrite or destroy the saved game just to show the menu. */
