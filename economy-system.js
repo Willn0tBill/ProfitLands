@@ -109,32 +109,49 @@
     if(Array.isArray(b.locations)&&b.locations.length)return b.locations;
     return [{id:'downtown',name:'Downtown',demand:1.22,rent:1.65,basePopularity:b.popularity||55}];
   }
-  function businessProfit(b){
+  function locationProfit(b,l,i){
     const t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!t)return 0;
     const r=riskFor(b), e=state.economy, scale=1+tier()*.045;
-    const lvl=1+(b.level-1)*.22;
+    const independent=b.locationManagementVersion===1;
+    const lvl=1+((independent?(l.level||1):(b.level||1))-1)*.22;
+    const marketing=independent?(l.marketing||0):(b.marketing||0);
+    const efficiency=independent?(l.efficiency||0):(b.efficiency||0);
     const basePop=Math.max(5,Math.min(100,b.popularity||55));
-    let total=0;
-    locationList(b).forEach((l,i)=>{
-      const loc=LOCS[l.id]||{demand:l.demand||1,rent:l.rent||1};
-      const pop=Math.max(0,Math.min(100,(l.basePopularity??basePop)+b.marketing*1.5))/100;
-      const seeded=Math.sin((state.day*97+i*31+String(l.id).length*17)+b.type.length)*43758.5453;
-      const noise=(seeded-Math.floor(seeded))-.5;
-      const random=1+noise*(r.vol*(1+tier()*.22)+.08);
-      const demand=e.demandIndex*loc.demand*activeEffect('demand')*(1+(e.health-60)/250*r.econ);
-      const revenue=t.baseRevenue*lvl*demand*(.45+pop*.8)*(1+b.marketing*.08)*Math.max(.55,random)*scale;
-      const cost=t.baseExpense*lvl*loc.rent*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15);
-      total+=revenue-cost;
-    });
-    if(b.type==='software')total*=activeEffect('tech');
-    if(b.type==='hotel')total*=activeEffect('travel');
-    total*=activeEffect('weather')>1?(1-(activeEffect('weather')-1)*.10*r.weather):1;
-    return Math.round(total+(window.ProfitLandsGrowth?.adjustProfit?.(b)||0));
+    const loc=LOCS[l.id]||{demand:l.demand||1,rent:l.rent||1};
+    const pop=Math.max(0,Math.min(100,(l.basePopularity??basePop)+marketing*1.5))/100;
+    const seeded=Math.sin((state.day*97+i*31+String(l.id).length*17)+b.type.length)*43758.5453;
+    const noise=(seeded-Math.floor(seeded))-.5;
+    const random=1+noise*(r.vol*(1+tier()*.22)+.08);
+    const demand=e.demandIndex*loc.demand*activeEffect('demand')*(1+(e.health-60)/250*r.econ);
+    const revenue=t.baseRevenue*lvl*demand*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*scale;
+    const runningCost=t.baseExpense*lvl*loc.rent*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
+    let profit=revenue-runningCost;
+    if(b.type==='software')profit*=activeEffect('tech');
+    if(b.type==='hotel')profit*=activeEffect('travel');
+    profit*=activeEffect('weather')>1?(1-(activeEffect('weather')-1)*.10*r.weather):1;
+    if(independent){
+      profit+=window.ProfitLandsLocationOps?.staffingAdjustment?.(b,l,revenue,runningCost)||0;
+      if(Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>Date.now())profit+=revenue*.12;
+    }
+    return profit;
+  }
+  function businessProfit(b){
+    const locs=locationList(b);
+    const total=locs.reduce((sum,l,i)=>sum+locationProfit(b,l,i),0);
+    const legacyBonus=b.locationManagementVersion===1?0:(window.ProfitLandsGrowth?.adjustProfit?.(b)||0);
+    return Math.round(total+legacyBonus);
   }
   function businessValue2(b){
     const t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!t)return 0;
     const locs=locationList(b);
-    let v=t.cost*(1+b.level*.15);
+    if(b.locationManagementVersion===1){
+      return Math.round(locs.reduce((sum,l,i)=>{
+        const level=Math.max(1,Number(l.level)||1);
+        const locationBase=i===0?t.cost:t.cost*10*(1+(i-1)*.35)*.55;
+        return sum+locationBase+t.cost*(level-1)*.15;
+      },0));
+    }
+    let v=t.cost*(1+(b.level||1)*.15);
     for(let i=1;i<locs.length;i++)v+=t.cost*10*(1+(i-1)*.35)*.55;
     return Math.round(v);
   }
@@ -526,6 +543,7 @@
   function bind(){
     window.__profitBaseRender=window.render;
     window.render=renderOverride;
+    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit};
     window.businessDailyProfit=businessProfit;
     window.businessValue=businessValue2;
     window.totalBusinessProfit=()=>state.businesses.reduce((s,b)=>s+businessProfit(b),0);
