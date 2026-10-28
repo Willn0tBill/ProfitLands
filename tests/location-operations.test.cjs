@@ -118,3 +118,18 @@ test('game loads locations after economy renderer and uses location-specific eco
  assert.ok(economy.includes('staffingAdjustment'));
  assert.ok(growth.includes('growthStaffLocation'));
 });
+
+test('company management visibly shows controls and staff for every location',()=>{
+ const h=harness();
+ h.ops.open(0);
+ const markup=h.dom.get('manageContent').innerHTML;
+ assert.ok(markup.includes('data-site-section="0"'),'first location section');
+ assert.ok(markup.includes('data-site-section="1"'),'second location section');
+ assert.equal((markup.match(/data-site-action="upgrade"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="marketing"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="efficiency"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="sell"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="hire"/g)||[]).length,2);
+ assert.equal((markup.match(/data-site-action="manager"/g)||[]).length,2);
+ assert.ok(markup.includes('Staff & management'));
+});
