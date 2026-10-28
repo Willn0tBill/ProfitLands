@@ -9,6 +9,7 @@ on:
       - 'growth-system.js'
       - 'balance-system.js'
       - 'progression.js'
+      - 'huge-money.js'
       - 'play/index.html'
       - 'tests/**'
       - '.github/workflows/economy-tests.yml'
@@ -19,6 +20,7 @@ on:
       - 'growth-system.js'
       - 'balance-system.js'
       - 'progression.js'
+      - 'huge-money.js'
       - 'play/index.html'
       - 'tests/**'
   workflow_dispatch:
@@ -43,5 +45,6 @@ jobs:
           node --check growth-system.js
           node --check balance-system.js
           node --check progression.js
+          node --check huge-money.js
       - name: Run economy regression suite
         run: node --test tests/economy-balance.test.cjs
