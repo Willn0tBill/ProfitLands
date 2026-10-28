@@ -90,7 +90,7 @@ test('reward rate is capped to three completed rounds in a rolling five-minute w
  assert.equal(h.gains(),45,'fourth game is practice only');
  assert.equal(h.state.arcade.played,4);
  assert.equal(api.available(time),0);
- assert.equal(api.available(500000+5*60*1000+21000),3,'quota resets after rolling window');
+ assert.equal(api.available(time+5*60*1000),3,'quota resets once every rewarded round has aged out');
 });
 test('hidden tabs and other workspace views cannot play or collect rewards',()=>{
  const h=harness(),api=h.api;
