@@ -57,7 +57,7 @@ Existing economy, cloud save, and large-number cash systems remain compatible. R
 
 There are **two complementary limits**: a company can hire only the workers its own upgraded facilities can support, and the sum of workers in all companies cannot exceed the empire-wide cap.
 
-A new company starts with 6 positions, gaining **6 additional positions per company level** and **12 additional positions for each new location**. Company capacity is capped at 5,000 to keep very large saves manageable.
+Each new location starts with **6 employee positions** and gains **6 more for each upgrade level**. A company's total staffing capacity is the sum of its location capacities, subject to the shared empire-wide cap. Each individual location's capacity is capped at 5,000 positions.
 
 | Empire net worth | Total employee allowance |
 |---|---:|
