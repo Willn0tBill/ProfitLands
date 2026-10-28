@@ -30,7 +30,7 @@
   };
   const MILESTONES=[
     {id:'first',title:'First investment',text:'Buy your first business.',reward:75,test:(s,n)=>s.businesses.length>=1},
-    {id:'staff',title:'Growing team',text:'Hire your first employee.',reward:100,test:s=>s.businesses.some(b=>validNumber(b.workers)>0)},
+    {id:'staff',title:'Growing team',text:'Hire your first employee.',reward:100,test:s=>s.businesses.some(b=>validNumber(b.workers)>0||(b.locations||[]).some(l=>validNumber(l.workers)>0))},
     {id:'manager',title:'Managed operations',text:'Hire your first manager.',reward:200,test:s=>s.businesses.some(b=>b.manager===true)},
     {id:'tenK',title:'Five figures',text:'Reach $10,000 in empire value.',reward:250,test:(s,n)=>n>=10000},
     {id:'fiveLocations',title:'Regional expansion',text:'Own five business locations.',reward:500,test:s=>s.businesses.reduce((v,b)=>v+(Array.isArray(b.locations)?b.locations.length:1),0)>=5},
@@ -55,6 +55,7 @@
   // enough capital to oversee its total workforce across all businesses.
   function companyEmployeeCap(b){
     if(!b||!typeFor(b))return 0;
+    if(b.locationManagementVersion===1)return (b.locations||[]).reduce((sum,l)=>sum+(window.ProfitLandsLocationOps?.cap?.(l)||6),0);
     const level=clamp(Math.floor(validNumber(b.level)||1),1,1000);
     const locations=Array.isArray(b.locations)&&b.locations.length
       ?b.locations.length:Math.max(1,Math.floor(validNumber(b.chainCount))+1);
@@ -67,16 +68,26 @@
     return {...WORKFORCE_TIERS[index],next:WORKFORCE_TIERS[index+1]||null};
   }
   function totalEmployees(){
-    return (state.businesses||[]).reduce((total,b)=>total+clamp(Math.floor(validNumber(b.workers)),0,100000),0);
+    return (state.businesses||[]).reduce((total,b)=>
+      total+(b.locationManagementVersion===1
+        ?(b.locations||[]).reduce((sum,l)=>sum+clamp(Math.floor(validNumber(l.workers)),0,100000),0)
+        :clamp(Math.floor(validNumber(b.workers)),0,100000)),0);
   }
   function hiringRoom(b){
     if(!b)return 0;
+    if(b.locationManagementVersion===1){
+      const site=selectedLocation(b);
+      return site?window.ProfitLandsLocationOps?.room?.(site)||0:0;
+    }
     const companyRoom=companyEmployeeCap(b)-Math.max(0,Math.floor(validNumber(b.workers)));
     const empireRoom=workforceTier().cap-totalEmployees();
     return Math.max(0,Math.min(companyRoom,empireRoom));
   }
   function adjustProfit(b){
     const t=typeFor(b);if(!t)return 0;
+    // Location operations, including payroll and promotion, are already included
+    // in economy-system.locationProfit for individually managed branches.
+    if(b.locationManagementVersion===1)return 0;
     const workers=clamp(Math.floor(validNumber(b.workers)),0,100000),manager=b.manager===true;
     const locations=Array.isArray(b.locations)?Math.max(1,b.locations.length):1;
     const level=Math.max(1,Math.floor(validNumber(b.level)||1));
@@ -103,6 +114,22 @@
   function initiativeCost(b){const t=typeFor(b);return t?Math.round(t.cost*.45):Infinity}
   function businessIndex(){return clamp(Math.floor(Number($('growthBusiness')?.value)||0),0,Math.max(0,state.businesses.length-1))}
   function selectedBusiness(){return state.businesses[businessIndex()]}
+  function selectedLocation(b){
+    if(!b?.locations?.length)return null;
+    const index=clamp(Math.floor(Number($('growthStaffLocation')?.value)||0),0,b.locations.length-1);
+    return b.locations[index];
+  }
+  function selectLocations(){
+    const b=selectedBusiness(),box=$('growthStaffLocation');if(!box)return;
+    const original=Number(box.value)||0;
+    box.replaceChildren();
+    for(const [i,l]of (b?.locations||[]).entries()){
+      const option=document.createElement('option');
+      option.value=String(i);option.textContent=l.name||'Location '+(i+1);box.appendChild(option);
+    }
+    box.value=String(original<(b?.locations?.length||0)?original:0);
+    box.disabled=!b?.locations?.length;
+  }
   function pushHistory(force=false){
     if(!state.started||!$('gameScreen')?.classList.contains('active'))return false;
     const g=ensure(),now=Date.now();
@@ -147,10 +174,16 @@
     if(g.managerElapsed<60000)return false;
     g.managerElapsed-=60000;
     for(const b of state.businesses||[]){
-      if(b.manager!==true)continue;
-      b.popularity=clamp((b.popularity||55)+.4,5,100);
-      if(Array.isArray(b.locations))for(const l of b.locations){
-        l.basePopularity=clamp((l.basePopularity||b.popularity)+.4,5,100);
+      if(b.locationManagementVersion===1){
+        for(const l of b.locations||[]){
+          if(l.manager!==true)continue;
+          l.basePopularity=clamp((l.basePopularity||b.popularity||55)+.4,5,100);
+        }
+      }else if(b.manager===true){
+        b.popularity=clamp((b.popularity||55)+.4,5,100);
+        if(Array.isArray(b.locations))for(const l of b.locations){
+          l.basePopularity=clamp((l.basePopularity||b.popularity)+.4,5,100);
+        }
       }
     }
     return true;
@@ -202,25 +235,29 @@
     if(detail)detail.hidden=!b;
     if($('growthRunDecision'))$('growthRunDecision').disabled=!b;
     if(!b)return;
-    const staff=Math.max(0,Math.floor(validNumber(b.workers)));
+    const site=b.locationManagementVersion===1?selectedLocation(b):null;
+    const staff=Math.max(0,Math.floor(validNumber(site?site.workers:b.workers)));
     const quantity=Math.max(1,Math.min(25,Math.floor(Number($('growthHireQuantity')?.value)||1)));
     const room=hiringRoom(b),companyCap=companyEmployeeCap(b);
-    const workerFee=staffCost(b,'worker',quantity),managerFee=staffCost(b,'manager');
+    const workerFee=site?(window.ProfitLandsLocationOps?.price?.(b,site,'hire',quantity)??Infinity):staffCost(b,'worker',quantity);
+    const managerFee=site?(window.ProfitLandsLocationOps?.price?.(b,site,'manager')??Infinity):staffCost(b,'manager');
     const empire=workforceTier();
     const ownPrice=initiativeCost(b),sector=INDUSTRIES[b.type]||['Local campaign','Run a focused short-term promotion.'];
     const put=(id,str)=>{if($(id))$(id).textContent=String(str)};
-    put('growthStaffCount',staff.toLocaleString()+' / '+companyCap.toLocaleString()+' in this company');
+    put('growthStaffCount',site
+      ?staff.toLocaleString()+' / '+(window.ProfitLandsLocationOps?.cap?.(site)||6)+' at '+(site.name||'this location')
+      :staff.toLocaleString()+' / '+companyCap.toLocaleString()+' in this company');
     put('growthEmpireStaff',totalEmployees().toLocaleString()+' / '+empire.cap.toLocaleString()+' workers across your empire');
     put('growthEmpireTier',empire.label);
     put('growthNextStaffTier',empire.next
       ?'Next workforce expansion at '+fmt(empire.next.netWorth)+' empire value → '+empire.next.cap.toLocaleString()+' employees.'
       :'Maximum workforce tier unlocked.');
     put('growthHiringRoom',room
-      ?'You can currently hire '+room.toLocaleString()+' more here. Upgrade this business, add locations, or grow your empire to increase capacity.'
+      ?'You can currently hire '+room.toLocaleString()+' more here. Upgrade this location, add branches, or grow your empire to increase capacity.'
       :'No available staff positions. Upgrade this company or expand your empire to unlock more.');
 
-    put('growthManagerState',b.manager===true?'Employed — maintains popularity during active play':'Not hired');
-    put('growthStaffEffect',rateLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
+    put('growthManagerState',(site?site.manager:b.manager)===true?'Employed — maintains popularity during active play':'Not hired');
+    put('growthStaffEffect',site?'Each location has its own payroll and productivity, included in its live profit.':rateLabel(adjustProfit(b)/60)+'/sec net change (productivity minus wages)');
     put('growthHireCost',quantity+' employee'+(quantity===1?'':'s')+' · '+fmt(workerFee)+' upfront + ongoing wages');
     put('growthManagerCost',fmt(managerFee)+' upfront + ongoing salary');
     put('growthDecisionName',sector[0]);put('growthDecisionDescription',sector[1]);
@@ -229,7 +266,7 @@
     put('growthDecisionDuration',active?'Active · '+Math.ceil((b.initiativeUntilTime-now)/60000)+'m remaining':cooldown?'Cooldown · '+Math.ceil((b.initiativeCooldownAt-now)/60000)+'m remaining':'Ready now');
     const hire=$('growthHireWorker'),manager=$('growthHireManager'),decision=$('growthRunDecision');
     if(hire)hire.disabled=quantity>room||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(workerFee):state.cash<workerFee)||state.actions<=0;
-    if(manager)manager.disabled=b.manager===true||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(managerFee):state.cash<managerFee)||state.actions<=0;
+    if(manager)manager.disabled==(site?site.manager===true:b.manager===true)||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(managerFee):state.cash<managerFee)||state.actions<=0;
     if(decision)decision.disabled=state.actions<=0||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(ownPrice):state.cash<ownPrice)||cooldown;
   }
   function renderMilestones(){
@@ -249,7 +286,7 @@
   function render(){
     if(!$('growthPanel'))return;
     ensure();
-    updateSelect();renderChart();renderStaff();renderMilestones();
+    updateSelect();selectLocations();renderChart();renderStaff();renderMilestones();
     const saved=$('growthSaveStatus');
     if(saved)saved.textContent='History and milestones are saved with your empire. Chart keeps the latest '+HISTORY_LIMIT+' samples.';
   }
@@ -262,6 +299,13 @@
   function perform(id){
     const b=selectedBusiness();if(!b||!state.started)return;
     const say=s=>{if(window.toast)window.toast(s)};
+    if((id==='growthHireWorker'||id==='growthHireManager')&&b.locationManagementVersion===1){
+      const site=selectedLocation(b),index=b.locations.indexOf(site);
+      if(!site||index<0)return;
+      const quantity=id==='growthHireWorker'?Math.max(1,Math.min(25,Math.floor(Number($('growthHireQuantity')?.value)||1))):1;
+      window.ProfitLandsLocationOps?.doAction?.(businessIndex(),index,id==='growthHireWorker'?'hire':'manager',quantity);
+      render();return;
+    }
     if(id==='growthHireWorker'){
       const count=Math.max(0,Math.floor(validNumber(b.workers)));
       const quantity=Math.max(1,Math.min(25,Math.floor(Number($('growthHireQuantity')?.value)||1)));
@@ -295,7 +339,8 @@
       }
       const action=e.target.closest('button[data-growth-action]');if(action)perform(action.dataset.growthAction);
     });
-    $('growthBusiness')?.addEventListener('change',renderStaff);
+    $('growthBusiness')?.addEventListener('change',()=>{selectLocations();renderStaff()});
+    $('growthStaffLocation')?.addEventListener('change',renderStaff);
     $('growthHireQuantity')?.addEventListener('change',renderStaff);
     $('growthMetric')?.addEventListener('change',renderChart);
     window.addEventListener('profitlands:resume',()=>{ensure();render();});
