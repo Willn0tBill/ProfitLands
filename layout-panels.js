@@ -2,7 +2,8 @@
    All existing game UI remains in the DOM when minimized, and can be restored. */
 (function(){
 'use strict';
-const KEY='profitlands-layout-v1';
+const isDemo=Boolean(document.body?.classList?.contains('pl-demo-page'));
+const KEY=isDemo?'profitlands-layout-preview-v1':'profitlands-layout-v1';
 const defs=[
   {id:'dashboard',label:'Empire Dashboard',open:true,kind:'hud'},
   {id:'empireLab',label:'Empire Operations',open:false},
@@ -71,7 +72,7 @@ function setupPanel(config){
     trigger.addEventListener('click',sync);
     trigger.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(config.id,false)});
   }
-  const initial=typeof prefs[config.id]==='boolean'?prefs[config.id]:config.open;
+  const initial=typeof prefs[config.id]==='boolean'?prefs[config.id]:(isDemo&&config.id==='empireLab'?true:config.open);
   setOpen(config.id,initial,false);
 }
 function isOpen(id){
@@ -83,7 +84,11 @@ function setOpen(id,open,remember=true){
   const x=panels.get(id);
   if(!x)return false;
   open=Boolean(open);
-  if(x.kind==='legacy')x.panel.classList.toggle('open',open);
+  if(x.kind==='legacy'){
+    x.panel.classList.toggle('open',open);
+    const body=x.panel.querySelector('.panel-body');
+    if(body){body.inert=!open;body.setAttribute('aria-hidden',String(!open))}
+  }
   else x.panel.classList.toggle('pl-panel-minimized',!open);
   if(x.content)x.content.hidden=!open;
   x.trigger.setAttribute('aria-expanded',String(open));
@@ -104,7 +109,7 @@ function all(open){
 }
 function defaults(){
   prefs={};
-  for(const d of defs)setOpen(d.id,d.open,false);
+  for(const d of defs)setOpen(d.id,isDemo&&d.id==='empireLab'?true:d.open,false);
   try{localStorage.removeItem(KEY)}catch(e){}
   refreshCount();
 }
