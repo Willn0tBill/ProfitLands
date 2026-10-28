@@ -115,6 +115,7 @@ function view(b,l,index){
   return '<section class="site-operation" data-site-section="'+index+'">'+
     '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
     '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong></div>'+
+    '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Open Products, Pricing & Operations →</button></div>'+ 
     '<div class="site-operation-actions">'+
     button('upgrade','⬆ Upgrade location','Level '+(level+1)+' · '+moneyText(price(b,l,'upgrade')),!actions||!canPay(price(b,l,'upgrade')))+
     button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing')),!actions||!canPay(price(b,l,'marketing')))+
@@ -168,6 +169,14 @@ function open(index,focused=0){
     };
     select.addEventListener('change',refresh);
     refresh();
+  });
+  e.querySelectorAll('[data-site-lab]').forEach(button=>{
+    button.onclick=()=>{
+      const i=Number(button.dataset.siteLab),l=locs[i];
+      if(!l)return;
+      modal.classList.add('hidden');
+      window.ProfitLandsEmpire?.selectSite?.(l);
+    };
   });
   const expand=$('siteExpand');
   if(expand)expand.onclick=()=>window.manageAction?.(index,'chain');
