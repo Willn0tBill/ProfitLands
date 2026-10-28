@@ -54,7 +54,7 @@ class FakeElement{
   return null;
  }
 }
-function make(){
+function make(demo=false){
  const ids=new Map(),stored=new Map();
  const define=(id,node)=>{node.id=id;ids.set(id,node);return node};
  const hud=new FakeElement('section',['game-hud']);
@@ -84,7 +84,7 @@ function make(){
  const stocks=panel('stockPanel',true);
  const count=define('plLayoutCount',new FakeElement('span'));
  for(const id of ['plMinimizeAll','plExpandAll','plDefaultLayout'])define(id,new FakeElement('button'));
- const body=new FakeElement('body');
+ const body=new FakeElement('body',demo?['pl-demo-page']:[]);
  const document={
   readyState:'complete',body,
   getElementById:id=>ids.get(id)||null,
@@ -170,4 +170,22 @@ test('game HTML loads layout manager after existing panel toggle script',()=>{
 test('branch operations open the minimized Empire Lab when navigating to a location',()=>{
  const script=fs.readFileSync(path.join(root,'empire-lab.js'),'utf8');
  assert.ok(script.includes("ProfitLandsLayout?.open?.('empireLab')"));
+});
+
+test('the demo starts expanded and saves preferences separately from the main game',()=>{
+ const x=make(true);
+ assert.equal(x.layout.isOpen('empireLab'),true,'demo must be visible on first visit');
+ x.layout.minimize('empireLab');
+ assert.ok(x.stored.has('profitlands-layout-preview-v1'));
+ assert.equal(x.stored.has('profitlands-layout-v1'),false);
+ x.layout.defaults();
+ assert.equal(x.layout.isOpen('empireLab'),true,'default demo view restores its content');
+});
+test('standalone preview loads layout controls after playable Empire Lab module',()=>{
+ const html=fs.readFileSync(path.join(root,'preview/index.html'),'utf8');
+ assert.ok(html.includes('class="pl-demo-page"'));
+ assert.ok(html.includes('layout-panels.css'));
+ assert.ok(html.includes('id="plMinimizeAll"'));
+ assert.ok(html.includes('id="plExpandAll"'));
+ assert.ok(html.indexOf('layout-panels.js')>html.indexOf('empire-lab.js'));
 });
