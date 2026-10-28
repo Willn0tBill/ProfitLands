@@ -17,8 +17,8 @@ const SCENARIOS=[
  {prompt:'One location earns less than others despite strong sales. What is worth reviewing?',options:['The branch’s rent and operating expenses','The company logo alone','Only total empire value'],answer:0,why:'Profit depends on expenses as well as revenue.'},
  {prompt:'You are expanding into a new city. Which is the safer first step?',options:['Open ten locations without research','Ignore local regulations','Review demand, rent and staffing costs'],answer:2,why:'Researching the local market helps manage expansion risk.'}
 ];
-const LIMIT=3,WINDOW_MS=5*60*1000,COOLDOWN_MS=8000;
-let session=null,clock=null,view='games',lastActionAt=0;
+const LIMIT=3,WINDOW_MS=5*60*1000;
+let session=null,clock=null,view='games';
 const fmt=n=>window.ProfitLandsMoney?.format?.(n)||'$'+Math.round(n).toLocaleString('en-US');
 function ensure(){
  const state=window.state;
@@ -38,7 +38,7 @@ function available(now=Date.now()){
  return Math.max(0,LIMIT-p.rewards.length);
 }
 function canPlay(){
- return Boolean(window.state?.started&&$('gameScreen')?.classList.contains('active')&&document.visibilityState!=='hidden');
+ return Boolean(window.state?.started&&$('gameScreen')?.classList.contains('active')&&document.visibilityState!=='hidden'&&(!window.ProfitLandsWorkspace?.active||window.ProfitLandsWorkspace.active()==='arcade'));
 }
 function stopTicker(){
  if(clock!==null){clearInterval(clock);clock=null}
@@ -50,7 +50,6 @@ function game(id){return GAMES.find(x=>x.id===id)}
 function start(id,now=Date.now()){
  if(!canPlay()||session||!game(id))return false;
  const g=game(id);
- if(now-lastActionAt<COOLDOWN_MS)return false;
  session={id,started:now,endAt:g.duration?now+g.duration:null,score:0,served:0,mistakes:0,index:0,finished:false,answerFeedback:null,destination:0};
  if(id==='dispatch')session.destination=Math.floor(now/1000)%DESTINATIONS.length;
  view='playing';
@@ -80,7 +79,7 @@ function complete(now=Date.now()){
  const p=ensure(),oldBest=Number(p.bests[current.id])||0;
  p.bests[current.id]=Math.max(oldBest,current.score);
  p.played++;
- if(current.id==='dispatch'&&current.score===8||current.id==='desk'&&current.score===5)p.perfect++;
+ if((current.id==='dispatch'&&current.score===8)||(current.id==='desk'&&current.score===5))p.perfect++;
  const award=rewardFor(current.id,current.score);
  const canReward=available(now)>0&&award>0;
  if(canReward){
