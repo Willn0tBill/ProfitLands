@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="../growth-system.css?v=staffing11" />
   <link rel="stylesheet" href="../location-operations.css?v=locations09" />
   <link rel="stylesheet" href="../empire-lab.css?v=lab10" />
+  <link rel="stylesheet" href="../layout-panels.css?v=minimize01" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -91,13 +92,26 @@
         <div id="eventBanner" class="event-banner hidden"></div>
         </div>
         
+<div class="pl-view-toolbar" role="group" aria-label="Customize dashboard layout">
+  <span class="pl-view-title">VIEW</span>
+  <button id="plMinimizeAll" type="button" title="Minimize all dashboard sections">− Minimize all</button>
+  <button id="plExpandAll" type="button" title="Expand all dashboard sections">+ Expand all</button>
+  <button id="plDefaultLayout" type="button" title="Restore the recommended compact layout">↺ Default layout</button>
+  <span id="plLayoutCount" class="pl-view-count" role="status" aria-live="polite">Choose which sections to show</span>
+</div>
+<details class="pl-section-links" id="plSectionLinks">
+  <summary>Jump to a section</summary>
 <nav class="growth-quicknav" aria-label="Game sections">
-  <a href="#empireLab">Empire Operations (New)</a>
+  <a href="#empireLab">Empire Operations</a>
+  <a href="#economyPanel">World Economy</a>
+  <a href="#majorCompaniesPanel">Major Companies</a>
+  <a href="#bankPanel">Bank &amp; Credit</a>
   <a href="#growthPanel">Analytics &amp; Growth</a>
   <a href="#businessPanel">Businesses</a>
   <a href="#stockPanel">Stocks</a>
   <a href="#financePanel">Finances</a>
 </nav>
+</details>
 <section id="empireLab" class="panel empire-lab-panel" aria-labelledby="empireLabTitle">
   <div class="panel-head"><div><span class="eyebrow">PROFITLANDS V1.0 · PLAYABLE PREVIEW</span><h3 id="empireLabTitle">Empire Operations Lab</h3></div><span class="live-tag">PREVIEW</span></div>
   <p class="empire-lab-intro">Try inventory, employee roles, product pricing, warehouses, automated supply lines, rival acquisitions, global expansion, HQ research, and public-company funding. All changes use your existing in-game cash and save data.</p>
@@ -194,17 +208,17 @@
   <div class="major-grid" id="majorCompaniesGrid"></div>
 </div>
         <div class="bottom-grid">
-          <div class="panel collapsible-panel actions-panel">
+          <div id="actionsPanel" class="panel collapsible-panel actions-panel">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">YOUR EMPIRE</span><h3>Other Investments</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
             <div class="panel-body"><div class="panel-body-inner"><div class="action-list"><button class="action-button" data-action="property"><span>🏠</span><div><b>Buy property</b><small>Steady value and rental income</small></div><em>$750</em></button><button class="action-button" data-action="research"><span>🔬</span><div><b>Research the market</b><small>Reveal a trend for tomorrow</small></div><em>$150</em></button></div></div></div>
           </div>
-          <div class="panel collapsible-panel holdings-panel">
+          <div id="holdingsPanel" class="panel collapsible-panel holdings-panel">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">PORTFOLIO</span><h3>Your Holdings</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="holdings"></div></div></div>
           </div>
         </div>
         <div class="bottom-grid">
-          <div class="panel collapsible-panel news-panel">
+          <div id="newsPanel" class="panel collapsible-panel news-panel">
             <div class="panel-head"><button class="panel-toggle" type="button" aria-expanded="false"><span class="panel-toggle-copy"><span class="eyebrow">PROFITLANDS NEWS</span><h3>Latest</h3></span><span class="panel-toggle-arrow">⌄</span></button></div>
             <div class="panel-body"><div class="panel-body-inner"><div id="newsFeed"></div></div></div>
           </div>
@@ -265,5 +279,6 @@
   <script src="../location-operations.js?v=lab11"></script>
   <script src="../empire-lab.js?v=lab11"></script>
   <script src="../play-route.js?v=pages01"></script>
+  <script src="../layout-panels.js?v=minimize01"></script>
 </body>
 </html>
