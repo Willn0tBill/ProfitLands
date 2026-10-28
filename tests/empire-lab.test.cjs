@@ -127,3 +127,16 @@ test('preview uses game saves and does not clear old save schemas',()=>{
  assert.ok(app.includes('state.empireLab=null'));
  assert.ok(app.includes("'profitlands-v2'"),'legacy save schema preserved');
 });
+
+test('interactive demo is isolated from real saves, with example companies and capital',()=>{
+ const demo=fs.readFileSync(path.join(root,'empire-demo.js'),'utf8');
+ const html=fs.readFileSync(path.join(root,'preview/index.html'),'utf8');
+ assert.ok(html.includes('empire-demo.js'));
+ assert.ok(html.includes('empire-lab.js'));
+ assert.ok(html.includes('isolated')||html.includes('Isolated'));
+ assert.ok(demo.includes('cash:25000000'));
+ assert.ok(demo.includes('window.save=()=>{}'));
+ assert.ok(!demo.includes('localStorage.setItem'));
+ assert.ok(!demo.includes('firebase.firestore'));
+ assert.ok(html.includes('No account login'));
+});
