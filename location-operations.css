@@ -1,0 +1,22 @@
+/* Branch-specific management layout */
+.site-help{font-size:12px;line-height:1.6;color:#abbfb4;margin:12px 0}
+.site-operation-list{display:flex;flex-direction:column;gap:16px;margin:16px 0}
+.site-operation{border:1px solid #32483d;border-radius:15px;background:#111c1b;padding:16px;min-width:0}
+.site-operation-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid #31473d;padding-bottom:13px;margin-bottom:12px}
+.site-operation-head h3{font-size:16px;font-weight:800;margin:0 0 5px;color:#ecf5eb}
+.site-operation-head span{font-size:11px;color:#aabfaf}
+.site-operation-head strong{font-size:13px;font-variant-numeric:tabular-nums}
+.site-operation-actions,.site-staff-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.site-operation .upgrade-button{margin:0;min-height:69px;display:flex;flex-direction:column;justify-content:center;text-align:left}
+.site-operation .upgrade-button b{font-size:12px}
+.site-operation .upgrade-button small{font-size:10px;line-height:1.5}
+.site-operation .upgrade-button:disabled{cursor:not-allowed;opacity:.45}
+.site-staff-box{margin-top:13px;background:#0f2921;border:1px solid #3c7058;border-radius:12px;padding:14px}
+.site-staff-box>div:first-child{display:flex;flex-direction:column;gap:5px}
+.site-staff-box>div:first-child>b{font-size:13px;color:#c4f5ac}
+.site-staff-box small{font-size:11px;color:#acc9b6;line-height:1.6}
+.site-staff-box label{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:#d1e4d0;margin:11px 0}
+.site-staff-box select{color:#e9f5e8;background:#132b21;border:1px solid #659079;border-radius:7px;padding:9px;min-height:42px;min-width:120px}
+.site-staff-box select:focus-visible,.site-operation button:focus-visible{outline:3px solid #b9f37e;outline-offset:2px}
+.site-operation .good{color:#b8f5b3}.site-operation .danger{color:#ff9b9b}
+@media(max-width:650px){.site-operation{padding:12px}.site-operation-actions,.site-staff-actions{grid-template-columns:1fr}.site-operation .upgrade-button{min-height:56px}}
