@@ -66,8 +66,8 @@ function setup(saved=null){
   ProfitLandsGrowth:{render(){}},ProfitLandsEmpire:{render(){}}
  };
  const location={hash:''};
- vm.createContext({window,document:doc,localStorage,location,console});
- new vm.Script(source,{filename:'workspace.js'}).runInContext({window,document:doc,localStorage,location,console});
+ const ctx=vm.createContext({window,document:doc,localStorage,location,console});
+ new vm.Script(source,{filename:'workspace.js'}).runInContext(ctx);
  return {game,body,window,opened,allPanels,savedData,events,toolbar:oldToolbar};
 }
 test('workspace has business portfolio as its primary single-screen view',()=>{
