@@ -456,7 +456,7 @@
   }
   function reset(mode,type){
     window.resetProfitLandsMarket?.();
-    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
+    state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:.08,activeEvents:[],lastEventId:''};state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — ProfitLands begins the day with a stable economy and $1,000 in starting capital.');save();
   }
   function doEndDay(auto){
     if(!state.started)return;
@@ -550,10 +550,10 @@
     window.totalBusinessProfit=()=>state.businesses.reduce((s,b)=>s+businessProfit(b),0);
     window.netWorth=calcNetWorth;
     window.ProfitLandsRealtime={rate:perSecond,settle:settleIncome,formatRate:rateMoney,period:INCOME_UNIT_SECONDS};
-    window.endDay=doEndDay;
+    window.endDay=()=>false; // Manual market advances are disabled.
     window.startTimer=startTimer2;
     window.startProfitLands=()=>{reset(state.mode,state.playType);document.getElementById('homeScreen')?.classList.remove('active');document.getElementById('gameScreen')?.classList.add('active');render();startTimer2();window.profitLandsPlatform?.gameplayStart()};
-    const end=document.getElementById('endDay');if(end)end.addEventListener('click',e=>{e.stopImmediatePropagation();doEndDay(false)},true);
+    // Market cycles advance only when the countdown reaches zero.
     ensure();setTimeout(()=>{render();if(state.started)startTimer2()},100);
   }
   function init(){if(typeof state==='undefined'||typeof BUSINESS_TYPES==='undefined')return;bind()}
