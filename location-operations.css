@@ -20,3 +20,22 @@
 .site-staff-box select:focus-visible,.site-operation button:focus-visible{outline:3px solid #b9f37e;outline-offset:2px}
 .site-operation .good{color:#b8f5b3}.site-operation .danger{color:#ff9b9b}
 @media(max-width:650px){.site-operation{padding:12px}.site-operation-actions,.site-staff-actions{grid-template-columns:1fr}.site-operation .upgrade-button{min-height:56px}}
+
+/* Per-branch accordion controls to keep large chains manageable. */
+.site-list-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:14px 0}
+.site-list-toolbar button,.site-section-toggle{
+ appearance:none;background:#1d3527;border:1px solid #597964;border-radius:8px;
+ color:#dff3de;cursor:pointer;font-size:11px;font-weight:800;
+ padding:8px 12px;min-height:39px;
+}
+.site-section-toggle{margin-left:auto;white-space:nowrap}
+.site-list-toolbar button:hover,.site-section-toggle:hover{border-color:#baf187;background:#2b4a32}
+.site-list-toolbar button:focus-visible,.site-section-toggle:focus-visible{outline:3px solid #bef48f;outline-offset:2px}
+.site-operation-body[hidden]{display:none!important}
+.site-operation-body:not([hidden]){display:block}
+.site-operation-head{gap:9px}
+.site-operation:has(.site-operation-body[hidden]){padding-bottom:12px}
+@media(max-width:580px){
+ .site-list-toolbar button{flex:1 1 auto;min-height:42px}
+ .site-section-toggle{font-size:11px;min-height:42px}
+}
