@@ -6,6 +6,21 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Professional business console (v1.1)
+
+The main `/play/` game now behaves like a **desktop management application**, not a long web page. The old game panels are reparented into one fixed-height workspace without cloning them or changing their IDs, so their existing gameplay functions continue working.
+
+- **Persistent sidebar navigation:** Businesses, Overview, Operations, Markets, Analytics, Finances and Corporate.
+- **One management view at a time:** The selected screen fills the available workspace area. The browser page itself does not vertically scroll on desktop; long lists have scrolling **inside** the selected management view.
+- **Compact live top bar:** Day, market timer, cash, net worth, income, actions and game controls remain visible as you switch between screens.
+- **Business portfolio:** Opens by default with business cards arranged in a responsive grid.
+- **Preserved controls:** Company modals, site operations, stock trading, finances, corporate features and Empire Lab are the same live DOM elements as before.
+- **Responsive:** On small screens, sidebar navigation becomes a horizontal tab row; the selected view remains usable on touch devices.
+- **Saved preference:** The selected workspace view is kept under `profitlands-workspace-view-v1` in browser local storage, separate from `profitlands-v2` saved game data.
+- **Shortcuts:** Alt+1 through Alt+7 switch screens. The existing minimized-panel controls remain under **Dashboard layout** in the sidebar.
+
+This workspace intentionally allows internal scrolling for extremely long business lists or narrow screens. Preventing *all* scrolling would make large empires impossible to manage without hiding necessary controls.
+
 ## Minimize-friendly dashboard layout
 
 The game page now includes a compact **View** toolbar above its management panels:
