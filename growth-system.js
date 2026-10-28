@@ -266,7 +266,7 @@
     put('growthDecisionDuration',active?'Active · '+Math.ceil((b.initiativeUntilTime-now)/60000)+'m remaining':cooldown?'Cooldown · '+Math.ceil((b.initiativeCooldownAt-now)/60000)+'m remaining':'Ready now');
     const hire=$('growthHireWorker'),manager=$('growthHireManager'),decision=$('growthRunDecision');
     if(hire)hire.disabled=quantity>room||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(workerFee):state.cash<workerFee)||state.actions<=0;
-    if(manager)manager.disabled==(site?site.manager===true:b.manager===true)||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(managerFee):state.cash<managerFee)||state.actions<=0;
+    if(manager)manager.disabled=(site?site.manager===true:b.manager===true)||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(managerFee):state.cash<managerFee)||state.actions<=0;
     if(decision)decision.disabled=state.actions<=0||(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(ownPrice):state.cash<ownPrice)||cooldown;
   }
   function renderMilestones(){
