@@ -3,10 +3,22 @@
    Actions refill gradually during active play to avoid long-mode lockout. */
 (function(){
 'use strict';
-const intervals=Object.freeze({fast:90,standard:120,long:180,persistent:300});
+const intervals=Object.freeze({fast:9,standard:12,long:18,persistent:30});
 function interval(mode){return intervals[mode]||intervals.standard}
 function valid(state,mode){return !!state&&Number.isFinite(Number(state.actions))&&Number.isFinite(Number(mode?.actions))}
+function migrate(){
+  // A one-time migration multiplies remaining actions on pre-10x saves.
+  // It preserves the percentage of the old action pool already spent.
+  if(state.actionCapacityVersion===2)return false;
+  const limit=Number(MODES[state.mode]?.actions)||60;
+  const old=Math.max(0,Math.floor(Number(state.actions)||0));
+  state.actions=Math.min(limit,old*10);
+  state.actionCapacityVersion=2;
+  state.actionRegenAt=Date.now();
+  return true;
+}
 function tick(now=Date.now()){
+  migrate();
   if(!state.started||!document.getElementById('gameScreen')?.classList.contains('active')||document.visibilityState==='hidden'){
     state.actionRegenAt=now;return 0;
   }
@@ -23,15 +35,17 @@ function tick(now=Date.now()){
   return 1;
 }
 function status(){
+  migrate();
   const label=document.getElementById('actionRegenStatus');if(!label)return;
   const m=MODES[state.mode],limit=m?.actions||6,period=interval(state.mode);
   label.textContent=state.actions>=limit?'Actions full · max '+limit:'Regenerates +1 action every '+period+'s of active play';
 }
-function reset(){state.actionRegenAt=Date.now();status()}
+function reset(){migrate();state.actionRegenAt=Date.now();status()}
 function evaluateMode(mode,profitPerMinute,minutes=30){
   const marketCycles=Math.floor(minutes*60/(MODES[mode]?.daySeconds||900));
   const actions=MODES[mode]?.actions||6;
   return{mode,marketCycles,baseIncome:profitPerMinute*minutes,regenSeconds:interval(mode),startingActions:actions,maxActions:actions,estimatedReplenishments:Math.floor(minutes*60/interval(mode))};
 }
-window.ProfitLandsBalance={interval,tick,status,reset,evaluateMode,intervals};
+window.ProfitLandsBalance={interval,tick,status,reset,evaluateMode,migrate,intervals};
+migrate();
 })();
