@@ -6,6 +6,18 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Minimize-friendly dashboard layout
+
+The game page now includes a compact **View** toolbar above its management panels:
+- **Minimize all** collapses the whole dashboard into section headers, including the statistics HUD.
+- **Expand all** restores every section.
+- **Default layout** shows the core dashboard, Businesses and Stocks; secondary sections start minimized.
+- **Jump to a section** is a small expandable navigation menu. Selecting a minimized section automatically opens it.
+- Each large section has its own **Minimize / Expand** control. Existing Business, Stock, News, Holdings, Investments and Finance toggles still work.
+- The Company Management modal also has **Minimize**, which leaves a **Restore company window** chip at the bottom of the screen.
+
+The layout is remembered separately in the browser under `profitlands-layout-v1`. It **does not** change your gameplay save, funds, businesses or cloud data. All game modules continue running while their displays are collapsed. Mobile widths and reduced-motion preferences are supported.
+
 ## Version 0.8 — Business Expansion
 
 The main game now includes a **Growth Center** in `/play/` with four sections:
