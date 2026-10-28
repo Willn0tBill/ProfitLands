@@ -21,6 +21,8 @@ class FakeElement{
    }
   };
  }
+ set className(value){this.classNames=new Set(String(value).split(/\\s+/).filter(Boolean))}
+ get className(){return [...this.classNames].join(' ')}
  appendChild(node){
   if(node.parent)node.parent.children=node.parent.children.filter(n=>n!==node);
   node.parent=this;this.children.push(node);return node;
