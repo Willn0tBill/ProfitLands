@@ -3,7 +3,7 @@
   const KEY='profitlands-tutorial-complete';
   let step=0,active=false;
   const steps=[
-    {title:'Welcome to ProfitLands',body:'You start with $1,000. Your goal is to build an empire worth $1 trillion. Businesses, stocks, the economy, and major events all affect how quickly you grow.',target:null},
+    {title:'Welcome to ProfitLands',body:'You start with $1,000. Your empire can grow without a final wealth goal. Wealth milestones advance as you expand. Businesses, stocks, the economy, and major events all affect how quickly you grow.',target:null},
     {title:'Your cash and net worth',body:'Cash is the money you can spend right now. Net worth includes your cash plus the value of your investments and companies, minus debt. Your net worth also determines when larger corporations unlock.',target:'.stats-grid'},
     {title:'Start with a business',body:'Businesses are your main source of active income. Each one has its own price, expenses, popularity, and risk. Buy a business when you are ready, then manage it as conditions change.',target:'#openBusinessShop'},
     {title:'Your business can change every day',body:'Daily profit is not fixed. Popularity, location, demand, rent, wages, supply costs, the economy, random conditions, and major events can all change your results.',target:'#businessList'},
@@ -15,7 +15,7 @@
     {title:'Loans can help, but they cost money',body:'If your cash reaches $0, an emergency loan may become available. Loans have interest and a 15-day repayment deadline. If you default, the game can place you into a fictional legal recovery period.',target:'#bankPanel'},
     {title:'Businesses can fail',body:'A business tracks its own financial balance. If losses reach the original purchase cost of your most expensive business, your empire enters Financial Recovery. The game then gives you a choice: continue temporarily and take another loss, or file for bankruptcy.',target:'#businessList'},
     {title:'What happens when you file bankruptcy?',body:'The failed company is liquidated and your empire is reset. Your stocks, property, major corporations, and loans are cleared. You do not automatically get a fixed $100. Instead, ProfitLands calculates an estimated owner recovery equal to 5% of the failed business\'s remaining liquidation value. The exact amount can change depending on the business and its value.',target:'#businessList'},
-    {title:'The empire gets harder',body:'At $1M, $10M, $100M, $1B, $10B, $100B, and $1T in net worth, larger corporate opportunities unlock. The bigger your empire becomes, the greater its exposure to market and economic events.',target:'#majorCompaniesPanel'},
+    {title:'The empire gets harder',body:'At $1M, $10M, $100M, $1B, $10B, $100B, and $1T in net worth, larger corporate opportunities unlock. Hitting $1T is a milestone, not the end. Your next wealth target keeps growing.',target:'#majorCompaniesPanel'},
     {title:'You are ready',body:'Watch the economy, read the news, manage your businesses, and keep an eye on your stocks. Your first $1,000 is only the beginning.',target:null}
   ];
   function ensure(){
