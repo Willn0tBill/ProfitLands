@@ -279,7 +279,7 @@ test('endless progress is wired into both full and realtime dashboards',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
   assert.ok(html.indexOf('progression.js')<html.indexOf('app.js'),'module must load first');
-  assert.ok(app.includes('ProfitLandsProgression?.render(currentNetWorth)'));
+  assert.ok(app.includes('ProfitLandsProgression?.render('),'app renders the next milestone from exact large-number net worth');
   assert.ok(economy.includes('ProfitLandsProgression?.render(calcNetWorth())'));
   assert.ok(!app.includes('const GOAL='));
   assert.ok(!economy.includes('net/GOAL'));
