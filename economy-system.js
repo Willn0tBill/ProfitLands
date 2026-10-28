@@ -543,7 +543,7 @@
   function bind(){
     window.__profitBaseRender=window.render;
     window.render=renderOverride;
-    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit};
+    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit,businessValue:businessValue2};
     window.businessDailyProfit=businessProfit;
     window.businessValue=businessValue2;
     window.totalBusinessProfit=()=>state.businesses.reduce((s,b)=>s+businessProfit(b),0);
