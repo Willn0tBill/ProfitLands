@@ -235,3 +235,53 @@ test('bulk hiring prices rise with each worker and staff profit has diminishing 
   assert.ok(twoWorkerProfit>oneWorkerProfit,'second worker should improve gross operations');
   assert.ok(hundredProfit<oneWorkerProfit*100,'large staffs should not be a linear money exploit');
 });
+
+test('wealth milestones advance past one trillion without ending the game',()=>{
+  const window={},document={getElementById(){return null}};
+  const ctx={window,document,Math,Number};
+  vm.createContext(ctx);
+  new vm.Script(fs.readFileSync(path.join(root,'progression.js'),'utf8'),{filename:'progression.js'}).runInContext(ctx);
+  const api=window.ProfitLandsProgression;
+  const expected=[
+    [1000,10000],[9999,10000],[10000,100000],
+    [1000000,10000000],[100000000000,1000000000000],
+    [1000000000000,10000000000000],
+    [10000000000000,100000000000000],
+    [100000000000000,1000000000000000],
+    [1000000000000000,10000000000000000],
+    [1e21,1e22],[1e30,1e31]
+  ];
+  for(const [wealth,next] of expected){
+    const milestone=api.milestone(wealth);
+    assert.equal(milestone.target,next,'next goal for '+wealth);
+    assert.ok(milestone.percent>=0&&milestone.percent<100,'current stage percentage '+wealth);
+    assert.equal(milestone.endless,true,'progress does not stop at '+wealth);
+  }
+  assert.equal(api.milestone(9.5e12).percent>90,true);
+  assert.equal(api.milestone(1e12).targetLabel,'$10.00T');
+  assert.equal(api.milestone(1e15).targetLabel,'$10.00Qa');
+});
+test('large values format clearly, including after $1T and $1Qa',()=>{
+  const window={},document={getElementById(){return null}},ctx={window,document,Math,Number};
+  vm.createContext(ctx);
+  new vm.Script(fs.readFileSync(path.join(root,'progression.js'),'utf8')).runInContext(ctx);
+  const api=window.ProfitLandsProgression;
+  assert.equal(api.format(1000),'$1,000');
+  assert.equal(api.format(1e12),'$1.00T');
+  assert.equal(api.format(1e15),'$1.00Qa');
+  assert.equal(api.format(1e18),'$1.00Qi');
+  assert.equal(api.format(1e36),'$1.00e36');
+  assert.equal(api.format(-1e15),'-$1.00Qa');
+  assert.ok(Number.isFinite(api.milestone(1e305).percent));
+});
+test('endless progress is wired into both full and realtime dashboards',()=>{
+  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+  assert.ok(html.indexOf('progression.js')<html.indexOf('app.js'),'module must load first');
+  assert.ok(app.includes('ProfitLandsProgression?.render(currentNetWorth)'));
+  assert.ok(economy.includes('ProfitLandsProgression?.render(calcNetWorth())'));
+  assert.ok(!app.includes('const GOAL='));
+  assert.ok(!economy.includes('net/GOAL'));
+  assert.ok(html.includes('Next wealth milestone'));
+});
