@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="../site-pages.css">
   <link rel="stylesheet" href="../empire-lab.css?v=lab12">
+  <link rel="stylesheet" href="../layout-panels.css?v=minimize02">
   <style>
     body{background:#0e1616;color:#e6f1e5}
     .demo-shell{max-width:1190px;margin:0 auto;padding:16px}
@@ -29,7 +30,7 @@
     .demo-manage-site button{border:1px solid #78ab6b;background:#2b5234;border-radius:9px;color:white;padding:9px;cursor:pointer}
   </style>
 </head>
-<body>
+<body class="pl-demo-page">
   <div class="demo-shell">
     <header class="demo-header">
       <div><small>WTVSTUDIOS · PROFITLANDS</small><h1>Empire Lab — Interactive Preview</h1><p>Explore ten new management systems with fictional starting capital.</p></div>
@@ -42,6 +43,13 @@
     </div>
     <p class="demo-notice"><strong>Isolated demo:</strong> This preview does not load, modify, or save your real ProfitLands empire. No account login, real payments, remote players, or actual multiplayer server is used. Changes reset when you leave or refresh.</p>
     <div id="demoToast" role="status" aria-live="polite"></div>
+    <div class="pl-view-toolbar" role="group" aria-label="Customize preview layout">
+      <span class="pl-view-title">VIEW</span>
+      <button id="plMinimizeAll" type="button">− Minimize all</button>
+      <button id="plExpandAll" type="button">+ Expand all</button>
+      <button id="plDefaultLayout" type="button">↺ Default layout</button>
+      <span id="plLayoutCount" class="pl-view-count" role="status" aria-live="polite">Preview section expanded</span>
+    </div>
     <main id="gameScreen" class="screen active">
       <section id="empireLab" class="panel empire-lab-panel" aria-labelledby="empireLabTitle">
         <div class="panel-head"><div><span class="eyebrow">PLAYABLE FEATURE SHOWCASE</span><h3 id="empireLabTitle">Empire Operations</h3></div><span class="live-tag">DEMO</span></div>
@@ -65,5 +73,6 @@
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../empire-demo.js?v=lab12"></script>
   <script src="../empire-lab.js?v=lab12"></script>
+  <script src="../layout-panels.js?v=minimize02"></script>
 </body>
 </html>
