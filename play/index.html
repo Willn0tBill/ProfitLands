@@ -33,9 +33,8 @@
       <span class="floating-hud-item"><span>Day</span> <strong id="floatDay">1</strong></span>
       <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Remaining</span><strong id="floatTimer">15:00</strong></span>
       <span class="floating-hud-item"><span class="floating-hud-hide-mobile">Cash</span> <strong id="floatCash">$1,000</strong></span>
-      <span class="floating-hud-item floating-hud-hide-mobile"><span>Actions</span> <strong id="floatActions">6</strong></span>
+      <span class="floating-hud-item floating-hud-hide-mobile"><span>Actions</span> <strong id="floatActions">60</strong></span>
       <span class="floating-hud-spacer"></span>
-      <button type="button" class="floating-hud-button" id="floatingEndDay">Next Cycle →</button>
       <button type="button" class="floating-hud-button" id="floatingBackTop">Dashboard ↑</button>
     </div>
   </div>
@@ -49,8 +48,8 @@
   <div class="hero play-entry-hero"><div><span class="eyebrow">PROFITLANDS GAME</span><h2>Build your empire.</h2><p>Continue your saved game or choose a world mode to start fresh. Your businesses now earn cash every second during active play.</p></div><div class="hero-coin">$</div></div>
   <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
   <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Multiplayer Preview</strong><small>Prototype setup; real online multiplayer is not yet available.</small></button></div>
-  <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose a market cycle</h3></div>
-  <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min cycle · 4 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min cycle · 6 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr cycle · 10 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr cycle · 12 actions</small></button></div>
+  <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
+  <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min auto cycle · 40 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min auto cycle · 60 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr auto cycle · 100 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr auto cycle · 120 actions</small></button></div>
   <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
@@ -63,8 +62,7 @@
             <div class="day-row">
               <h2>Day <span id="gameDay">1</span></h2>
               <div class="game-center-controls">
-                <div class="timer-box"><small>NEXT MARKET CYCLE</small><strong id="timer">15:00</strong></div>
-                <button id="endDay" class="small-button end-day-compact" title="Refresh markets, events and available actions; business cash flow continues automatically">Next Cycle <span>→</span></button>
+                <div class="timer-box"><small>NEXT AUTO CYCLE</small><strong id="timer">15:00</strong></div>
               </div>
             </div>
             <div class="goal-progress" aria-hidden="true"><i id="goalProgressFill"></i></div>
@@ -83,11 +81,11 @@
           </div>
           <div class="stat stat-dropdown" data-stat="profit" role="button" tabindex="0" aria-expanded="false">
             <span class="stat-main"><small>NET CASH FLOW / SEC</small><strong id="dailyIncome">$0.00</strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What is Net Cash Flow?</b>Businesses, corporations, and property earn or lose money continuously while you play. Operating expenses are already deducted. A market cycle updates demand, stocks, news, and available actions without paying an extra income bonus.</div></div>
+            <div class="stat-explanation"><div><b>What is Net Cash Flow?</b>Businesses, corporations, and property earn or lose money continuously while you play. Operating expenses are already deducted. Market cycles advance automatically, updating demand, stocks, news and available actions without paying an extra income bonus.</div></div>
           </div>
           <div class="stat stat-dropdown" data-stat="actions" role="button" tabindex="0" aria-expanded="false">
-            <span class="stat-main"><small>ACTIONS REMAINING</small><strong><span id="actionsLeft">6</span>/<span id="actionsMax">6</span></strong></span><span class="stat-chevron">⌄</span>
-            <div class="stat-explanation"><div><b>What are Actions?</b>Actions are used for purchases, hiring, upgrades and investment decisions. They refill periodically during active play, up to your world mode’s limit, and reset at the next market cycle. <span id="actionRegenStatus">Action regeneration active.</span></div></div>
+            <span class="stat-main"><small>ACTIONS REMAINING</small><strong><span id="actionsLeft">60</span>/<span id="actionsMax">60</span></strong></span><span class="stat-chevron">⌄</span>
+            <div class="stat-explanation"><div><b>What are Actions?</b>Actions cover purchases, hiring, upgrades and investments. The pool is 10× larger, actions regenerate 10× faster during active play, and every market cycle resets them automatically. <span id="actionRegenStatus">Action regeneration active.</span></div></div>
           </div>
         </div>
         <div id="eventBanner" class="event-banner hidden"></div>
@@ -258,9 +256,9 @@
   <script src="../platform.js"></script>
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
-  <script src="../app.js?v=lab11"></script>
+  <script src="../app.js?v=autocycle10"></script>
   <script src="../enhancements.js?v=huge01"></script>
-  <script src="../economy-system.js?v=lab11"></script>
+  <script src="../economy-system.js?v=autocycle10"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=endless01"></script>
   <script src="../performance-motion.js"></script>
@@ -272,10 +270,10 @@
   <script src="../mobile-controls.js"></script>
   <script src="../top-stats.js"></script>
   <script src="../compact-panels.js"></script>
-  <script src="../hud-sticky.js?v=20261026-5"></script>
+  <script src="../hud-sticky.js?v=autocycle10"></script>
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js"></script>
-  <script src="../balance-system.js?v=growth09"></script>
+  <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
   <script src="../location-operations.js?v=minimize03"></script>
   <script src="../empire-lab.js?v=lab11"></script>
