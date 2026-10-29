@@ -20,7 +20,7 @@ function clean(raw){
   if(valid.has(key))a.ranks[key]=Math.min(MAX_RANK,Math.floor(asNum(value)));
  }
  for(const [key,value]of Object.entries(raw.counters||{})){
-  if(valid.has(key))a.counters[key]=Math.min(Number.MAX_SAFE_INTEGER,asNum(value));
+  if(valid.has(key))a.counters[key]=Math.min(Number.MAX_VALUE,asNum(value));
  }
  if(Array.isArray(raw.featured))a.featured=raw.featured.filter(x=>typeof x==='string').slice(-MAX_FEATURED);
  if(Array.isArray(raw.recent))a.recent=raw.recent.filter(x=>typeof x==='string').slice(0,10);
