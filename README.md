@@ -1,6 +1,6 @@
 # ProfitLands
 
-**A WtvStudios game**
+**A Wtv Innovations game**
 
 > Build. Invest. Compete.
 
