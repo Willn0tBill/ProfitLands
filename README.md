@@ -19,8 +19,8 @@ Tracked achievements include highest and combined business levels, individual an
 - **No 131,072-entry badge array is loaded or persisted.** Only 128 track definitions are examined; 30 generated badge cards render on a page. Browse via industry, track, name and earned/locked filters.
 - **Compact saves.** The `state.badgeBook` object stores only the highest earned rank for a track, eight-sector lifetime counters, and up to five selected featured badges. Its size depends on track count, not the 131,072 possible badges.
 - **Non-economic rewards.** Earning badges never grants money or actions, preserving the existing pacing. Notifications batch multiple unlocks.
-- **Same saved empire.** Old saves initialize safely; a new empire resets the Trophy Room with other new-game progress.
-- **No Steam integration yet.** These are **in-game** achievements. As of October 2026, Steamworks supports a maximum of 5,000 Steam achievements per vetted application, with an initial 100 limit for apps not yet vetted; a later Steam release must pick a curated native subset (see https://partner.steamgames.com/doc/features/achievements/ach_guide).
+- **Lifetime account achievements.** The 131,072 in-game badges persist when starting a new empire. Signed-in players synchronize their cumulative collection to a private field on their existing Firebase user profile; guest players keep a separate local copy. Previous saved-game badges are merged without removing unlocked ranks.
+- **Steam-ready separation, no Steam API connection yet.** The independent in-game collection is not constrained by Steam's 5,000 achievement maximum (100 initially until vetted). `steam-achievement-map.js` defines 100 stable candidate native Steam achievements for a future Steamworks integration. Publishing or awarding native Steam achievements requires a Steamworks-enabled application (https://partner.steamgames.com/doc/features/achievements/ach_guide).
 - Some very high ranks are intentionally extremely long-term and depend on repeatable actions. This is a procedural milestone collection, **not 131,072 handcrafted unique challenges**.
 
 ## Permanent business advancements (v1.4)
