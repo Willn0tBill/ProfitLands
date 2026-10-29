@@ -129,7 +129,7 @@ function act(action,opt={}){
    const discount=window.ProfitLandsAdvancements?.modifiers?.(site.l)?.stock||1;
    const cost=Math.round(qty*8*(p.research.includes('inventory')?.85:1)*discount);
    if(!charge(cost))return false;
-   lab.stock+=qty;ok=true;message=site.l.name+': purchased '+qty+' product units for '+fmt(cost)+'.';
+   lab.stock+=qty;window.ProfitLandsBadges?.record?.(site.b.type,'inventory',qty);ok=true;message=site.l.name+': purchased '+qty+' product units for '+fmt(cost)+'.';
  }else if(action==='price'){
    if(!requireSite())return false;
    lab.price=clamp(Math.round((lab.price+amount(opt.delta)) *100)/100,.65,1.75);
@@ -225,7 +225,7 @@ function act(action,opt={}){
    ok=true;message='Merged '+second.name+' into '+site.b.name+' for '+fmt(fee)+'.';
  }else if(action==='marketSell'){
    if(!requireSite()||lab.stock<qty)return false;
-   lab.stock-=qty;
+   lab.stock-=qty;window.ProfitLandsBadges?.record?.(site.b.type,'sales',qty);
    const index=1+(p.reputation||0)*.01;const proceeds=Math.round(qty*13*index);
    earn(proceeds);p.reputation=Math.min(1000,p.reputation+1);
    p.trades.push({type:'SELL',site:site.l.name,qty,proceeds,time:Date.now(),simulated:true});
