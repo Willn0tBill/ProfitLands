@@ -19,6 +19,8 @@ on:
       - 'workspace.js'
       - 'workspace.css'
       - 'business-arcade.js'
+      - 'business-advancements.js'
+      - 'business-advancements.css'
       - 'business-arcade.css'
       - 'game-polish.css'
       - 'preview/index.html'
@@ -42,6 +44,8 @@ on:
       - 'workspace.js'
       - 'workspace.css'
       - 'business-arcade.js'
+      - 'business-advancements.js'
+      - 'business-advancements.css'
       - 'business-arcade.css'
       - 'game-polish.css'
       - 'preview/index.html'
@@ -76,6 +80,7 @@ jobs:
           node --check layout-panels.js
           node --check workspace.js
           node --check business-arcade.js
+          node --check business-advancements.js
       - name: Run economy regression suite
         id: regression
         shell: bash
