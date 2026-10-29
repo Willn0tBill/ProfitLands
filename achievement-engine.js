@@ -156,6 +156,9 @@ function browse(page=filter.page){
  }
  return{rows,total,pages,page:index};
 }
+function showcased(){
+ return (ensure()?.featured||[]).map(parseId).filter(Boolean).map(x=>describe(x.sector,x.track,x.rank)).filter(Boolean);
+}
 function featured(id){
  const d=parseId(id),b=ensure();
  if(!d||!b||d.rank>rankAt(d.sector,d.track))return false;
@@ -178,7 +181,7 @@ function render(){
  const trackOptions=options([['all','All tracks'],...TRACKS.map(x=>[x.id,x.name])],filter.track);
  const statusOptions=options([['all','All'],['earned','Earned'],['locked','Locked']],filter.status);
  const tierOptions=options([['all','All rarities'],...TIERS.map(x=>[x[0].toLowerCase(),x[0]])],filter.tier);
- const favorites=b.featured.map(parseId).filter(Boolean).map(x=>describe(x.sector,x.track,x.rank)).filter(Boolean);
+ const favorites=showcased();
  root.innerHTML='<div class="pl-trophy-hero"><div><span>THE PROFITLANDS COLLECTION</span><h3>131,072 Achievements</h3><p>128 measurable tracks across eight industries. Collect 1,024 milestone ranks in each.</p></div><div class="pl-trophy-score"><strong>'+earned.toLocaleString('en-US')+'</strong><small>EARNED</small><span>'+pct+'%</span></div></div>'+
  '<div class="pl-trophy-progress"><span style="width:'+pct+'%"></span></div>'+
  '<div class="pl-trophy-meta">8 industries · 16 track types · Bronze / Silver / Gold / Diamond / Legendary</div>'+
@@ -209,6 +212,6 @@ function init(){
  window.setInterval(()=>scan(),5000);
  window.addEventListener('profitlands:newgame',()=>{lastCheck=0;lastFullScan=0;lastPersist=0;pendingCounters=false;dirtySectors.clear();render()});
 }
-window.ProfitLandsBadges={INDUSTRIES,TRACKS,TIERS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
+window.ProfitLandsBadges={INDUSTRIES,TRACKS,TIERS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,showcased,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
