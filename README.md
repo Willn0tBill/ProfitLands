@@ -6,6 +6,33 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Permanent business advancements (v1.4)
+
+Every company location has its own **Advances** technology tree, accessible through the ninth left-sidebar section or the **Advancements & Milestones** button inside that location's management window. There is **no maximum business level**: reaching a threshold unlocks the option to buy an upgrade. Bonuses only apply **after purchase** and do not automatically apply to all branches. Each advance costs cash and one management action, and is bought only once per location.
+
+| Required level | Advance | Permanent benefit |
+|---:|---|---|
+| 10 | Professional Workstations | +2% location revenue |
+| 25 | Employee Academy | −2% local payroll |
+| 50 | Supplier Contracts | −2% operating costs |
+| 100 | Advanced Equipment | +4% location revenue |
+| 150 | Smart Scheduling | −4% local payroll |
+| 250 | Regional Headquarters | +5% location revenue |
+| 350 | Supply Forecasting | −5% local inventory purchase costs |
+| 500 | Automated Operations | +2% location revenue, unlock auto-hiring and auto-upgrades |
+| 750 | Brand Analytics | +3% location revenue |
+| 1,000 | Corporate Specialization | +6% location revenue |
+| 1,500 | Industrial Efficiency | −4% operating expenses |
+| 2,500 | Prestige Network | +8% location revenue |
+| 5,000 | Global Operations | +7% revenue and −3% operating expenses |
+| 10,000 | Legacy Systems | +5% location revenue |
+
+Purchasing all 14 advances adds **42%** to base location revenue, reduces operating expenses by **9%**, payroll by **6%**, and local inventory restocking costs by **5%**. These additive bonuses are bounded for predictable balancing. The advancement cost scales with the company type, level requirement and local rent.
+
+**Auto-hiring/auto-upgrading** are opt-in, require a hired local manager plus the Level 500 advance, consume the usual cash/actions, run only during visible active play, perform at most two operations per check across the empire and at most one per minute per location, and require enough cash to cover five times the cost before committing. Existing employee caps continue to apply.
+
+Save data remains compatible: purchased advances and automation preferences are stored inside the original location, while older location saves simply begin with an empty advancement list. They are reset only if the player starts a new empire.
+
 ## Business Arcade and game-style UI (v1.3)
 
 ProfitLands now includes an optional **Business Arcade** as the eighth management-console view (Alt+8). It uses the same game, save data and large-number ledger as the rest of the empire.
