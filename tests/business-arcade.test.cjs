@@ -130,7 +130,7 @@ test('workspace navigation and new game reset are wired without replacing existi
  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
  assert.ok(workspace.includes("id:'arcade'"));
  assert.ok(workspace.includes("panels:['arcadePanel']"));
- assert.ok(workspace.includes('/^[1-8]$/'));
+ assert.ok(workspace.includes('/^[1-9]$/'));
  assert.ok(html.includes('id="arcadePanel"'));
  assert.ok(html.includes('id="arcadeContent"'));
  assert.ok(html.includes('business-arcade.css'));
