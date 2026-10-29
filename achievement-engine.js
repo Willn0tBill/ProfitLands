@@ -27,7 +27,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const n=v=>Number.isFinite(Number(v))?Math.max(0,Number(v)):0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(x,b));
 const pretty=x=>Number.isFinite(x)?Math.round(x).toLocaleString('en-US',{maximumFractionDigits:0}):'∞';
-let filter={sector:'all',track:'all',status:'all',search:'',page:0},lastCheck=0;
+let filter={sector:'all',track:'all',status:'all',search:'',page:0},lastCheck=0,lastPersist=0,pendingCounters=false;
 function ensure(){
  const s=window.state;if(!s)return null;
  if(!s.badgeBook||s.badgeBook.version!==1)s.badgeBook={version:1,ranks:{},counters:{},featured:[],recent:[]};
@@ -64,6 +64,7 @@ function record(sector,metric,amount=1){
  const v=n(amount);if(!v)return false;
  const b=ensure(),k=key(sector,metric);
  b.counters[k]=Math.min(Number.MAX_VALUE,n(b.counters[k])+v);
+ pendingCounters=true;
  return true;
 }
 function sectorMeasures(sector){
@@ -99,9 +100,10 @@ function scan(now=Date.now(),force=false){
   const msg=awarded===1?'New achievement unlocked!':awarded.toLocaleString('en-US')+' achievements unlocked!';
   window.state.news?.push('TROPHY ROOM — '+msg);
   if(window.state.news?.length>150)window.state.news=window.state.news.slice(-150);
-  window.toast?.(msg);window.save?.();
+  window.toast?.(msg);window.save?.();pendingCounters=false;lastPersist=now;
   if(window.ProfitLandsWorkspace?.active?.()==='trophies')render();
  }
+ if(!awarded&&pendingCounters&&now-lastPersist>=30000){window.save?.();pendingCounters=false;lastPersist=now}
  return awarded;
 }
 function progressFor(sector,t){
@@ -186,7 +188,7 @@ function init(){
  if(!$('trophyContent'))return;
  ensure();scan(Date.now(),true);render();
  window.setInterval(()=>scan(),5000);
- window.addEventListener('profitlands:newgame',()=>{if(window.state)window.state.badgeBook=null;lastCheck=0;render()});
+ window.addEventListener('profitlands:newgame',()=>{if(window.state)window.state.badgeBook=null;lastCheck=0;lastPersist=0;pendingCounters=false;render()});
 }
 window.ProfitLandsBadges={INDUSTRIES,TRACKS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
