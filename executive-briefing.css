@@ -1,0 +1,28 @@
+/* Wtv Innovations ProfitLands executive command center */
+#gameScreen .pl-executive-panel{background:transparent!important;border:0!important;padding:0!important}
+#gameScreen .pl-executive-panel>.panel-head{display:none!important}
+.pl-executive-intro{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:18px 20px;border:1px solid #45694c;background:linear-gradient(120deg,#24462f,#152720);border-radius:14px}
+.pl-executive-intro span{display:block;font-size:10px;color:#a6d3b5;letter-spacing:.13em;font-weight:900}
+.pl-executive-intro h3{font-size:clamp(18px,2.5vw,24px)!important;margin:5px 0;color:#eaf9e5}
+.pl-executive-intro p{color:#b3c9b7;font-size:12px;margin:0;line-height:1.45}
+.pl-executive-intro button,.pl-executive-task button{background:#b7ed8b;border:0;border-radius:9px;padding:10px 13px;min-height:42px;color:#18301d;font-weight:900;font-size:12px;cursor:pointer}
+.pl-executive-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:12px 0}
+.pl-executive-kpis>div{padding:15px;border:1px solid #42664b;border-radius:12px;background:#162920;min-width:0}
+.pl-executive-kpis small{display:block;font-size:9px;color:#9cc3a5;letter-spacing:.11em;font-weight:900}
+.pl-executive-kpis strong{display:block;font-size:clamp(15px,1.7vw,21px);margin-top:8px;color:#f1fce8;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pl-executive-lower{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}
+.pl-executive-lower>section{background:#162720;border:1px solid #3e6349;border-radius:13px;padding:16px}
+.pl-executive-lower header{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:0 0 12px;border-bottom:1px solid #31503b}
+.pl-executive-lower header h4{margin:0;color:#edf6e8;font-size:15px}
+.pl-executive-lower header span{color:#9bbca4;font-size:10px}
+.pl-executive-task{display:flex;align-items:center;justify-content:space-between;gap:13px;padding:13px 0;border-bottom:1px solid #2d4936}
+.pl-executive-task:last-child{border-bottom:0}
+.pl-executive-task strong{color:#e8f5e6;font-size:12px}
+.pl-executive-task p{color:#a4c3ac;font-size:11px;line-height:1.5;margin:6px 0 0}
+.pl-executive-task button{white-space:nowrap;background:#2b543a;color:#d9f1d1;border:1px solid #699365;font-size:10px}
+.pl-executive-pulse>div{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:11px 0;border-bottom:1px solid #304b3a}
+.pl-executive-pulse>div span{color:#acc6b3;font-size:11px}
+.pl-executive-pulse>div strong{color:#e8f7df;font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
+.pl-executive-pulse>p{color:#87a996;font-size:10px;line-height:1.5;margin:13px 0 0}
+@media(max-width:1100px){.pl-executive-lower{grid-template-columns:1fr}.pl-executive-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.pl-executive-intro{padding:13px;flex-wrap:wrap}.pl-executive-intro button{width:100%}.pl-executive-task{flex-wrap:wrap}.pl-executive-task button{width:100%}.pl-executive-kpis>div{padding:12px}}
