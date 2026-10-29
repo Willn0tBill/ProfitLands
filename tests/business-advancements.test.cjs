@@ -59,10 +59,10 @@ test('upgrades remain local with bounded cumulative effects',()=>{
  const h=harness(10000),api=h.api;
  for(const item of api.CATALOG)assert.equal(api.purchase(0,0,item.id),true,item.id);
  const m=api.modifiers(h.downtown),other=api.modifiers(h.tourist);
- assert.equal(m.revenue,1.42);
- assert.equal(m.expenses,.91);
- assert.equal(m.payroll,.94);
- assert.equal(m.stock,.95);
+ assert.ok(Math.abs(m.revenue-1.42)<1e-9);
+ assert.ok(Math.abs(m.expenses-.91)<1e-9);
+ assert.ok(Math.abs(m.payroll-.94)<1e-9);
+ assert.ok(Math.abs(m.stock-.95)<1e-9);
  assert.equal(m.automation,true);
  assert.equal(other.revenue,1);
  assert.equal(other.payroll,1);
