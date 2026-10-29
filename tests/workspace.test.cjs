@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'workspace.js'),'utf8');
-const PANEL_IDS=['arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
+const PANEL_IDS=['advancesPanel','arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
   'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel'];
 class Node{
  constructor(tag='div'){
@@ -78,7 +78,7 @@ test('workspace has business portfolio as its primary single-screen view',()=>{
  const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
  assert.ok(workspace);
  const contents=workspace.findAll(n=>n.dataset.workspaceContent);
- assert.equal(contents.length,8);
+ assert.equal(contents.length,9);
  assert.equal(contents.filter(v=>!v.hidden).length,1);
  assert.equal(contents.filter(v=>!v.hidden)[0].dataset.workspaceContent,'businesses');
 });
@@ -161,7 +161,7 @@ test('opening products from company management switches to the Operations worksp
 
 test('Business Arcade is a separate eighth workspace with an original panel',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
- assert.equal(api.views.length,8);
+ assert.equal(api.views.length,9);
  assert.equal(api.show('arcade'),true);
  assert.equal(api.active(),'arcade');
  assert.equal(x.opened.at(-1),'arcadePanel');
@@ -169,4 +169,14 @@ test('Business Arcade is a separate eighth workspace with an original panel',()=
  const panel=workspace.find(n=>n.id==='arcadePanel');
  assert.equal(panel,x.allPanels.arcadePanel,'arcade reuses its original panel element');
  assert.equal(workspace.findAll(n=>n.dataset.workspaceContent==='arcade').length,1);
+});
+
+test('ninth workspace contains one original Advancements panel and preserves Alt+9 shortcut',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.show('advances'),true);
+ assert.equal(api.active(),'advances');
+ assert.equal(x.opened.at(-1),'advancesPanel');
+ const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
+ assert.equal(workspace.findAll(n=>n.id==='advancesPanel').length,1);
+ assert.ok(source.includes('/^[1-9]$/'));
 });
