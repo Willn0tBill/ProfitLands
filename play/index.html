@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="../business-arcade.css?v=arcade01" />
   <link rel="stylesheet" href="../game-polish.css?v=arcade01" />
   <link rel="stylesheet" href="../business-advancements.css?v=advances01" />
+  <link rel="stylesheet" href="../achievement-engine.css?v=trophies01" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -137,6 +138,10 @@
   <p class="empire-lab-warning">Shared Market is an offline AI simulation. It is not live multiplayer, and there are no real-world payments.</p>
 </section>
 
+<section id="trophyPanel" class="panel pl-trophy-panel" aria-labelledby="trophyTitle">
+  <div class="panel-head"><div><span class="eyebrow">COLLECTIBLE IN-GAME ACHIEVEMENTS</span><h3 id="trophyTitle">Trophy Room</h3></div><span class="live-tag">131,072 BADGES</span></div>
+  <div id="trophyContent" aria-live="polite"></div>
+</section>
 <section id="advancesPanel" class="panel pl-adv-panel" aria-labelledby="advancesTitle">
   <div class="panel-head"><div><span class="eyebrow">BUSINESS LEVEL PROGRESSION</span><h3 id="advancesTitle">Advancements & Milestones</h3></div><span class="live-tag">14 ADVANCES</span></div>
   <div id="advancementsContent" aria-live="polite"></div>
@@ -271,9 +276,9 @@
   <script src="../platform.js"></script>
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
-  <script src="../app.js?v=autocycle10"></script>
+  <script src="../app.js?v=trophies01"></script>
   <script src="../enhancements.js?v=huge01"></script>
-  <script src="../economy-system.js?v=advances01"></script>
+  <script src="../economy-system.js?v=trophies01"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=endless01"></script>
   <script src="../performance-motion.js"></script>
@@ -290,12 +295,13 @@
   <script src="../firebase-auth.js"></script>
   <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
-  <script src="../location-operations.js?v=advances01"></script>
-  <script src="../empire-lab.js?v=advances01"></script>
+  <script src="../location-operations.js?v=trophies01"></script>
+  <script src="../empire-lab.js?v=trophies01"></script>
   <script src="../play-route.js?v=pages01"></script>
   <script src="../layout-panels.js?v=minimize03"></script>
-  <script src="../workspace.js?v=advances01"></script>
+  <script src="../workspace.js?v=trophies01"></script>
   <script src="../business-advancements.js?v=advances01"></script>
   <script src="../business-arcade.js?v=arcade01"></script>
+  <script src="../achievement-engine.js?v=trophies01"></script>
 </body>
 </html>
