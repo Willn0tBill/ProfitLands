@@ -22,6 +22,8 @@ on:
       - 'business-advancements.js'
       - 'business-advancements.css'
       - 'achievement-engine.js'
+      - 'quick-switch.js'
+      - 'quick-switch.css'
       - 'achievement-engine.css'
       - 'business-arcade.css'
       - 'game-polish.css'
@@ -49,6 +51,8 @@ on:
       - 'business-advancements.js'
       - 'business-advancements.css'
       - 'achievement-engine.js'
+      - 'quick-switch.js'
+      - 'quick-switch.css'
       - 'achievement-engine.css'
       - 'business-arcade.css'
       - 'game-polish.css'
@@ -86,6 +90,7 @@ jobs:
           node --check business-arcade.js
           node --check business-advancements.js
           node --check achievement-engine.js
+          node --check quick-switch.js
       - name: Run economy regression suite
         id: regression
         shell: bash
