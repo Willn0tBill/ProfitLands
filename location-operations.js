@@ -68,7 +68,7 @@ function staffingAdjustment(b,l,revenue,cost){
   const workers=safe(l.workers),manager=l.manager===true;
   const wageBase=workers*(type(b)?.baseExpense||0)*.055*(num(l.rent)||1);
   const benefit=revenue*(workers*.12/(1+workers*.025)+(manager?.18:0));
-  const payroll=wageBase+(manager?cost*.23:0);
+  const payroll=(wageBase+(manager?cost*.23:0))*(window.ProfitLandsAdvancements?.modifiers?.(l)?.payroll||1);
   return benefit-payroll;
 }
 function spend(cost){
@@ -121,7 +121,7 @@ function view(b,l,index){
     '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong>'+
     '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
     '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
-    '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Open Products, Pricing & Operations →</button></div>'+ 
+    '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Products & Operations →</button> <button type="button" data-site-advances="'+index+'">Advancements & Milestones →</button></div>'+  
     '<div class="site-operation-actions">'+
     button('upgrade','⬆ Upgrade location','Level '+(level+1)+' · '+moneyText(price(b,l,'upgrade')),!actions||!canPay(price(b,l,'upgrade')))+
     button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing')),!actions||!canPay(price(b,l,'marketing')))+
@@ -199,6 +199,13 @@ function open(index,focused=0){
     };
     select.addEventListener('change',refresh);
     refresh();
+  });
+  e.querySelectorAll('[data-site-advances]').forEach(button=>{
+    button.onclick=()=>{
+      const i=Number(button.dataset.siteAdvances);
+      modal.classList.add('hidden');
+      window.ProfitLandsAdvancements?.select?.(index,i);
+    };
   });
   e.querySelectorAll('[data-site-lab]').forEach(button=>{
     button.onclick=()=>{
