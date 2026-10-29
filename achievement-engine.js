@@ -27,7 +27,9 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const n=v=>Number.isFinite(Number(v))?Math.max(0,Number(v)):0;
 const clamp=(x,a,b)=>Math.max(a,Math.min(x,b));
 const pretty=x=>Number.isFinite(x)?Math.round(x).toLocaleString('en-US',{maximumFractionDigits:0}):'∞';
-let filter={sector:'all',track:'all',status:'all',search:'',page:0},lastCheck=0,lastPersist=0,pendingCounters=false;
+const TIERS=[['Bronze',1,64],['Silver',65,256],['Gold',257,512],['Diamond',513,768],['Legendary',769,1024]];
+let filter={sector:'all',track:'all',tier:'all',status:'all',search:'',page:0},lastCheck=0,lastFullScan=0,lastPersist=0,pendingCounters=false;
+const dirtySectors=new Set();
 function ensure(){
  const s=window.state;if(!s)return null;
  if(!s.badgeBook||s.badgeBook.version!==1)s.badgeBook={version:1,ranks:{},counters:{},featured:[],recent:[]};
@@ -41,8 +43,10 @@ function ensure(){
 const key=(sector,metric)=>sector+'.'+metric;
 const badgeId=(sector,track,rank)=>sector+'.'+track+'.'+rank;
 function parseId(v){
- const a=String(v).split('.'),r=Number(a[2]);
- return a.length===3&&INDUSTRIES.some(x=>x[0]===a[0])&&TRACKS.some(x=>x.id===a[1])&&Number.isInteger(r)&&r>0&&r<=RANKS?{sector:a[0],track:a[1],rank:r}:null;
+ const a=String(v).trim().split('.'),r=Number(a[2]);
+ const industry=INDUSTRIES.find(x=>x[0].toLowerCase()===a[0]?.toLowerCase());
+ const track=TRACKS.find(x=>x.id.toLowerCase()===a[1]?.toLowerCase());
+ return a.length===3&&industry&&track&&Number.isInteger(r)&&r>0&&r<=RANKS?{sector:industry[0],track:track.id,rank:r}:null;
 }
 function rankAt(sector,track){return clamp(Math.floor(n(ensure()?.ranks?.[key(sector,track)])),0,RANKS)}
 function threshold(track,rank){return track.exp?Math.ceil(track.base*Math.pow(track.scale,rank-1)):track.base+(rank-1)*track.scale}
@@ -64,7 +68,7 @@ function record(sector,metric,amount=1){
  const v=n(amount);if(!v)return false;
  const b=ensure(),k=key(sector,metric);
  b.counters[k]=Math.min(Number.MAX_VALUE,n(b.counters[k])+v);
- pendingCounters=true;window.ProfitLandsAccountTrophies?.changed?.();
+ pendingCounters=true;dirtySectors.add(sector);window.ProfitLandsAccountTrophies?.changed?.();
  return true;
 }
 function sectorMeasures(sector){
@@ -87,14 +91,21 @@ function earnedCount(){
 }
 function scan(now=Date.now(),force=false){
  if(!window.state?.started||!ensure()||(!force&&now-lastCheck<5000))return 0;
- lastCheck=now;let awarded=0,latest=null;
- for(const i of INDUSTRIES){
+ lastCheck=now;
+ // Events touch only their industry; periodically reconcile all live business values
+ // (including changes made by older code paths that do not emit trophy events).
+ const full=force||now-lastFullScan>=30000;
+ const targets=full?INDUSTRIES:INDUSTRIES.filter(i=>dirtySectors.has(i[0]));
+ if(full)lastFullScan=now;
+ let awarded=0,latest=null;
+ for(const i of targets){
   const stats=sectorMeasures(i[0]);
   for(const t of TRACKS){
    const k=key(i[0],t.id),old=rankAt(i[0],t.id),next=rankFor(t,stats[t.metric]);
    if(next>old){ensure().ranks[k]=next;awarded+=next-old;latest=badgeId(i[0],t.id,next)}
   }
  }
+ for(const i of targets)dirtySectors.delete(i[0]);
  if(awarded){
   const b=ensure();b.recent=[latest,...b.recent.filter(x=>x!==latest)].slice(0,10);
   const msg=awarded===1?'New achievement unlocked!':awarded.toLocaleString('en-US')+' achievements unlocked!';
@@ -112,14 +123,20 @@ function progressFor(sector,t){
  return{rank,value,next,pct:next===null?100:clamp((value-last)/Math.max(1,next-last)*100,0,100)};
 }
 function filtered(){
- const result=[],search=filter.search.trim().toLowerCase();
+ const result=[],search=filter.search.trim().toLowerCase(),exact=parseId(filter.search);
+ const selectedTier=TIERS.find(x=>x[0].toLowerCase()===filter.tier.toLowerCase());
  for(const i of INDUSTRIES)for(const t of TRACKS){
   if(filter.sector!=='all'&&filter.sector!==i[0])continue;
   if(filter.track!=='all'&&filter.track!==t.id)continue;
-  if(search&&!([i[1],t.name,t.unit,i[0],t.id].join(' ').toLowerCase().includes(search)))continue;
+  if(exact){
+   if(exact.sector!==i[0]||exact.track!==t.id)continue;
+  }else if(search&&!([i[1],t.name,t.unit,i[0],t.id].join(' ').toLowerCase().includes(search)))continue;
   const rank=rankAt(i[0],t.id);
-  const count=filter.status==='earned'?rank:filter.status==='locked'?RANKS-rank:RANKS;
-  if(count)result.push({i,t,rank,count});
+  let first=filter.status==='locked'?rank+1:1;
+  let last=filter.status==='earned'?rank:RANKS;
+  if(selectedTier){first=Math.max(first,selectedTier[1]);last=Math.min(last,selectedTier[2])}
+  if(exact){first=Math.max(first,exact.rank);last=Math.min(last,exact.rank)}
+  if(first<=last)result.push({i,t,rank,first,count:last-first+1});
  }
  return result;
 }
@@ -130,7 +147,7 @@ function browse(page=filter.page){
  let skip=index*PAGE_SIZE;const rows=[];
  for(const g of groups){
   if(skip>=g.count){skip-=g.count;continue}
-  const first=filter.status==='locked'?g.rank+1:1;
+  const first=g.first;
   for(let ix=skip;ix<g.count&&rows.length<PAGE_SIZE;ix++){
    const d=describe(g.i[0],g.t.id,first+ix);
    rows.push({...d,earned:d.rank<=g.rank});
@@ -138,6 +155,9 @@ function browse(page=filter.page){
   skip=0;if(rows.length===PAGE_SIZE)break;
  }
  return{rows,total,pages,page:index};
+}
+function showcased(){
+ return (ensure()?.featured||[]).map(parseId).filter(Boolean).map(x=>describe(x.sector,x.track,x.rank)).filter(Boolean);
 }
 function featured(id){
  const d=parseId(id),b=ensure();
@@ -160,21 +180,23 @@ function render(){
  const sectorOptions=options([['all','All industries'],...INDUSTRIES.map(x=>[x[0],x[1]])],filter.sector);
  const trackOptions=options([['all','All tracks'],...TRACKS.map(x=>[x.id,x.name])],filter.track);
  const statusOptions=options([['all','All'],['earned','Earned'],['locked','Locked']],filter.status);
- const favorites=b.featured.map(parseId).filter(Boolean).map(x=>describe(x.sector,x.track,x.rank)).filter(Boolean);
+ const tierOptions=options([['all','All rarities'],...TIERS.map(x=>[x[0].toLowerCase(),x[0]])],filter.tier);
+ const favorites=showcased();
  root.innerHTML='<div class="pl-trophy-hero"><div><span>THE PROFITLANDS COLLECTION</span><h3>131,072 Achievements</h3><p>128 measurable tracks across eight industries. Collect 1,024 milestone ranks in each.</p></div><div class="pl-trophy-score"><strong>'+earned.toLocaleString('en-US')+'</strong><small>EARNED</small><span>'+pct+'%</span></div></div>'+
  '<div class="pl-trophy-progress"><span style="width:'+pct+'%"></span></div>'+
  '<div class="pl-trophy-meta">8 industries · 16 track types · Bronze / Silver / Gold / Diamond / Legendary</div>'+
  '<div class="pl-trophy-featured"><h3>Featured Badges <small>'+favorites.length+' / 5</small></h3>'+
- (favorites.length?'<div>'+favorites.map(x=>'<span>'+x.icon+' '+esc(x.title)+'</span>').join('')+'</div>':'<p>Feature up to five earned badges on your profile.</p>')+'</div>'+
+ (favorites.length?'<div>'+favorites.map(x=>'<span>'+x.icon+' '+esc(x.title)+' <button type="button" data-trophy-feature="'+esc(x.id)+'" aria-label="Remove '+esc(x.title)+' from showcase">×</button></span>').join('')+'</div>':'<p>Feature up to five earned badges on your profile.</p>')+'</div>'+
  '<div class="pl-trophy-filters"><label>Industry<select id="trophySector">'+sectorOptions+'</select></label>'+
  '<label>Track<select id="trophyTrack">'+trackOptions+'</select></label>'+
+ '<label>Rarity<select id="trophyTier">'+tierOptions+'</select></label>'+
  '<label>Status<select id="trophyStatus">'+statusOptions+'</select></label>'+
- '<label>Search<input id="trophySearch" type="search" placeholder="Search tracks" value="'+esc(filter.search)+'"></label></div>'+
+ '<label>Search<input id="trophySearch" type="search" placeholder="Track or coffee.highestLevel.100" value="'+esc(filter.search)+'"></label></div>'+
  '<div class="pl-trophy-list-head"><strong>'+page.total.toLocaleString('en-US')+' matching badges</strong><span>Page '+(page.page+1)+' / '+page.pages.toLocaleString('en-US')+'</span></div>'+
  '<div class="pl-trophy-list">'+(page.rows.map(card).join('')||'<p>No achievements match these filters.</p>')+'</div>'+
  '<div class="pl-trophy-pagination"><button type="button" data-trophy-page="prev" '+(!page.page?'disabled':'')+'>Previous</button><span>Page '+(page.page+1)+' / '+page.pages.toLocaleString('en-US')+'</span><button type="button" data-trophy-page="next" '+(page.page+1>=page.pages?'disabled':'')+'>Next</button></div>'+
  '<p class="pl-trophy-note" id="plTrophyAccountStatus">'+((window.ProfitLandsAccountTrophies?.status?.().synced&&!window.ProfitLandsAccountTrophies?.status?.().pending)?'Account Trophy Room · synced to your private ProfitLands profile.':window.ProfitLandsAccountTrophies?.status?.().loggedIn?'Account Trophy Room · local progress saved; cloud sync pending.':'Guest Trophy Room · progress saved on this device. Sign in to sync across devices.')+' Steam achievements are a future curated subset, not yet connected.</p>';
- for(const [id,field]of[['trophySector','sector'],['trophyTrack','track'],['trophyStatus','status']]){
+ for(const [id,field]of[['trophySector','sector'],['trophyTrack','track'],['trophyTier','tier'],['trophyStatus','status']]){
   root.querySelector('#'+id)?.addEventListener('change',e=>{filter[field]=e.target.value;filter.page=0;render()});
  }
  root.querySelector('#trophySearch')?.addEventListener('change',e=>{filter.search=e.target.value.slice(0,80);filter.page=0;render()});
@@ -188,8 +210,8 @@ function init(){
  if(!$('trophyContent'))return;
  ensure();scan(Date.now(),true);render();
  window.setInterval(()=>scan(),5000);
- window.addEventListener('profitlands:newgame',()=>{lastCheck=0;lastPersist=0;pendingCounters=false;render()});
+ window.addEventListener('profitlands:newgame',()=>{lastCheck=0;lastFullScan=0;lastPersist=0;pendingCounters=false;dirtySectors.clear();render()});
 }
-window.ProfitLandsBadges={INDUSTRIES,TRACKS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
+window.ProfitLandsBadges={INDUSTRIES,TRACKS,TIERS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,showcased,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
