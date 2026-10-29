@@ -5,7 +5,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'workspace.js'),'utf8');
-const PANEL_IDS=['trophyPanel','advancesPanel','arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
+const PANEL_IDS=['executivePanel','trophyPanel','advancesPanel','arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
   'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel'];
 class Node{
  constructor(tag='div'){
@@ -189,4 +189,14 @@ test('Trophy Room reuses the same panel and preserves console navigation',()=>{
  const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
  assert.equal(workspace.findAll(n=>n.id==='trophyPanel').length,1);
  assert.ok(source.includes("e.key==='0'"));
+});
+
+test('Overview contains original executive briefing alongside economy and news panels',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.show('overview'),true);
+ const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
+ const content=workspace.find(n=>n.dataset.workspaceContent==='overview');
+ for(const id of ['executivePanel','economyPanel','newsPanel'])assert.equal(content.findAll(n=>n.id===id).length,1);
+ const html=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','play/index.html'),'utf8');
+ assert.ok(html.includes('executive-briefing.js')&&html.includes('executive-briefing.css'));
 });
