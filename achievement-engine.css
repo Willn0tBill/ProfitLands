@@ -1,0 +1,51 @@
+/* 131,072-badge Trophy Room. Only 30 badges rendered per page. */
+#gameScreen .pl-trophy-panel{background:transparent!important;border:0!important;padding:0!important}
+#gameScreen .pl-trophy-panel>.panel-head{background:linear-gradient(120deg,#203e2c,#162920);border:1px solid #55744d;border-radius:14px;padding:17px 20px;margin:0 0 13px}
+#gameScreen .pl-trophy-panel>.panel-head h3{font-size:20px!important;color:#eaffdf}
+.pl-trophy-hero{background:linear-gradient(110deg,#264a31,#152920);border:1px solid #5d875d;border-radius:16px;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:23px}
+.pl-trophy-hero h3{font-size:clamp(24px,3vw,34px)!important;margin:5px 0 7px!important;color:#e9fce4}
+.pl-trophy-hero p{font-size:12px;color:#bdd3be;margin:0;line-height:1.6}
+.pl-trophy-hero>div>span{font-size:10px;color:#b1cfae;font-weight:800;letter-spacing:.13em}
+.pl-trophy-score{min-width:146px;text-align:center;background:#13271b;padding:16px;border-radius:13px;border:1px solid #557e52}
+.pl-trophy-score strong{display:block;font-size:25px;color:#c8f59a;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pl-trophy-score small,.pl-trophy-score span{display:block;font-size:10px;color:#b5d0b8}
+.pl-trophy-score span{margin-top:7px}
+.pl-trophy-progress{height:9px;border-radius:99px;background:#34513c;overflow:hidden;margin:13px 0}
+.pl-trophy-progress>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6abf87,#c4f69b)}
+.pl-trophy-meta{font-size:11px;color:#94b9a2;margin-bottom:17px}
+.pl-trophy-featured{background:#152b20;border:1px solid #456d50;border-radius:13px;padding:15px 17px;margin:12px 0 19px}
+.pl-trophy-featured h3{font-size:16px!important;margin:0 0 8px;color:#e5fae6}
+.pl-trophy-featured h3 small{font-size:10px;color:#9bbfa3}
+.pl-trophy-featured p{margin:0;color:#a7c3ae;font-size:12px}
+.pl-trophy-featured>div{display:flex;flex-wrap:wrap;gap:7px}
+.pl-trophy-featured>div>span{padding:8px 10px;border-radius:9px;background:#254531;color:#def8d4;font-size:11px}
+.pl-trophy-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}
+.pl-trophy-filters label{display:flex;flex-direction:column;gap:7px;color:#b5d1b8;font-size:11px;font-weight:800}
+.pl-trophy-filters select,.pl-trophy-filters input{background:#162b1e;border:1px solid #53745d;color:#f4faeb;border-radius:9px;padding:10px;min-height:42px;min-width:0;width:100%}
+.pl-trophy-list-head{display:flex;gap:12px;justify-content:space-between;align-items:center;border-bottom:1px solid #43614a;padding:12px 2px;margin:8px 0}
+.pl-trophy-list-head strong{font-size:13px;color:#e4f6df}
+.pl-trophy-list-head span{color:#a9c7af;font-size:11px}
+.pl-trophy-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pl-trophy-card{display:flex;gap:12px;align-items:center;background:#14251d;border:1px solid #3b5843;border-radius:13px;padding:12px;min-height:104px;min-width:0}
+.pl-trophy-earned{border-color:#669664;background:linear-gradient(110deg,#193b27,#15261d)}
+.pl-trophy-locked{opacity:.8}
+.pl-trophy-art{width:73px;height:76px;flex:0 0 73px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:12px;border:1px solid #9b7043;background:#483b29}
+.pl-trophy-art>span{font-size:26px}
+.pl-trophy-art small{font-size:9px;font-weight:800;color:#f8e6ba}
+.pl-trophy-art.tier-silver{background:#323d47;border-color:#8aa2b6}
+.pl-trophy-art.tier-gold{background:#4b3a21;border-color:#dfb65c}
+.pl-trophy-art.tier-diamond{background:#21414d;border-color:#75d3e2}
+.pl-trophy-art.tier-legendary{background:#493451;border-color:#c48bd9}
+.pl-trophy-copy{flex:1;min-width:0}
+.pl-trophy-copy h4{font-size:12px;color:#edfae9;margin:0 0 5px;line-height:1.35}
+.pl-trophy-copy p{font-size:10px;color:#aac5b0;line-height:1.45;margin:0 0 6px}
+.pl-trophy-copy small{font-size:9px;color:#a9c3a7;font-weight:800}
+.pl-trophy-card>button{background:#2e5836;border:1px solid #84bd80;color:#e8fae2;font-size:10px;padding:8px;border-radius:8px;min-height:38px;cursor:pointer}
+.pl-trophy-pagination{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:14px;margin:21px 0}
+.pl-trophy-pagination button{min-height:42px;padding:10px 17px;background:#2a4831;border:1px solid #87b277;border-radius:9px;color:#e2f6d6;font-weight:800;cursor:pointer}
+.pl-trophy-pagination button:disabled{opacity:.4;cursor:not-allowed}
+.pl-trophy-pagination>span{font-size:12px;color:#bbd1b9}
+.pl-trophy-note{font-size:11px;color:#98b6a1;line-height:1.6;border-top:1px solid #395a44;padding:15px 0}
+#gameScreen .pl-trophy-panel button:focus-visible,#gameScreen .pl-trophy-panel input:focus-visible,#gameScreen .pl-trophy-panel select:focus-visible{outline:3px solid #b4ee92;outline-offset:2px}
+@media(max-width:1100px){.pl-trophy-list{grid-template-columns:1fr}.pl-trophy-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:590px){.pl-trophy-hero{flex-wrap:wrap;padding:14px}.pl-trophy-score{width:100%}.pl-trophy-filters{grid-template-columns:1fr}.pl-trophy-card{flex-wrap:wrap}.pl-trophy-card>button{width:100%}}
