@@ -129,3 +129,51 @@ test('achievement engine is wired into actual income, cycle, actions and Trophy 
  assert.ok(f('empire-lab.js').includes("?.record?.(site.b.type,'inventory'"));
  assert.ok(!f('app.js').includes('state.badgeBook=null'));
 });
+
+test('rarity selection partitions the full collection without materializing badges',()=>{
+ const a=harness().api;
+ const bronze=a.setFilter({tier:'bronze',status:'all',sector:'all',track:'all',search:''});
+ assert.equal(bronze.total,8*16*64);
+ assert.equal(bronze.rows[0].tier,'Bronze');
+ const legendary=a.setFilter({tier:'legendary',search:''});
+ assert.equal(legendary.total,8*16*256);
+ assert.equal(legendary.rows[0].rank,769);
+ assert.equal(legendary.rows[0].tier,'Legendary');
+ const gold=a.setFilter({tier:'gold',search:''});
+ assert.equal(gold.total,8*16*256);
+ assert.ok(gold.rows.every(x=>x.tier==='Gold'));
+});
+test('players can find one exact badge by case-insensitive stable ID',()=>{
+ const a=harness().api;
+ const result=a.setFilter({tier:'all',status:'all',sector:'all',track:'all',search:'COFFEE.highestlevel.100'});
+ assert.equal(result.total,1);
+ assert.equal(result.pages,1);
+ assert.equal(result.rows[0].id,'coffee.highestLevel.100');
+ const locked=a.setFilter({status:'earned'});
+ assert.equal(locked.total,0);
+ const missing=a.setFilter({status:'all',search:'coffee.highestLevel.1025'});
+ assert.equal(missing.total,0);
+});
+test('event-driven scan reconciles only touched sectors before periodic full scan',()=>{
+ const h=harness(),a=h.api;
+ a.scan(200000,true);
+ h.state.businesses.push({type:'restaurant',locations:[{level:100,marketing:0,efficiency:0,workers:1}]});
+ assert.equal(a.scan(206000),0);
+ assert.equal(a.rankAt('restaurant','highestLevel'),0);
+ a.record('coffee','upgrades',1);
+ assert.ok(a.scan(212000)>0);
+ assert.equal(a.rankAt('restaurant','highestLevel'),0);
+ assert.ok(a.scan(231000)>0,'fallback scan backfills changes from older gameplay paths');
+ assert.equal(a.rankAt('restaurant','highestLevel'),20);
+});
+test('featured badges appear in account showcase and can be removed there',()=>{
+ const h=harness(),a=h.api;
+ a.scan(200000,true);
+ a.featured('coffee.highestLevel.1');
+ assert.equal(a.showcased().length,1);
+ assert.equal(a.showcased()[0].id,'coffee.highestLevel.1');
+ a.render();
+ assert.ok(h.root.innerHTML.includes('aria-label="Remove Coffee Shops'));
+ a.featured('coffee.highestLevel.1');
+ assert.equal(a.showcased().length,0);
+});
