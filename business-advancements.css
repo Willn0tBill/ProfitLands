@@ -1,0 +1,41 @@
+/* ProfitLands location-specific advancement tree. */
+#gameScreen .pl-adv-panel{background:transparent!important;border:none!important;padding:0!important}
+#gameScreen .pl-adv-panel>.panel-head{background:linear-gradient(105deg,#1d3d28,#172922);border:1px solid #537151;padding:15px 18px;border-radius:13px;margin-bottom:13px}
+#gameScreen .pl-adv-panel>.panel-head h3{font-size:19px!important;color:#ecffe5}
+.pl-adv-hero{background:linear-gradient(110deg,#203c2b,#14281d);border:1px solid #446f53;border-radius:14px;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.pl-adv-hero small{font-size:9px;color:#b3d7b9;font-weight:850;letter-spacing:.14em}
+.pl-adv-hero h3{font-size:23px!important;color:#eefeec;margin:8px 0!important}
+.pl-adv-hero p{margin:0;color:#b7d0ba;font-size:12px}
+.pl-adv-hero strong{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:19px;color:#c8f5ae}
+.pl-adv-progress{background:#2a4434;height:9px;border-radius:999px;margin:13px 2px;overflow:hidden}
+.pl-adv-progress span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#69c789,#c5ef79)}
+.pl-adv-selectors{display:flex;flex-wrap:wrap;gap:14px;margin:16px 0}
+.pl-adv-selectors label{display:flex;flex:1 1 210px;flex-direction:column;gap:6px;font-size:11px;color:#afd0b9;font-weight:800}
+.pl-adv-selectors select{background:#14261e;border:1px solid #56765d;border-radius:9px;min-height:44px;padding:9px 11px;color:#ecfae7}
+.pl-adv-effects{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+.pl-adv-effects span{background:#182e22;border:1px solid #385c43;border-radius:10px;padding:11px;color:#aec9b2;font-size:11px;display:flex;flex-direction:column;gap:6px}
+.pl-adv-effects b{color:#c4f4ad;font-size:17px;font-variant-numeric:tabular-nums}
+.pl-adv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pl-adv-card{display:flex;flex-direction:column;gap:9px;min-height:206px;background:#17251e;border:1px solid #395542;border-radius:13px;padding:15px}
+.pl-adv-card.pl-adv-ready{border-color:#8cba67;background:linear-gradient(155deg,#213c2b,#17261e)}
+.pl-adv-card.pl-adv-owned{border-color:#45885c;background:linear-gradient(155deg,#1d3627,#172720)}
+.pl-adv-card.pl-adv-locked{opacity:.79}
+.pl-adv-card-top{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.pl-adv-card-top span{font-size:9px;font-weight:950;color:#bdd8bd;background:#283e30;padding:6px 8px;border-radius:7px;letter-spacing:.065em}
+.pl-adv-ready .pl-adv-card-top span:last-child{background:#b4ef84;color:#19331e}
+.pl-adv-owned .pl-adv-card-top span:last-child{background:#255d36;color:#b6f8b7}
+.pl-adv-card h4{font-size:15px;color:#e9f7e6;margin:8px 0 0}
+.pl-adv-card p{font-size:12px;color:#adc8b3;line-height:1.45;margin:0;flex:1}
+.pl-adv-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #35513f;padding-top:12px}
+.pl-adv-card-bottom small{font-size:10px;color:#b5cfb8;line-height:1.35}
+.pl-adv-card button{border:1px solid #8cc276;background:#b6ee88;color:#182c1c;border-radius:9px;min-height:38px;padding:8px 12px;font-size:11px;font-weight:900;cursor:pointer}
+.pl-adv-card button:disabled{cursor:not-allowed;border-color:#415947;background:#293c30;color:#9ab79f}
+.pl-adv-auto{background:#152b20;border:1px solid #457855;border-radius:13px;margin:17px 0 6px;padding:17px}
+.pl-adv-auto h3{font-size:17px!important;color:#e4f6da;margin:0 0 7px}
+.pl-adv-auto p{font-size:12px;color:#b2cab6;line-height:1.5}
+.pl-adv-auto label{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:12px;color:#e4f1e0}
+.pl-adv-auto input{width:18px;height:18px;accent-color:#a5e47c}
+.pl-adv-empty{border:1px dashed #527355;border-radius:12px;padding:32px;color:#adc7b4}
+@media(max-width:1200px){.pl-adv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:730px){.pl-adv-grid{grid-template-columns:1fr}.pl-adv-effects{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-adv-hero{padding:14px;flex-wrap:wrap}.pl-adv-hero h3{font-size:18px!important}.pl-adv-card{min-height:160px}}
+@media(prefers-reduced-motion:reduce){.pl-adv-progress span{transition:none!important}}
