@@ -16,7 +16,7 @@ function harness(){
  const otherDoc={playerName:'Second player',achievementBook:{
   version:1,ranks:{'coffee.highestLevel':2},counters:{},featured:[],recent:[]}};
  const dbDocs=new Map([['first',sourceDoc],['other',otherDoc]]);
- function ref(uid){return{uid}}
+ function ref(uid){return{uid,get:async()=>({exists:dbDocs.has(uid),data:()=>dbDocs.get(uid)})}}
  const db={collection:name=>{assert.equal(name,'users');return{doc:ref}},
   runTransaction:async callback=>{
    const queued=[];
