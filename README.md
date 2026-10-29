@@ -6,6 +6,19 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Trophy Room: 131,072 in-game badges (v1.5)
+
+ProfitLands includes a **Trophies** workspace (Alt+0) with **131,072 procedurally defined badges**: 8 playable industries × 16 independently measured achievement tracks × 1,024 milestone ranks per track. Each badge has a stable ID, display name, measurable goal and Bronze/Silver/Gold/Diamond/Legendary tier.
+
+Tracked achievements include highest and combined business levels, individual and combined marketing and efficiency, current staffing, invested capital, purchased location upgrades, marketing/efficiency actions, lifetime hiring, inventory purchases, market demo sales, market cycles with owned businesses, and cumulative **positive** operating earnings. First-time visits to the Trophy Room backfill achievements supported by current live business data; historical counters begin when the new system is installed, because prior saves did not record those events.
+
+- **No 131,072-entry badge array is loaded or persisted.** Only 128 track definitions are examined; 30 generated badge cards render on a page. Browse via industry, track, name and earned/locked filters.
+- **Compact saves.** The `state.badgeBook` object stores only the highest earned rank for a track, eight-sector lifetime counters, and up to five selected featured badges. Its size depends on track count, not the 131,072 possible badges.
+- **Non-economic rewards.** Earning badges never grants money or actions, preserving the existing pacing. Notifications batch multiple unlocks.
+- **Same saved empire.** Old saves initialize safely; a new empire resets the Trophy Room with other new-game progress.
+- **No Steam integration yet.** These are **in-game** achievements. As of October 2026, Steamworks supports a maximum of 5,000 Steam achievements per vetted application, with an initial 100 limit for apps not yet vetted; a later Steam release must pick a curated native subset (see https://partner.steamgames.com/doc/features/achievements/ach_guide).
+- Some very high ranks are intentionally extremely long-term and depend on repeatable actions. This is a procedural milestone collection, **not 131,072 handcrafted unique challenges**.
+
 ## Permanent business advancements (v1.4)
 
 Every company location has its own **Advances** technology tree, accessible through the ninth left-sidebar section or the **Advancements & Milestones** button inside that location's management window. There is **no maximum business level**: reaching a threshold unlocks the option to buy an upgrade. Bonuses only apply **after purchase** and do not automatically apply to all branches. Each advance costs cash and one management action, and is bought only once per location.
