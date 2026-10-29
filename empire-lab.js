@@ -126,7 +126,8 @@ function act(action,opt={}){
    lab.enabled=true;ok=true;message='Store operations activated for '+site.l.name+'.';
  }else if(action==='buyStock'){
    if(!requireSite())return false;
-   const cost=Math.round(qty*8*(p.research.includes('inventory')?.85:1));
+   const discount=window.ProfitLandsAdvancements?.modifiers?.(site.l)?.stock||1;
+   const cost=Math.round(qty*8*(p.research.includes('inventory')?.85:1)*discount);
    if(!charge(cost))return false;
    lab.stock+=qty;ok=true;message=site.l.name+': purchased '+qty+' product units for '+fmt(cost)+'.';
  }else if(action==='price'){
