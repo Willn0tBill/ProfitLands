@@ -14,7 +14,8 @@ const VIEWS=[
  {id:'finance',number:'06',name:'Finances',title:'Financial Management',description:'Company performance, bank services and credit.',group:'FINANCE',panels:['financePanel','bankPanel']},
  {id:'corporate',number:'07',name:'Corporate',title:'Corporate Development',description:'Major companies, research and capital investments.',group:'EXPANSION',panels:['majorCompaniesPanel','actionsPanel']},
  {id:'arcade',number:'08',name:'Arcade',title:'Business Arcade',description:'Three playable management mini-games, with small rewards for your empire.',group:'EXPANSION',panels:['arcadePanel']},
- {id:'advances',number:'09',name:'Advances',title:'Advancements & Milestones',description:'Permanent technology upgrades and business level unlocks.',group:'EXPANSION',panels:['advancesPanel']}
+ {id:'advances',number:'09',name:'Advances',title:'Advancements & Milestones',description:'Permanent technology upgrades and business level unlocks.',group:'EXPANSION',panels:['advancesPanel']},
+ {id:'trophies',number:'10',name:'Trophies',title:'Trophy Room',description:'131,072 collectible in-game achievement badges.',group:'EXPANSION',panels:['trophyPanel']}
 ];
 const $=id=>document.getElementById(id);
 let current='businesses';
@@ -75,6 +76,7 @@ function show(id,{focus=false,remember=true}={}){
  if(id==='operations')window.ProfitLandsEmpire?.render?.();
  if(id==='arcade')window.ProfitLandsArcade?.render?.();
  if(id==='advances')window.ProfitLandsAdvancements?.render?.();
+ if(id==='trophies'){window.ProfitLandsBadges?.scan?.(Date.now(),true);window.ProfitLandsBadges?.render?.()}
  if(typeof CustomEvent==='function'&&typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('profitlands:viewchange',{detail:{view:id}}));
  return true;
 }
@@ -192,9 +194,9 @@ function build(){
  // screen unchanged when the user returns to the main menu.
  window.addEventListener('keydown',e=>{
   if(!document.querySelector('#gameScreen.active'))return;
-  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&/^[1-9]$/.test(e.key)){
+  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&(/^[1-9]$/.test(e.key)||e.key==='0')){
    if(e.target?.closest?.('input,textarea,select,[contenteditable]'))return;
-   e.preventDefault();show(VIEWS[Number(e.key)-1].id,{focus:true});
+   e.preventDefault();show(VIEWS[e.key==='0'?9:Number(e.key)-1].id,{focus:true});
   }
  });
 }
