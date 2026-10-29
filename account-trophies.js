@@ -7,7 +7,7 @@
 'use strict';
 const PREFIX='profitlands-account-badges-v1:';
 const TRACK_COUNT=128,MAX_RANK=1024,MAX_FEATURED=5;
-let uid=null,db=null,ready=false,serial=0,flushTimer=null,dirty=false,busy=false,synced=false;
+let uid=null,db=null,ready=false,serial=0,revision=0,flushTimer=null,dirty=false,busy=false,synced=false;
 const bookDefault=()=>({version:1,ranks:{},counters:{},featured:[],recent:[]});
 const allowed=()=>new Set((window.ProfitLandsBadges?.INDUSTRIES||[]).flatMap(i=>
  (window.ProfitLandsBadges?.TRACKS||[]).map(t=>i[0]+'.'+t.id)));
@@ -61,14 +61,14 @@ function status(){return{account:uid?'account':'guest',synced:!!uid&&synced,pend
 function repaint(){if(window.ProfitLandsWorkspace?.active?.()==='trophies')window.ProfitLandsBadges?.render?.()}
 function changed(){
  if(!ready||!current())return;
- dirty=true;persistLocal();
+ revision++;dirty=true;persistLocal();
  if(!uid)return;
  if(flushTimer!==null)return;
  flushTimer=setTimeout(()=>{flushTimer=null;flush()},15000);
 }
 async function flush(){
  if(!uid||!db||!dirty||busy||!current())return false;
- const owner=uid,epoch=serial,ref=db.collection('users').doc(uid);
+ const owner=uid,epoch=serial,capturedRevision=revision,ref=db.collection('users').doc(uid);
  const snapshot=clean(current());
  busy=true;
  try{
@@ -82,19 +82,19 @@ async function flush(){
   if(epoch!==serial||owner!==uid)return false;
   window.state.badgeBook=merge(combined,current());
   localWrite(uid,window.state.badgeBook);
-  synced=true;dirty=false;repaint();
+  synced=true;dirty=revision!==capturedRevision;repaint();
   return true;
  }catch(e){
   if(epoch===serial&&uid===owner){dirty=true;synced=false;console.warn('Achievement account sync unavailable; saved locally.',e)}
   return false;
- }finally{busy=false}
+ }finally{busy=false;if(uid&&dirty&&flushTimer===null){flushTimer=setTimeout(()=>{flushTimer=null;flush()},30000)}}
 }
 function prepare(nextUid){
  const future=nextUid||null;
  if(ready&&current())persistLocal();
  if(future===uid)return;
  if(flushTimer!==null){clearTimeout(flushTimer);flushTimer=null}
- serial++;uid=null;db=null;ready=false;dirty=false;busy=false;synced=false;
+ serial++;revision=0;uid=null;db=null;ready=false;dirty=false;busy=false;synced=false;
  if(window.state)window.state.badgeBook=null;
 }
 async function onAuthChanged(user,database){
