@@ -1,10 +1,14 @@
 # ProfitLands
 
-**A Wtv Innovations game**
+**A Wtv Innovations (WtvI) game**
 
 > Build. Invest. Compete.
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
+
+## WtvI Executive Quick Switch (v1.6)
+
+Use **Ctrl+K** (or **Cmd+K** on macOS) to open a searchable command palette in the live game. Players can jump to management screens, open any owned business, buy a new company, or open other WtvI projects. The header also includes a touch-friendly Search control. Use `/` outside text fields as an alternative shortcut. The palette does not alter saves, time cycles, action pools, or cash.
 
 ## Trophy Room: 131,072 in-game badges (v1.5)
 
