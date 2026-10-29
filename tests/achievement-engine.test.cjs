@@ -127,5 +127,5 @@ test('achievement engine is wired into actual income, cycle, actions and Trophy 
  assert.ok(economy.includes("?.record?.(sector,'cycles'"));
  assert.ok(f('location-operations.js').includes("?.record?.(b.type,metric"));
  assert.ok(f('empire-lab.js').includes("?.record?.(site.b.type,'inventory'"));
- assert.ok(f('app.js').includes('state.badgeBook=null'));
+ assert.ok(!f('app.js').includes('state.badgeBook=null'));
 });
