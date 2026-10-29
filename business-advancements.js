@@ -150,6 +150,7 @@ function tick(now=Date.now()){
   else if(auto.upgrade){kind='upgrade';price=ops.price(site.b,site.l,kind)}
   if(!kind||!Number.isFinite(price)||!afford(price*5)||!charge(price))continue;
   if(kind==='hire')site.l.workers+=quantity;else site.l.level++;
+  window.ProfitLandsBadges?.record?.(site.b.type,kind==='hire'?'hired':'upgrades',kind==='hire'?quantity:1);
   auto.lastAt=now;done++;
   s.news?.push('AUTOMATION — '+site.b.name+' · '+site.l.name+': '+kind+'.');
  }
