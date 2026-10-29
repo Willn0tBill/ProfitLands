@@ -7,7 +7,7 @@
 const KEY='profitlands-workspace-view-v1';
 const VIEWS=[
  {id:'businesses',number:'01',name:'Businesses',title:'Business Portfolio',description:'Companies, branches, staffing and new acquisitions.',group:'MANAGEMENT',panels:['businessPanel']},
- {id:'overview',number:'02',name:'Overview',title:'Command Center',description:'Current economy, market events and recent news.',group:'MANAGEMENT',panels:['economyPanel','newsPanel']},
+ {id:'overview',number:'02',name:'Overview',title:'Command Center',description:'Executive briefing, current economy, and market news.',group:'MANAGEMENT',panels:['executivePanel','economyPanel','newsPanel']},
  {id:'operations',number:'03',name:'Operations',title:'Operations & Supply',description:'Inventory, staff roles, logistics and regional expansion.',group:'MANAGEMENT',panels:['empireLab']},
  {id:'markets',number:'04',name:'Markets',title:'Market & Portfolio',description:'Stock exchange, positions and holdings.',group:'FINANCE',panels:['stockPanel','holdingsPanel']},
  {id:'analytics',number:'05',name:'Analytics',title:'Business Intelligence',description:'Revenue charts, employees, decisions and achievements.',group:'FINANCE',panels:['growthPanel']},
@@ -72,6 +72,7 @@ function show(id,{focus=false,remember=true}={}){
  selected?.scrollTo?.({top:0,behavior:'instant'});
  if(focus)heading.focus({preventScroll:true});
  if(remember)save();
+ if(id==='overview')window.ProfitLandsExecutive?.render?.();
  if(id==='analytics')window.ProfitLandsGrowth?.render?.();
  if(id==='operations')window.ProfitLandsEmpire?.render?.();
  if(id==='arcade')window.ProfitLandsArcade?.render?.();
