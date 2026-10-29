@@ -182,6 +182,7 @@
   function install(){
     styles();
     if(!configured){
+      window.ProfitLandsAccountTrophies?.onAuthChanged?.(null,null);
       refresh();
       const n=document.querySelector('.local-note');
       if(n){n.textContent='Firebase is not connected yet — add your Web App config in firebase-config.js.';n.classList.add('firebase-status','bad')}
@@ -193,16 +194,19 @@
       db=firebase.firestore();
       window.profitlandsSaveHook=()=>cloudSaveLater();
       auth.onAuthStateChanged(async u=>{
+        window.ProfitLandsAccountTrophies?.prepare?.(u?.uid||null);
         currentUser=u;
         if(u){
           await loadCloud();
+          await window.ProfitLandsAccountTrophies?.onAuthChanged?.(u,db);
           refresh();
         }else{
           lastCloudSignature='';
-          refresh()
+          await window.ProfitLandsAccountTrophies?.onAuthChanged?.(null,null);
+          refresh();
         }
       });
-      window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh}
+      window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh,getCurrentUser:()=>currentUser}
     }catch(e){
       console.error(e);
       const n=document.querySelector('.local-note');
