@@ -125,7 +125,8 @@
     const demand=e.demandIndex*loc.demand*activeEffect('demand')*(1+(e.health-60)/250*r.econ);
     const revenue=t.baseRevenue*lvl*demand*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*scale;
     const runningCost=t.baseExpense*lvl*loc.rent*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
-    let profit=revenue-runningCost;
+    const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
+    let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
     if(b.type==='software')profit*=activeEffect('tech');
     if(b.type==='hotel')profit*=activeEffect('travel');
     profit*=activeEffect('weather')>1?(1-(activeEffect('weather')-1)*.10*r.weather):1;
