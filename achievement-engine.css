@@ -19,6 +19,13 @@
 .pl-trophy-featured p{margin:0;color:#a7c3ae;font-size:12px}
 .pl-trophy-featured>div{display:flex;flex-wrap:wrap;gap:7px}
 .pl-trophy-featured>div>span{padding:8px 10px;border-radius:9px;background:#254531;color:#def8d4;font-size:11px}
+.pl-trophy-featured>div>span{display:inline-flex;align-items:center;gap:9px}
+.pl-trophy-featured [data-trophy-feature]{cursor:pointer;background:#183322;border:1px solid #678e64;color:#eaffdf;border-radius:6px;font-size:15px;line-height:1;width:25px;height:25px}
+.pl-trophy-featured [data-trophy-feature]:hover{background:#315a37}
+.pl-trophy-filters{grid-template-columns:repeat(5,minmax(0,1fr))}
+.auth-featured{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.auth-featured span{border:1px solid #425c47;border-radius:8px;padding:6px 9px;background:#1a2d20;color:#d9f7d9;font-size:11px}
+
 .pl-trophy-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}
 .pl-trophy-filters label{display:flex;flex-direction:column;gap:7px;color:#b5d1b8;font-size:11px;font-weight:800}
 .pl-trophy-filters select,.pl-trophy-filters input{background:#162b1e;border:1px solid #53745d;color:#f4faeb;border-radius:9px;padding:10px;min-height:42px;min-width:0;width:100%}
