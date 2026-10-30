@@ -123,6 +123,8 @@ function watch(owner,epoch){
    if(!sameProgress(combined,current())){
     window.state.badgeBook=combined;
     localWrite(uid,combined);
+    // A native Steam build also needs badges imported from another device.
+    void window.ProfitLandsSteamAchievements?.sync?.();
     repaint();
    }
    synced=!snap.metadata?.fromCache;
@@ -174,6 +176,7 @@ async function onAuthChanged(user,database){
  if(owner){
   changed();
   watch(owner,epoch);
+  void window.ProfitLandsSteamAchievements?.sync?.();
  }
  repaint();
  return true;
@@ -185,7 +188,7 @@ function guestAvailable(){
 function importGuest(){
  if(!uid||!ready||!guestAvailable())return false;
  window.state.badgeBook=merge(current(),localRead(null));
- changed();repaint();return true;
+ changed();void window.ProfitLandsSteamAchievements?.sync?.();repaint();return true;
 }
 function beforePageHide(){persistLocal();if(uid&&dirty)void flush()}
 function init(){
