@@ -1,4 +1,4 @@
-/* Future Steamworks curation manifest. Does NOT call Steam API.
+/* Steamworks curation and optional native desktop adapter. Does NOT load Steam in browsers.
    Steam starts with up to 100 achievements before app vetting.
    ProfitLands' complete in-game collection remains independent.
 */
@@ -31,5 +31,53 @@ function unlocked(){
   return engine.rankAt(sector,track)>=Number(raw);
  }).map(item=>item.apiName);
 }
-window.ProfitLandsSteamAchievements={achievements,unlocked,connected:false};
+// The browser cannot reach Steamworks. Only a trusted native desktop shell
+// explicitly enabling Steam may provide these functions.
+let native=null,inflight=null,resyncRequested=false;
+const confirmed=new Set();
+function validBridge(bridge){
+ return window.profitLandsPlatform?.steamEnabled===true && bridge?.ready===true &&
+  ['getAchievement','setAchievement','storeStats'].every(name=>typeof bridge[name]==='function');
+}
+async function sync(){
+ if(!native)return false;
+ if(inflight){resyncRequested=true;return inflight}
+ inflight=(async()=>{
+  const staged=[];
+  try{
+   for(const name of unlocked()){
+    if(confirmed.has(name))continue;
+    if(await native.getAchievement(name)===true){confirmed.add(name);continue}
+    if(await native.setAchievement(name)!==true)return false;
+    staged.push(name);
+   }
+   if(staged.length){
+    // Native host must wait for Steam's stats-store acknowledgement.
+    if(await native.storeStats()!==true)return false;
+    for(const name of staged)confirmed.add(name);
+   }
+   return true;
+  }catch(e){console.warn('Native Steam achievement sync failed; in-game badges are unaffected.',e);return false}
+ })();
+ try{return await inflight}finally{
+  inflight=null;
+  if(resyncRequested){resyncRequested=false;void sync()}
+ }
+}
+async function connect(bridge=window.ProfitLandsSteamBridge){
+ if(!validBridge(bridge))return false;
+ if(native!==bridge){native=bridge;confirmed.clear()}
+ return sync();
+}
+function disconnect(){native=null;confirmed.clear();resyncRequested=false}
+window.ProfitLandsSteamAchievements={
+ achievements,unlocked,connect,sync,disconnect,
+ get connected(){return !!native}
+};
+if(typeof window.addEventListener==='function')
+ window.addEventListener('profitlands:steam-ready',()=>{void connect()});
+if(typeof document!=='undefined'){
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{void connect()},{once:true});
+ else void connect();
+}
 })();

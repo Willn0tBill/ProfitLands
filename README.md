@@ -10,6 +10,27 @@ ProfitLands is a browser-based financial and empire-building strategy game proto
 
 Use **Ctrl+K** (or **Cmd+K** on macOS) to open a searchable command palette in the live game. Players can jump to management screens, open any owned business, buy a new company, or open other WtvI projects. The header also includes a touch-friendly Search control. Use `/` outside text fields as an alternative shortcut. The palette does not alter saves, time cycles, action pools, or cash.
 
+## Live account trophies and optional native Steam host (v1.7)
+
+- **Cross-device Firebase updates:** Once signed in, the Trophy Room subscribes to the player's own Firestore profile document. Trophies earned on a second signed-in device appear without signing out and back in. A failed cloud save keeps the local copy and retries automatically. Changes are typically queued for upload after about three seconds; closing the browser can interrupt an in-flight network request.
+- **Profile badge removal now stays removed:** Featured badges have a last-edited timestamp, so the old merge-union logic does not bring back deliberately removed badges. Existing legacy collections still import normally.
+- **Guest-to-account transfer is opt-in:** Signed-in players can choose "Import guest trophies from this device" under Account Settings; signing in on a shared device does not silently combine two players' collections.
+- **Native Steam preparation:** The optional desktop host in `desktop/` uses Electron plus `steamworks.js`. A restricted preload/IPC bridge exposes only achievement queries, unlocks, and stats submission. The browser build never issues native Steam commands. A set of 100 Steam achievement API identifiers is already mapped from account badges, but these identifiers must also be created and published in the Steamworks partner portal.
+- **Not yet live-certified:** A browser unit test cannot establish that the production Firestore project allows online reads/writes, nor can it prove a Steam server has acknowledged a native unlock. A real two-device login test and a Steam-enabled build test are still required. Native Steam account identity and ProfitLands Firebase account identity are separate.
+
+To test the optional desktop host after you have a registered Steam application and the Steam client running:
+
+```sh
+cd desktop
+npm install
+# Set PROFITLANDS_STEAM_APP_ID to the real application ID for your platform.
+npm start
+```
+
+The desktop host uses the Steam App ID environment variable, or the Steamworks SDK appid file if configured. Do **not** add Steam partner credentials, publishing secrets, or Steam Web API keys to the public repository. The native module and Steam redistributables must be packaged correctly for each target operating system before releasing a desktop build. The `StoreStats` call submitting successfully is not a guarantee that Steam's asynchronous server acknowledgement was received.
+
+**Current accounting constraint:** Cross-device lifetime counters use the maximum of known totals to prevent accidental duplication of previously saved progress. Unlock ranks never decrease, but separate simultaneous counter-only events on multiple devices are not necessarily additive. That would require a per-device event-counter migration rather than simply summing saved totals.
+
 ## Trophy Room: 131,072 in-game badges (v1.5)
 
 ProfitLands includes a **Trophies** workspace (Alt+0) with **131,072 procedurally defined badges**: 8 playable industries × 16 independently measured achievement tracks × 1,024 milestone ranks per track. Each badge has a stable ID, display name, measurable goal and Bronze/Silver/Gold/Diamond/Legendary tier.

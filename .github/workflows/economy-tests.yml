@@ -22,6 +22,8 @@ on:
       - 'business-advancements.js'
       - 'business-advancements.css'
       - 'achievement-engine.js'
+      - 'platform.js'
+      - 'desktop/**'
       - 'account-trophies.js'
       - 'firebase-auth.js'
       - 'steam-achievement-map.js'
@@ -56,6 +58,8 @@ on:
       - 'business-advancements.js'
       - 'business-advancements.css'
       - 'achievement-engine.js'
+      - 'platform.js'
+      - 'desktop/**'
       - 'account-trophies.js'
       - 'firebase-auth.js'
       - 'steam-achievement-map.js'
@@ -103,6 +107,9 @@ jobs:
           node --check account-trophies.js
           node --check steam-achievement-map.js
           node --check firebase-auth.js
+          node --check platform.js
+          node --check desktop/main.cjs
+          node --check desktop/preload.cjs
           node --check executive-briefing.js
           node --check quick-switch.js
       - name: Run economy regression suite

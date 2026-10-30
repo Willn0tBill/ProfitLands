@@ -111,7 +111,10 @@ function scan(now=Date.now(),force=false){
   const msg=awarded===1?'New achievement unlocked!':awarded.toLocaleString('en-US')+' achievements unlocked!';
   window.state.news?.push('TROPHY ROOM — '+msg);
   if(window.state.news?.length>150)window.state.news=window.state.news.slice(-150);
-  window.toast?.(msg);window.ProfitLandsAccountTrophies?.changed?.();window.save?.();pendingCounters=false;lastPersist=now;
+  window.toast?.(msg);window.ProfitLandsAccountTrophies?.changed?.();window.save?.();
+  // A native Steam host may mirror only the curated Steam subset.
+  void window.ProfitLandsSteamAchievements?.sync?.();
+  pendingCounters=false;lastPersist=now;
   if(window.ProfitLandsWorkspace?.active?.()==='trophies')render();
  }
  if(!awarded&&pendingCounters&&now-lastPersist>=30000){window.ProfitLandsAccountTrophies?.changed?.();window.save?.();pendingCounters=false;lastPersist=now}
@@ -163,6 +166,7 @@ function featured(id){
  const d=parseId(id),b=ensure();
  if(!d||!b||d.rank>rankAt(d.sector,d.track))return false;
  b.featured=b.featured.includes(id)?b.featured.filter(v=>v!==id):[...b.featured.slice(-4),id];
+ b.featuredAt=Math.max(Date.now(),Number(b.featuredAt||0)+1);
  window.ProfitLandsAccountTrophies?.changed?.();window.save?.();render();return true;
 }
 function card(d){
@@ -195,7 +199,7 @@ function render(){
  '<div class="pl-trophy-list-head"><strong>'+page.total.toLocaleString('en-US')+' matching badges</strong><span>Page '+(page.page+1)+' / '+page.pages.toLocaleString('en-US')+'</span></div>'+
  '<div class="pl-trophy-list">'+(page.rows.map(card).join('')||'<p>No achievements match these filters.</p>')+'</div>'+
  '<div class="pl-trophy-pagination"><button type="button" data-trophy-page="prev" '+(!page.page?'disabled':'')+'>Previous</button><span>Page '+(page.page+1)+' / '+page.pages.toLocaleString('en-US')+'</span><button type="button" data-trophy-page="next" '+(page.page+1>=page.pages?'disabled':'')+'>Next</button></div>'+
- '<p class="pl-trophy-note" id="plTrophyAccountStatus">'+((window.ProfitLandsAccountTrophies?.status?.().synced&&!window.ProfitLandsAccountTrophies?.status?.().pending)?'Account Trophy Room · synced to your private ProfitLands profile.':window.ProfitLandsAccountTrophies?.status?.().loggedIn?'Account Trophy Room · local progress saved; cloud sync pending.':'Guest Trophy Room · progress saved on this device. Sign in to sync across devices.')+' Steam achievements are a future curated subset, not yet connected.</p>';
+ '<p class="pl-trophy-note" id="plTrophyAccountStatus">'+((window.ProfitLandsAccountTrophies?.status?.().synced&&!window.ProfitLandsAccountTrophies?.status?.().pending)?'Account Trophy Room · synced to your private ProfitLands profile.':window.ProfitLandsAccountTrophies?.status?.().loggedIn?'Account Trophy Room · local progress saved; cloud sync pending.':'Guest Trophy Room · progress saved on this device. Sign in to sync across devices.')+' '+(window.ProfitLandsSteamAchievements?.connected?'Steam achievements: native bridge connected.':'Steam achievements: available only in a future Steam-enabled desktop build.')+'</p>';
  for(const [id,field]of[['trophySector','sector'],['trophyTrack','track'],['trophyTier','tier'],['trophyStatus','status']]){
   root.querySelector('#'+id)?.addEventListener('change',e=>{filter[field]=e.target.value;filter.page=0;render()});
  }

@@ -1,0 +1,16 @@
+{
+  "name": "profitlands-steam-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Optional native desktop host for ProfitLands Steam achievements",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0"
+  }
+}
