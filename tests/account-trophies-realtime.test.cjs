@@ -39,12 +39,15 @@ function firestore(){
  };
 }
 function device(db,initial){
+ let steamSyncs=0;
  const storageMap=new Map(),window={
   state:{started:true,badgeBook:initial||null},
   ProfitLandsBadges:{
    INDUSTRIES:[['coffee']],TRACKS:[{id:'highestLevel'},{id:'upgrades'}],render(){}
   },
-  ProfitLandsWorkspace:{active:()=>''},addEventListener(){}
+  ProfitLandsWorkspace:{active:()=>''},
+  ProfitLandsSteamAchievements:{sync(){steamSyncs++}},
+  addEventListener(){}
  };
  const localStorage={
   getItem:key=>storageMap.get(key)||null,
@@ -53,7 +56,7 @@ function device(db,initial){
  const ctx=vm.createContext({window,document:{readyState:'loading',addEventListener(){}},
   localStorage,console,Date,setTimeout:()=>1,clearTimeout(){}});
  new vm.Script(source).runInContext(ctx);
- return{bridge:window.ProfitLandsAccountTrophies,window,storageMap,db};
+ return{bridge:window.ProfitLandsAccountTrophies,window,storageMap,db,steamSyncs:()=>steamSyncs};
 }
 async function login(d,uid='player'){
  d.bridge.prepare(uid);
@@ -66,6 +69,7 @@ test('two open devices receive higher achievements from Firestore without re-log
  a.window.state.badgeBook.ranks['coffee.highestLevel']=21;
  a.bridge.changed();assert.equal(await a.bridge.flush(),true);
  assert.equal(b.window.state.badgeBook.ranks['coffee.highestLevel'],21);
+ assert.ok(b.steamSyncs()>0,'native Steam adapter receives imported account progress');
  assert.equal(db.docs.get('player').playerName,'Player');
  b.window.state.badgeBook.ranks['coffee.highestLevel']=30;
  b.bridge.changed();assert.equal(await b.bridge.flush(),true);
