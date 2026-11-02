@@ -1,9 +1,9 @@
 /* ProfitLands v0.8 balanced action regeneration.
    World modes determine market-cycle length and action capacity, not cash/sec.
-   Actions refill gradually during active play to avoid long-mode lockout. */
+   Active-play regeneration is intentionally equal across modes; market cycles add a small time-scaled refill. */
 (function(){
 'use strict';
-const intervals=Object.freeze({fast:9,standard:12,long:18,persistent:30});
+const intervals=Object.freeze({fast:15,standard:15,long:15,persistent:15});
 function interval(mode){return intervals[mode]||intervals.standard}
 function valid(state,mode){return !!state&&Number.isFinite(Number(state.actions))&&Number.isFinite(Number(mode?.actions))}
 function migrate(){
