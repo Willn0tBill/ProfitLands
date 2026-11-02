@@ -4,7 +4,7 @@
 */
 (function(){
 'use strict';
-const KEY='profitlands-workspace-view-v1';
+const KEY='profitlands-workspace-view-v2';
 const VIEWS=[
  {id:'overview',number:'01',name:'Overview',title:'Command Center',description:'Executive briefing, current economy, and market news.',group:'MANAGEMENT',panels:['executivePanel','economyPanel','newsPanel']},
  {id:'businesses',number:'02',name:'Businesses',title:'Business Portfolio',description:'Companies, branches, staffing and new acquisitions.',group:'MANAGEMENT',panels:['businessPanel']},
@@ -109,17 +109,6 @@ function makeNav(){
   show('businesses');$('openBusinessShop')?.click();
  });
  actions.appendChild(buy);
- const compact=element('button','pl-workspace-quick-button pl-workspace-secondary','Dashboard layout');
- compact.type='button';
- compact.addEventListener('click',()=>{
-  if(!toolbar)return;
-  toolbar.hidden=!toolbar.hidden;
-  compact.setAttribute('aria-expanded',String(!toolbar.hidden));
- });
- compact.setAttribute('aria-expanded','false');
- actions.appendChild(compact);
- const oldToolbar=document.querySelector('#gameScreen .pl-view-toolbar');
- if(oldToolbar){toolbar=oldToolbar;oldToolbar.hidden=true;actions.appendChild(oldToolbar)}
  nav.appendChild(actions);
  return nav;
 }
