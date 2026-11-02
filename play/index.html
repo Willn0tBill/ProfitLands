@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="../sticky-news.css" />
   <link rel="stylesheet" href="../player-system.css" />
   <link rel="stylesheet" href="../economy-system.css" />
+  <link rel="stylesheet" href="../country-system.css?v=country01" />
   <link rel="stylesheet" href="../tutorial.css" />
   <link rel="stylesheet" href="../performance-motion.css" />
   <link rel="stylesheet" href="../mobile.css" />
@@ -55,6 +56,21 @@
   <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Multiplayer Preview</strong><small>Prototype setup; real online multiplayer is not yet available.</small></button></div>
   <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
   <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min auto cycle · 40 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min auto cycle · 60 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr auto cycle · 100 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr auto cycle · 120 actions</small></button></div>
+  <div class="section-title"><span class="eyebrow">STARTING MARKET</span><h3>Choose your home country</h3></div>
+  <section class="country-setup" aria-label="Starting country">
+    <div class="country-setup-head">
+      <div><span class="eyebrow">COUNTRY ECONOMY</span><h3>Your headquarters market</h3></div>
+      <div class="country-select-wrap"><label for="startCountry">STARTING COUNTRY</label><select id="startCountry" aria-label="Choose starting country"></select></div>
+    </div>
+    <div class="country-metrics">
+      <div><small>CORPORATE TAX</small><b id="countryTax">21%</b></div>
+      <div><small>CONSUMER DEMAND</small><b id="countryDemand">108%</b></div>
+      <div><small>OPERATING COST</small><b id="countryCosts">100%</b></div>
+      <div><small>BASE LOAN RATE</small><b id="countryLoan">8.2%</b></div>
+    </div>
+    <p class="country-summary" id="countrySummary">Large consumer market with balanced costs and strong technology demand.</p>
+    <p class="country-tax-note">Country values are simplified for game balance. Corporate tax is settled once every 365 market days on positive operating profit.</p>
+  </section>
   <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
@@ -190,6 +206,14 @@
   <div class="panel-head"><div><span class="eyebrow">WORLD ECONOMY</span><h3>Economic Conditions</h3></div><span class="live-tag" id="economyCondition">NORMAL</span></div>
   <div class="economy-meter"><div><strong id="economyHealth">60</strong><small>/ 100</small></div><div class="economy-bar"><i id="economyHealthBar" style="width:60%"></i></div></div>
   <div class="economy-stats"><div><small>RENT INDEX</small><b id="economyRent">1.00×</b></div><div><small>WAGE INDEX</small><b id="economyWages">1.00×</b></div><div><small>DEMAND</small><b id="economyDemand">100%</b></div><div><small>LOAN RATE</small><b id="economyLoanRate">8.0%</b></div></div>
+  <div class="country-fiscal-grid">
+    <div><small>HOME MARKET</small><b id="economyCountry">United States</b></div>
+    <div><small>COUNTRY CORPORATE TAX</small><b id="economyCountryTax">21%</b></div>
+    <div><small>COUNTRY COST INDEX</small><b id="economyCountryCosts">100%</b></div>
+    <div><small>FISCAL YEAR</small><b id="economyFiscalYear">Year 1</b></div>
+    <div><small>TAXABLE OPERATING PROFIT</small><b id="economyTaxableProfit">$0</b></div>
+    <div><small>ESTIMATED TAX · DUE</small><b><span id="economyTaxEstimate">$0</span> · <span id="economyTaxDueDay">Day 366</span></b></div>
+  </div>
   <div class="economy-events"><small>ACTIVE EVENTS</small><b id="economyActiveEvents">No major active events</b></div>
   <div class="economy-tier">Corporate scale: <b id="economyScale">Starting</b> · Event intensity increases as your empire grows.</div>
 </div>
@@ -260,6 +284,7 @@
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
   <script src="../app.js?v=account01"></script>
+  <script src="../country-system.js?v=country01"></script>
   <script src="../enhancements.js?v=huge01"></script>
   <script src="../economy-system.js?v=account01"></script>
   <script src="../economy-render.js?v=realtime01"></script>
