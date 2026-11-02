@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../sticky-news.css" />
   <link rel="stylesheet" href="../player-system.css" />
   <link rel="stylesheet" href="../economy-system.css" />
-  <link rel="stylesheet" href="../country-system.css?v=country01" />
+  <link rel="stylesheet" href="../country-system.css?v=country02" />
   <link rel="stylesheet" href="../tutorial.css" />
   <link rel="stylesheet" href="../performance-motion.css" />
   <link rel="stylesheet" href="../mobile.css" />
@@ -63,13 +63,15 @@
       <div class="country-select-wrap"><label for="startCountry">STARTING COUNTRY</label><select id="startCountry" aria-label="Choose starting country"></select></div>
     </div>
     <div class="country-metrics">
-      <div><small>CORPORATE TAX</small><b id="countryTax">21%</b></div>
-      <div><small>CONSUMER DEMAND</small><b id="countryDemand">108%</b></div>
-      <div><small>OPERATING COST</small><b id="countryCosts">100%</b></div>
-      <div><small>BASE LOAN RATE</small><b id="countryLoan">8.2%</b></div>
+      <div><small>CORPORATE TAX</small><b id="countryTax">25.5%</b></div>
+      <div><small>LATEST CPI INFLATION</small><b id="countryInflation">2.9%</b></div>
+      <div><small>PRICE LEVEL · US=100</small><b id="countryPriceLevel">100</b></div>
+      <div><small>EST. BUSINESS APR</small><b id="countryLoan">7.4%</b></div>
+      <div><small>GDP / PERSON · PPP</small><b id="countryGdpPpp">$90.0K</b></div>
+      <div><small>MODELED DEMAND</small><b id="countryDemand">114%</b></div>
     </div>
-    <p class="country-summary" id="countrySummary">Large consumer market with balanced costs and strong technology demand.</p>
-    <p class="country-tax-note">Country values are simplified for game balance. Corporate tax is settled once every 365 market days on positive operating profit.</p>
+    <p class="country-summary" id="countrySummary">Country data is loading.</p>
+    <p class="country-tax-note">Tax, inflation, GDP and price-level inputs are tied to published economic data. Business APR, demand and sector advantages are simulation outputs derived from those inputs. Annual corporate tax is settled every 365 market days.</p>
   </section>
   <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
@@ -208,12 +210,16 @@
   <div class="economy-stats"><div><small>RENT INDEX</small><b id="economyRent">1.00×</b></div><div><small>WAGE INDEX</small><b id="economyWages">1.00×</b></div><div><small>DEMAND</small><b id="economyDemand">100%</b></div><div><small>LOAN RATE</small><b id="economyLoanRate">8.0%</b></div></div>
   <div class="country-fiscal-grid">
     <div><small>HOME MARKET</small><b id="economyCountry">United States</b></div>
-    <div><small>COUNTRY CORPORATE TAX</small><b id="economyCountryTax">21%</b></div>
-    <div><small>COUNTRY COST INDEX</small><b id="economyCountryCosts">100%</b></div>
+    <div><small>REP. CORPORATE TAX</small><b id="economyCountryTax">25.5%</b></div>
+    <div><small>OPERATING COST INDEX</small><b id="economyCountryCosts">100% of US</b></div>
+    <div><small>LATEST CPI INFLATION</small><b id="economyCountryInflation">2.9% (2024)</b></div>
+    <div><small>EST. BUSINESS APR</small><b id="economyCountryApr">7.4% est.</b></div>
+    <div><small>PRICE LEVEL</small><b id="economyCountryPriceLevel">100 / US 100</b></div>
     <div><small>FISCAL YEAR</small><b id="economyFiscalYear">Year 1</b></div>
     <div><small>TAXABLE OPERATING PROFIT</small><b id="economyTaxableProfit">$0</b></div>
     <div><small>ESTIMATED TAX · DUE</small><b><span id="economyTaxEstimate">$0</span> · <span id="economyTaxDueDay">Day 366</span></b></div>
   </div>
+  <p class="country-tax-method" id="economyTaxMethod">Representative corporate-tax method.</p>
   <div class="economy-events"><small>ACTIVE EVENTS</small><b id="economyActiveEvents">No major active events</b></div>
   <div class="economy-tier">Corporate scale: <b id="economyScale">Starting</b> · Event intensity increases as your empire grows.</div>
 </div>
@@ -284,7 +290,7 @@
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
   <script src="../app.js?v=account01"></script>
-  <script src="../country-system.js?v=country01"></script>
+  <script src="../country-system.js?v=country02"></script>
   <script src="../enhancements.js?v=huge01"></script>
   <script src="../economy-system.js?v=account01"></script>
   <script src="../economy-render.js?v=realtime01"></script>
