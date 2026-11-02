@@ -98,7 +98,7 @@
     return i;
   }
   function economyLabel(h){if(h>=90)return'Boom';if(h>=70)return'Strong';if(h>=45)return'Normal';if(h>=25)return'Weak';return'Recession'}
-  function eventSeverity(){return 1+tier()*.12}
+  function eventSeverity(){const d=window.ProfitLandsDifficulty?.current?.()||{event:1};return (1+tier()*.12)*(Number(d.event)||1)}
   function activeEffect(key){
     let v=1;
     state.economy.activeEvents.forEach(a=>{const ev=EVENTS.find(x=>x.id===a.id);if(ev&&ev.effects&&ev.effects[key]!=null)v*=ev.effects[key]});
@@ -112,6 +112,7 @@
   function locationProfit(b,l,i){
     const t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!t)return 0;
     const r=riskFor(b), e=state.economy, scale=1+tier()*.045;
+    const difficulty=window.ProfitLandsDifficulty?.current?.()||{revenue:1,expenses:1};
     const country=window.ProfitLandsCountry?.current?.()||{demand:1,revenue:1,rent:1,wage:1};
     const countryDemand=Number(country.demand)||1;
     const countryRevenue=Number(country.revenue)||1;
@@ -128,8 +129,8 @@
     const noise=(seeded-Math.floor(seeded))-.5;
     const random=1+noise*(r.vol*(1+tier()*.22)+.08);
     const demand=e.demandIndex*loc.demand*countryDemand*activeEffect('demand')*(1+(e.health-60)/250*r.econ);
-    const revenue=t.baseRevenue*lvl*demand*countryRevenue*industryStrength*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*scale;
-    const runningCost=t.baseExpense*lvl*loc.rent*countryCost*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
+    const revenue=t.baseRevenue*lvl*demand*countryRevenue*industryStrength*(Number(difficulty.revenue)||1)*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*scale;
+    const runningCost=t.baseExpense*lvl*loc.rent*countryCost*(Number(difficulty.expenses)||1)*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
     const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
     let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
     if(b.type==='software')profit*=activeEffect('tech');
@@ -171,9 +172,9 @@
   }
   function majorDaily(c){
     const d=MAJOR.find(x=>x.id===c.type);if(!d)return 0;
-    const e=state.economy,country=window.ProfitLandsCountry?.current?.()||{demand:1,revenue:1};
-    const countryRevenue=1+(((Number(country.demand)||1)*(Number(country.revenue)||1))-1)*.35;
-    const countryCost=1+((window.ProfitLandsCountry?.costIndex?.(country)||1)-1)*.25;
+    const e=state.economy,country=window.ProfitLandsCountry?.current?.()||{demand:1,revenue:1},difficulty=window.ProfitLandsDifficulty?.current?.()||{revenue:1,expenses:1};
+    const countryRevenue=(1+(((Number(country.demand)||1)*(Number(country.revenue)||1))-1)*.35)*(Number(difficulty.revenue)||1);
+    const countryCost=(1+((window.ProfitLandsCountry?.costIndex?.(country)||1)-1)*.25)*(Number(difficulty.expenses)||1);
     const vol=d.vol*(1+tier()*.15)*(Number(country.marketVol)||1),noise=(Math.random()-.5)*2*vol;
     const econ=1+(e.health-60)/180;
     const event=activeEffect('demand')*activeEffect('supply');
@@ -186,7 +187,8 @@
       const ceiling=anchor*5;
       const old=Math.max(floor,Number(s.price)||anchor);
       const countryVol=Number(window.ProfitLandsCountry?.current?.()?.marketVol)||1;
-      const riskVol=(s.risk==='High'?.05:s.risk==='Low'?.025:.035)*countryVol;
+      const difficultyVol=Number(window.ProfitLandsDifficulty?.current?.()?.stockVol)||1;
+      const riskVol=(s.risk==='High'?.05:s.risk==='Low'?.025:.035)*countryVol*difficultyVol;
       const riskSensitivity=s.risk==='High'?1.2:s.risk==='Low'?.75:1;
 
       let sector=0;
@@ -403,7 +405,8 @@
       return xCost>lCost?x:largest;
     },null);
     if(!biggest)return;
-    const threshold=Math.abs(biggest.originalCost||BUSINESS_TYPES.find(t=>t.id===biggest.type)?.cost||1);
+    const difficultyBankruptcy=Number(window.ProfitLandsDifficulty?.current?.()?.bankruptcy)||1;
+    const threshold=Math.abs(biggest.originalCost||BUSINESS_TYPES.find(t=>t.id===biggest.type)?.cost||1)*difficultyBankruptcy;
     if(biggest.financialBalance<=-threshold && !biggest.bankruptcyPending)biggest.bankruptcyPending=true;
     const i=businesses.indexOf(biggest);
     if(i>=0 && biggest.bankruptcyPending)setTimeout(()=>bankruptcyModal(i),0);
@@ -471,9 +474,10 @@
     save();render();
   }
   function reset(mode,type){
-    const chosenCountry=state.country||'us';
+    const chosenCountry=state.country||'us',chosenDifficulty=state.difficulty||'executive';
+    const difficulty=window.ProfitLandsDifficulty?.byId?.(chosenDifficulty)||{startCash:1000};
     window.resetProfitLandsMarket?.();
-    state.mode=mode;state.playType=type;state.country=chosenCountry;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.arcade=null;/* Account Trophy Room persists. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;const countryProfile=window.ProfitLandsCountry?.byId?.(chosenCountry)||{loanRate:.08};state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:Number(countryProfile.loanRate)||.08,activeEvents:[],lastEventId:''};window.ProfitLandsCountry?.resetFiscal?.();state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — Your empire begins in '+(window.ProfitLandsCountry?.current?.()?.name||'the selected market')+' with $1,000 in starting capital.');save();
+    state.mode=mode;state.playType=type;state.country=chosenCountry;state.difficulty=chosenDifficulty;state.day=1;state.cash=Number(difficulty.startCash)||1000;state.cashHuge=String(state.cash);window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.arcade=null;/* Account Trophy Room persists. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;const countryProfile=window.ProfitLandsCountry?.byId?.(chosenCountry)||{loanRate:.08};state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:Number(countryProfile.loanRate)||.08,activeEvents:[],lastEventId:''};window.ProfitLandsCountry?.resetFiscal?.();state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — Your '+(window.ProfitLandsDifficulty?.current?.()?.name||'Executive')+' empire begins in '+(window.ProfitLandsCountry?.current?.()?.name||'the selected market')+' with '+money(state.cash)+' in starting capital.');save();
   }
   function doEndDay(auto){
     if(!state.started)return;
