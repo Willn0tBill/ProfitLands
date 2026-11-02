@@ -5,14 +5,18 @@
 .country-select-wrap{min-width:min(100%,280px)}
 .country-select-wrap label{display:block;margin-bottom:6px;color:#9eb1a4;font-size:10px;font-weight:800;letter-spacing:.12em}
 .country-select-wrap select{width:100%;min-height:44px;padding:10px 12px;border:1px solid #3b5748;border-radius:10px;background:#0d1713;color:#eef8ee;font:inherit}
-.country-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.country-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
 .country-metrics>div{padding:12px;border:1px solid #293c33;border-radius:11px;background:#0c1512}
 .country-metrics small{display:block;color:#84958d;font-size:9px;letter-spacing:.09em}
 .country-metrics b{display:block;margin-top:5px;color:#eaf7e8;font-size:16px;font-variant-numeric:tabular-nums}
 .country-summary{margin:12px 0 0;color:#a7b8ad;font-size:12px;line-height:1.5}
 .country-tax-note{margin:8px 0 0;color:#7f9188;font-size:10px;line-height:1.45}
-.country-fiscal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.country-fiscal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-top:12px}
 .country-fiscal-grid>div{padding:10px;border:1px solid #30463a;border-radius:9px;background:#0f1a15}
 .country-fiscal-grid small{display:block;color:#899a90;font-size:8px;letter-spacing:.08em}
 .country-fiscal-grid b{display:block;margin-top:4px;font-size:13px;color:#eaf6e7}
 @media(max-width:700px){.country-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.country-fiscal-grid{grid-template-columns:1fr}.country-select-wrap{width:100%}}
+
+.country-tax-method{margin:9px 0 0;color:#819288;font-size:10px;line-height:1.45}
+.country-select-wrap optgroup{color:#91a399;background:#0d1713;font-weight:800}
+.country-select-wrap option{color:#eef8ee;background:#0d1713;font-weight:500}
