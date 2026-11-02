@@ -34,14 +34,14 @@ function resetMarket(){
   captureMarket();
 }
 const BUSINESS_TYPES=[
-{id:'coffee',name:'Coffee Shop',icon:'☕',cost:500,baseRevenue:115,baseExpense:48,volatility:.28,desc:'Sells coffee, drinks, and quick food. Cheap to start and easy to expand.'},
-{id:'restaurant',name:'Restaurant',icon:'🍔',cost:2000,baseRevenue:390,baseExpense:190,volatility:.32,desc:'Food sales with strong upside but higher operating costs.'},
-{id:'gamestore',name:'Game Store',icon:'🎮',cost:5000,baseRevenue:760,baseExpense:420,volatility:.36,desc:'Sells games and electronics. Popularity can swing quickly.'},
-{id:'hotel',name:'Hotel',icon:'🏨',cost:25000,baseRevenue:3300,baseExpense:1900,volatility:.25,desc:'Earns from rooms and hospitality. Expensive but steady.'},
-{id:'dealership',name:'Car Dealership',icon:'🚗',cost:100000,baseRevenue:12500,baseExpense:7900,volatility:.4,desc:'Large transactions and large swings in demand.'},
-{id:'factory',name:'Factory',icon:'🏭',cost:500000,baseRevenue:62000,baseExpense:41000,volatility:.2,desc:'Produces goods at scale. Strong margins when demand is healthy.'},
-{id:'software',name:'Software Company',icon:'💻',cost:2500000,baseRevenue:330000,baseExpense:170000,volatility:.45,desc:'High-growth technology company with high demand volatility.'},
-{id:'logistics',name:'Logistics Company',icon:'📦',cost:10000000,baseRevenue:1250000,baseExpense:770000,volatility:.24,desc:'Moves goods across ProfitLands and benefits from strong commerce.'}
+{id:'coffee',name:'Coffee Shop',icon:'☕',cost:500,baseRevenue:114,baseExpense:48,volatility:.28,desc:'Sells coffee, drinks, and quick food. Cheap to start and easy to expand.'},
+{id:'restaurant',name:'Restaurant',icon:'🍔',cost:2000,baseRevenue:416,baseExpense:190,volatility:.32,desc:'Food sales with strong upside but higher operating costs.'},
+{id:'gamestore',name:'Game Store',icon:'🎮',cost:5000,baseRevenue:702,baseExpense:420,volatility:.36,desc:'Sells games and electronics. Popularity can swing quickly.'},
+{id:'hotel',name:'Hotel',icon:'🏨',cost:25000,baseRevenue:3422,baseExpense:1900,volatility:.25,desc:'Earns from rooms and hospitality. Expensive but steady.'},
+{id:'dealership',name:'Car Dealership',icon:'🚗',cost:100000,baseRevenue:12687,baseExpense:7900,volatility:.4,desc:'Large transactions and large swings in demand.'},
+{id:'factory',name:'Factory',icon:'🏭',cost:500000,baseRevenue:67207,baseExpense:41000,volatility:.2,desc:'Produces goods at scale. Strong margins when demand is healthy.'},
+{id:'software',name:'Software Company',icon:'💻',cost:2500000,baseRevenue:196733,baseExpense:170000,volatility:.45,desc:'High-growth technology company with high demand volatility.'},
+{id:'logistics',name:'Logistics Company',icon:'📦',cost:10000000,baseRevenue:1283757,baseExpense:770000,volatility:.24,desc:'Moves goods across ProfitLands and benefits from strong commerce.'}
 ];
 const state={mode:'standard',playType:'single',day:1,cash:1000,stocks:{},businesses:[],property:0,actions:60,actionCapacityVersion:0,timeLeft:900,news:[],trend:null,started:false,lastDayProfit:0,bankrupt:false};
 let timerHandle=null;
@@ -99,7 +99,7 @@ function load(){
     }catch(e){console.warn('Could not restore '+key,e)}
   }
 }
-function resetForMode(mode,type){resetMarket();state.mode=mode;state.playType=type;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.empireLab=null;state.arcade=null;/* Account badges persist across empires. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.growth={history:[],milestones:[],lastSample:0};state.bankrupt=false;save()}
+function resetForMode(mode,type){const chosenCountry=state.country||'us';resetMarket();state.mode=mode;state.playType=type;state.country=chosenCountry;state.day=1;state.cash=1000;state.cashHuge='1000';window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.empireLab=null;state.arcade=null;/* Account badges persist across empires. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=['You founded your first company with $1,000.'];state.trend=null;state.started=true;state.lastDayProfit=0;state.growth={history:[],milestones:[],lastSample:0};state.bankrupt=false;save()}
 function businessValue(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);return t.cost*(1+b.level*.15)+b.chainCount*t.cost*10*.55}
 function businessDailyProfit(b){const t=BUSINESS_TYPES.find(x=>x.id===b.type);const levelMult=1+(b.level-1)*.22;const chainMult=1+b.chainCount*.9;const popularity=b.popularity/100;const revenue=t.baseRevenue*levelMult*chainMult*(.45+popularity*.8)*(1+b.marketing*.08);const expense=t.baseExpense*levelMult*chainMult*(1+b.efficiency*.07);return Math.round(revenue-expense)}
 function netWorth(){const extra=STOCKS.reduce((sum,s)=>sum+s.price*(state.stocks[s.id]?.shares||0),0)+state.businesses.reduce((sum,b)=>sum+businessValue(b),0)+state.property*750;return window.ProfitLandsMoney?window.ProfitLandsMoney.number(window.ProfitLandsMoney.netWorth(extra)):state.cash+extra}
