@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../player-system.css" />
   <link rel="stylesheet" href="../economy-system.css" />
   <link rel="stylesheet" href="../country-system.css?v=country02" />
+  <link rel="stylesheet" href="../difficulty-system.css?v=difficulty01" />
   <link rel="stylesheet" href="../tutorial.css" />
   <link rel="stylesheet" href="../performance-motion.css" />
   <link rel="stylesheet" href="../mobile.css" />
@@ -56,22 +57,36 @@
   <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Multiplayer Preview</strong><small>Prototype setup; real online multiplayer is not yet available.</small></button></div>
   <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
   <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min auto cycle · 40 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min auto cycle · 60 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr auto cycle · 100 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr auto cycle · 120 actions</small></button></div>
+  <div class="section-title"><span class="eyebrow">DIFFICULTY</span><h3>Choose your business pressure</h3></div>
+  <div class="difficulty-grid" role="group" aria-label="Game difficulty">
+    <button type="button" class="difficulty-card" data-difficulty="startup" aria-pressed="false"><strong>Startup</strong><span>Beginner</span><small>More room to learn and recover.</small></button>
+    <button type="button" class="difficulty-card selected" data-difficulty="executive" aria-pressed="true"><strong>Executive</strong><span>Experienced</span><small>The intended ProfitLands balance.</small></button>
+    <button type="button" class="difficulty-card" data-difficulty="tycoon" aria-pressed="false"><strong>Tycoon</strong><span>Pro</span><small>Tighter margins and harsher markets.</small></button>
+    <button type="button" class="difficulty-card" data-difficulty="hostile" aria-pressed="false"><strong>Hostile Takeover</strong><span>Unwinnable</span><small>Deliberately unfair. Survival is the challenge.</small></button>
+  </div>
+  <p class="difficulty-summary" id="difficultySummary">Executive · Experienced — The intended ProfitLands balance.</p>
   <div class="section-title"><span class="eyebrow">STARTING MARKET</span><h3>Choose your home country</h3></div>
   <section class="country-setup" aria-label="Starting country">
     <div class="country-setup-head">
       <div><span class="eyebrow">COUNTRY ECONOMY</span><h3>Your headquarters market</h3></div>
       <div class="country-select-wrap"><label for="startCountry">STARTING COUNTRY</label><select id="startCountry" aria-label="Choose starting country"></select></div>
     </div>
-    <div class="country-metrics">
+    <div class="country-key-metrics">
       <div><small>CORPORATE TAX</small><b id="countryTax">25.5%</b></div>
-      <div><small>LATEST CPI INFLATION</small><b id="countryInflation">2.9%</b></div>
-      <div><small>PRICE LEVEL · US=100</small><b id="countryPriceLevel">100</b></div>
-      <div><small>EST. BUSINESS APR</small><b id="countryLoan">7.4%</b></div>
-      <div><small>GDP / PERSON · PPP</small><b id="countryGdpPpp">$90.0K</b></div>
-      <div><small>MODELED DEMAND</small><b id="countryDemand">114%</b></div>
+      <div><small>INFLATION</small><b id="countryInflation">2.9%</b></div>
+      <div><small>OPERATING COST · US=100</small><b id="countryCosts">100</b></div>
     </div>
     <p class="country-summary" id="countrySummary">Country data is loading.</p>
-    <p class="country-tax-note">Tax, inflation, GDP and price-level inputs are tied to published economic data. Business APR, demand and sector advantages are simulation outputs derived from those inputs. Annual corporate tax is settled every 365 market days.</p>
+    <details class="country-advanced">
+      <summary>View economic details</summary>
+      <div class="country-metrics">
+        <div><small>PRICE LEVEL · US=100</small><b id="countryPriceLevel">100</b></div>
+        <div><small>EST. BUSINESS APR</small><b id="countryLoan">7.4%</b></div>
+        <div><small>GDP / PERSON · PPP</small><b id="countryGdpPpp">$90.0K</b></div>
+        <div><small>MODELED DEMAND</small><b id="countryDemand">114%</b></div>
+      </div>
+      <p class="country-tax-note">Tax, inflation, GDP and price-level inputs use published economic data. APR, demand and sector advantages are simulation values derived from those inputs.</p>
+    </details>
   </section>
   <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
@@ -290,6 +305,7 @@
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
   <script src="../app.js?v=account01"></script>
+  <script src="../difficulty-system.js?v=difficulty01"></script>
   <script src="../country-system.js?v=country02"></script>
   <script src="../enhancements.js?v=huge01"></script>
   <script src="../economy-system.js?v=account01"></script>
