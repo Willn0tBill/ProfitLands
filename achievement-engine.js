@@ -213,7 +213,17 @@ function render(){
 function init(){
  if(!$('trophyContent'))return;
  ensure();scan(Date.now(),true);render();
- window.setInterval(()=>scan(),5000);
+ const backgroundScan=()=>{
+  if(document.visibilityState==='hidden')return;
+  if(!window.state?.started||!$('gameScreen')?.classList.contains('active'))return;
+  scan();
+ };
+ window.setInterval(backgroundScan,15000);
+ window.addEventListener('profitlands:viewchange',e=>{
+  if(e.detail?.view!=='trophies')return;
+  scan(Date.now(),true);
+  render();
+ });
  window.addEventListener('profitlands:newgame',()=>{lastCheck=0;lastFullScan=0;lastPersist=0;pendingCounters=false;dirtySectors.clear();render()});
 }
 window.ProfitLandsBadges={INDUSTRIES,TRACKS,TIERS,RANKS,TOTAL,PAGE_SIZE,ensure,threshold,rankFor,rankAt,describe,sectorMeasures,record,scan,earnedCount,browse,featured,showcased,render,progressFor,tier,setFilter:o=>{filter={...filter,...o,page:0};return browse()}};
