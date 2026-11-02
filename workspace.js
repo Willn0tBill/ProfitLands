@@ -6,8 +6,8 @@
 'use strict';
 const KEY='profitlands-workspace-view-v1';
 const VIEWS=[
- {id:'businesses',number:'01',name:'Businesses',title:'Business Portfolio',description:'Companies, branches, staffing and new acquisitions.',group:'MANAGEMENT',panels:['businessPanel']},
- {id:'overview',number:'02',name:'Overview',title:'Command Center',description:'Executive briefing, current economy, and market news.',group:'MANAGEMENT',panels:['executivePanel','economyPanel','newsPanel']},
+ {id:'overview',number:'01',name:'Overview',title:'Command Center',description:'Executive briefing, current economy, and market news.',group:'MANAGEMENT',panels:['executivePanel','economyPanel','newsPanel']},
+ {id:'businesses',number:'02',name:'Businesses',title:'Business Portfolio',description:'Companies, branches, staffing and new acquisitions.',group:'MANAGEMENT',panels:['businessPanel']},
  {id:'operations',number:'03',name:'Operations',title:'Operations & Supply',description:'Inventory, staff roles, logistics and regional expansion.',group:'MANAGEMENT',panels:['empireLab']},
  {id:'markets',number:'04',name:'Markets',title:'Market & Portfolio',description:'Stock exchange, positions and holdings.',group:'FINANCE',panels:['stockPanel','holdingsPanel']},
  {id:'analytics',number:'05',name:'Analytics',title:'Business Intelligence',description:'Revenue charts, employees, decisions and achievements.',group:'FINANCE',panels:['growthPanel']},
@@ -18,7 +18,7 @@ const VIEWS=[
  {id:'trophies',number:'10',name:'Trophies',title:'Trophy Room',description:'131,072 collectible in-game achievement badges.',group:'EXPANSION',panels:['trophyPanel']}
 ];
 const $=id=>document.getElementById(id);
-let current='businesses';
+let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
@@ -179,6 +179,10 @@ function build(){
  game.appendChild(layout);
  shell=layout;
  document.body.classList.add('pl-workspace-enabled');
+ // The workspace replaces the old jump-link navigation. Keeping both visible
+ // makes the game feel duplicated and increases accidental layout changes.
+ const oldSectionLinks=$('plSectionLinks');
+ if(oldSectionLinks)oldSectionLinks.hidden=true;
  initialized=true;
  const fromHash=viewFromHash(location.hash);
  show(fromHash||current,{remember:false});
