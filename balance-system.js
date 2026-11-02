@@ -4,7 +4,10 @@
 (function(){
 'use strict';
 const intervals=Object.freeze({fast:15,standard:15,long:15,persistent:15});
-function interval(mode){return intervals[mode]||intervals.standard}
+function interval(mode){
+  const custom=Number(window.ProfitLandsDifficulty?.current?.()?.actionSeconds);
+  return Number.isFinite(custom)&&custom>0?custom:(intervals[mode]||intervals.standard);
+}
 function valid(state,mode){return !!state&&Number.isFinite(Number(state.actions))&&Number.isFinite(Number(mode?.actions))}
 function migrate(){
   // A one-time migration multiplies remaining actions on pre-10x saves.
