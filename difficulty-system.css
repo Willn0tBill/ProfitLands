@@ -1,0 +1,18 @@
+/* ProfitLands difficulty selector */
+.difficulty-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 12px}
+.difficulty-card{min-width:0;padding:14px;text-align:left;border:1px solid #2b3742;border-radius:13px;background:#10161d;color:#eef3f5;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.difficulty-card:hover{border-color:#486050;background:#131b18}
+.difficulty-card.selected{border-color:#7fae58;background:#162018}
+.difficulty-card strong{display:block;font-size:15px}
+.difficulty-card span{display:block;margin-top:3px;color:#a7ee66;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.difficulty-card small{display:block;margin-top:7px;color:#8e9aa5;line-height:1.4}
+.difficulty-summary{margin:0 0 18px;color:#8c999f;font-size:11px}
+.country-key-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.country-key-metrics>div{padding:12px;border:1px solid #293c33;border-radius:11px;background:#0c1512}
+.country-key-metrics small{display:block;color:#84958d;font-size:9px;letter-spacing:.09em}
+.country-key-metrics b{display:block;margin-top:5px;color:#eaf7e8;font-size:16px;font-variant-numeric:tabular-nums}
+.country-advanced{margin-top:12px;border-top:1px solid #27372f;padding-top:10px}
+.country-advanced summary{cursor:pointer;color:#9eafa5;font-size:11px;font-weight:700}
+.country-advanced .country-metrics{margin-top:10px}
+@media(max-width:850px){.difficulty-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.difficulty-grid{grid-template-columns:1fr}.country-key-metrics{grid-template-columns:1fr}}
