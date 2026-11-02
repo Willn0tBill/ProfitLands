@@ -170,11 +170,12 @@ function renderSetup(){
   const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
   set('countryTax',pct(c.taxRate));
   set('countryInflation',c.inflationPct.toFixed(1)+'%');
+  set('countryCosts',Math.round(costIndex(c)*100));
   set('countryPriceLevel',Math.round(c.priceLevel*100));
   set('countryLoan',(c.loanRate*100).toFixed(1)+'%');
   set('countryGdpPpp',moneyCompact(c.gdpPpp));
   set('countryDemand',Math.round(c.demand*100)+'%');
-  set('countrySummary',c.taxDetail+'. Latest CPI input: '+c.inflationYear+' · '+c.inflationPct.toFixed(1)+'%. Price level and GDP inputs determine operating costs, local prices, demand and the simulated business-loan APR.');
+  set('countrySummary',c.name+' changes your real operating environment: taxes, prices, wages, demand, borrowing pressure and sector strengths.');
 }
 function renderPanel(){
   const c=current(),f=ensure();
