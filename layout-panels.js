@@ -5,7 +5,6 @@
 const isDemo=Boolean(document.body?.classList?.contains('pl-demo-page'));
 const KEY=isDemo?'profitlands-layout-preview-v1':'profitlands-layout-v1';
 const defs=[
-  {id:'dashboard',label:'Empire Dashboard',open:true,kind:'hud'},
   {id:'empireLab',label:'Empire Operations',open:false},
   {id:'growthPanel',label:'Analytics & Growth',open:false},
   {id:'economyPanel',label:'World Economy',open:false},
@@ -43,11 +42,7 @@ function setupPanel(config){
       trigger.setAttribute('aria-controls',body.id);
     }
   }else if(config.kind==='hud'){
-    trigger=document.createElement('button');
-    trigger.type='button';
-    trigger.className='pl-layout-toggle pl-hud-toggle';
-    document.querySelector('#gameScreen .game-controls')?.prepend(trigger);
-    trigger.addEventListener('click',()=>setOpen(config.id,!isOpen(config.id)));
+    return;
   }else{
     const header=panel.querySelector(':scope > .panel-head');
     if(!header)return;
