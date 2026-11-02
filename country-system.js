@@ -5,25 +5,25 @@
 (function(){
 'use strict';
 const COUNTRIES=Object.freeze([
-  {id:'us',name:'United States',flag:'US',taxRate:.21,rent:1.00,wage:1.00,demand:1.08,loanRate:.082,inflation:1.00,marketVol:.98,
+  {id:'us',name:'United States',flag:'US',taxRate:.21,rent:1.00,wage:1.00,demand:1.03,revenue:1.00,loanRate:.082,inflation:1.00,marketVol:.98,
    note:'Large consumer market with balanced costs and strong technology demand.',industry:{software:1.08,dealership:1.05,restaurant:1.02}},
-  {id:'ca',name:'Canada',flag:'CA',taxRate:.265,rent:.95,wage:1.02,demand:.98,loanRate:.078,inflation:.98,marketVol:.92,
+  {id:'ca',name:'Canada',flag:'CA',taxRate:.265,rent:.95,wage:1.02,demand:.99,revenue:.98,loanRate:.078,inflation:.98,marketVol:.92,
    note:'Stable market with moderate costs and strong logistics and technology sectors.',industry:{software:1.05,logistics:1.07,hotel:1.02}},
-  {id:'gb',name:'United Kingdom',flag:'UK',taxRate:.25,rent:1.08,wage:1.05,demand:1.02,loanRate:.080,inflation:1.02,marketVol:1.00,
+  {id:'gb',name:'United Kingdom',flag:'UK',taxRate:.25,rent:1.08,wage:1.05,demand:1.02,revenue:1.02,loanRate:.080,inflation:1.02,marketVol:1.00,
    note:'Higher operating costs, but strong service, tourism and technology demand.',industry:{software:1.06,hotel:1.08,restaurant:1.03}},
-  {id:'de',name:'Germany',flag:'DE',taxRate:.299,rent:.98,wage:1.10,demand:1.05,loanRate:.072,inflation:.96,marketVol:.88,
+  {id:'de',name:'Germany',flag:'DE',taxRate:.299,rent:.98,wage:1.10,demand:1.04,revenue:1.01,loanRate:.072,inflation:.96,marketVol:.88,
    note:'Expensive labor is offset by strong industrial and logistics productivity.',industry:{factory:1.12,logistics:1.10,dealership:1.07}},
-  {id:'jp',name:'Japan',flag:'JP',taxRate:.306,rent:1.12,wage:1.06,demand:1.04,loanRate:.055,inflation:.92,marketVol:.90,
+  {id:'jp',name:'Japan',flag:'JP',taxRate:.306,rent:1.12,wage:1.06,demand:1.03,revenue:1.01,loanRate:.055,inflation:.92,marketVol:.90,
    note:'High urban costs, lower borrowing pressure, and strong consumer technology markets.',industry:{gamestore:1.10,dealership:1.08,software:1.04}},
-  {id:'cn',name:'China',flag:'CN',taxRate:.25,rent:.78,wage:.72,demand:1.12,loanRate:.070,inflation:1.03,marketVol:1.05,
+  {id:'cn',name:'China',flag:'CN',taxRate:.25,rent:.78,wage:.72,demand:1.08,revenue:.78,loanRate:.070,inflation:1.03,marketVol:1.05,
    note:'Lower operating costs and very strong demand, especially for manufacturing and logistics.',industry:{factory:1.13,logistics:1.12,software:1.04}},
-  {id:'au',name:'Australia',flag:'AU',taxRate:.30,rent:1.05,wage:1.12,demand:.98,loanRate:.085,inflation:1.04,marketVol:.96,
+  {id:'au',name:'Australia',flag:'AU',taxRate:.30,rent:1.05,wage:1.12,demand:.99,revenue:1.05,loanRate:.085,inflation:1.04,marketVol:.96,
    note:'High wages with a stable consumer market and strong travel and logistics activity.',industry:{hotel:1.10,logistics:1.06,restaurant:1.03}},
-  {id:'sg',name:'Singapore',flag:'SG',taxRate:.17,rent:1.35,wage:1.10,demand:1.12,loanRate:.060,inflation:.97,marketVol:.92,
+  {id:'sg',name:'Singapore',flag:'SG',taxRate:.17,rent:1.35,wage:1.10,demand:1.08,revenue:1.15,loanRate:.060,inflation:.97,marketVol:.92,
    note:'Low corporate tax and strong demand, balanced by very high property and staffing costs.',industry:{software:1.12,logistics:1.12,hotel:1.04}},
-  {id:'br',name:'Brazil',flag:'BR',taxRate:.34,rent:.70,wage:.60,demand:1.05,loanRate:.115,inflation:1.18,marketVol:1.15,
+  {id:'br',name:'Brazil',flag:'BR',taxRate:.34,rent:.70,wage:.60,demand:1.04,revenue:.64,loanRate:.115,inflation:1.18,marketVol:1.15,
    note:'Lower operating costs and healthy demand, but higher financing and inflation pressure.',industry:{restaurant:1.08,hotel:1.07,logistics:1.03}},
-  {id:'in',name:'India',flag:'IN',taxRate:.25,rent:.58,wage:.48,demand:1.15,loanRate:.095,inflation:1.10,marketVol:1.10,
+  {id:'in',name:'India',flag:'IN',taxRate:.25,rent:.58,wage:.48,demand:1.08,revenue:.52,loanRate:.095,inflation:1.10,marketVol:1.10,
    note:'Low operating costs and fast demand growth, with somewhat higher financing and market volatility.',industry:{software:1.12,logistics:1.08,restaurant:1.05}}
 ]);
 const DEFAULT_DISTRICT=Object.freeze({
