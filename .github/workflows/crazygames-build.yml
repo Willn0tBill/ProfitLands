@@ -1,0 +1,37 @@
+name: Build ProfitLands for CrazyGames
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'crazygames.js'
+      - 'crazygames.css'
+      - 'quick-switch.js'
+      - 'firebase-auth.js'
+      - 'play/index.html'
+      - 'scripts/build-crazygames.cjs'
+      - 'tests/crazygames-integration.test.cjs'
+      - '.github/workflows/crazygames-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  crazygames-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test CrazyGames integration
+        run: node --test tests/crazygames-integration.test.cjs
+      - name: Generate isolated browser build
+        run: node scripts/build-crazygames.cjs
+      - name: Upload submission-ready HTML5 files
+        uses: actions/upload-artifact@v4
+        with:
+          name: profitlands-crazygames-html5
+          path: dist/crazygames/
+          if-no-files-found: error
