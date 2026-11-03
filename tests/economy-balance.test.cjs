@@ -358,14 +358,17 @@ test('gameplay scripts keep canonical huge balances on major mutation paths',()=
   assert.ok(market.includes('ProfitLandsMoney.gain(realized)'),'realtime earnings must hit canonical cash');
 });
 
-test('10x faster action regeneration is balanced consistently across all four modes',()=>{
+test('active-play actions regenerate every 15 seconds across all four market-cycle modes',()=>{
   const h=harness(),x=h.window.ProfitLandsBalance;
-  const expected={fast:[40,9],standard:[60,12],long:[100,18],persistent:[120,30]};
-  for(const [mode,[cap,seconds]] of Object.entries(expected)){
+  // World mode affects starting capacity and market cycle length, not action
+  // regeneration speed; this prevents 24-hour persistent mode from being punitive.
+  const expected={fast:40,standard:60,long:100,persistent:120};
+  for(const [mode,cap] of Object.entries(expected)){
     const projected=x.evaluateMode(mode,200,30);
     assert.equal(projected.maxActions,cap,mode+' cap');
     assert.equal(projected.startingActions,cap,mode+' starting actions');
-    assert.equal(projected.regenSeconds,seconds,mode+' fast regen');
+    assert.equal(projected.regenSeconds,15,mode+' active-play regen');
+    assert.equal(projected.estimatedReplenishments,120,mode+' 30-minute regeneration');
     assert.equal(projected.baseIncome,6000,mode+' earnings stay real-time');
   }
 });
@@ -399,11 +402,16 @@ test('auto-only market cycles have no manual button or input listener',()=>{
   assert.ok(economy.includes('if(left<=0&&!window.__profitEnding)'),'timer still handles automatic cycles');
   assert.ok(economy.includes('doEndDay(true)'),'auto advance still updates market state');
 });
-test('action budgets are set on new game and reset with automatic market cycles',()=>{
+test('new games start with full action budgets; automatic cycles add a capped partial refill',()=>{
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
-  assert.ok(app.includes('actions:40')&&app.includes('actions:60')&&app.includes('actions:100')&&app.includes('actions:120'));
-  assert.ok(app.includes('actionCapacityVersion=2'));
-  assert.ok(economy.includes('state.actions=MODES[state.mode].actions'));
+  for(const amount of [40,60,100,120])assert.ok(app.includes('actions:'+amount),'starting capacity '+amount);
+  assert.ok(app.includes('state.actions=MODES[mode].actions'),'new games start at selected mode capacity');
+  assert.ok(app.includes('actionCapacityVersion=2'),'new saves use current action capacity');
+  assert.ok(economy.includes('state.actions=MODES[mode].actions'),'realtime reset starts at full capacity');
+  // The current design does not refill an entire action pool at every market
+  // cycle. It awards a modest time-scaled amount and caps it to the mode limit.
+  assert.ok(economy.includes('const cycleRefill=Math.max(5,Math.round(MODES[state.mode].daySeconds/60))'));
+  assert.ok(economy.includes('state.actions=Math.min(actionCap,state.actions+cycleRefill)'));
   assert.ok(economy.includes('ProfitLandsBalance?.reset'));
 });

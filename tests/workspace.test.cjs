@@ -50,7 +50,7 @@ function setup(saved=null){
   preexistingParent.appendChild(el);allPanels[id]=el;
  }
  ids.set('gameScreen',game);
- const savedData=new Map(saved?[['profitlands-workspace-view-v1',saved]]:[]);
+ const savedData=new Map(saved?[['profitlands-workspace-view-v2',saved]]:[]);
  const localStorage={getItem:k=>savedData.get(k)||null,
   setItem:(k,v)=>savedData.set(k,String(v))};
  const body=new Node('body');
@@ -70,15 +70,18 @@ function setup(saved=null){
  new vm.Script(source,{filename:'workspace.js'}).runInContext(ctx);
  return {game,body,window,opened,allPanels,savedData,events,toolbar:oldToolbar};
 }
-test('workspace has business portfolio as its primary single-screen view',()=>{
+test('workspace starts on overview and keeps the business portfolio one click away',()=>{
  const x=setup();
  assert.equal(x.window.ProfitLandsWorkspace.ready(),true);
- assert.equal(x.window.ProfitLandsWorkspace.active(),'businesses');
+ assert.equal(x.window.ProfitLandsWorkspace.active(),'overview');
  assert.ok(x.body.classList.contains('pl-workspace-enabled'));
  const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
  assert.ok(workspace);
  const contents=workspace.findAll(n=>n.dataset.workspaceContent);
  assert.equal(contents.length,10);
+ assert.equal(contents.filter(v=>!v.hidden).length,1);
+ assert.equal(contents.filter(v=>!v.hidden)[0].dataset.workspaceContent,'overview');
+ assert.equal(x.window.ProfitLandsWorkspace.show('businesses'),true);
  assert.equal(contents.filter(v=>!v.hidden).length,1);
  assert.equal(contents.filter(v=>!v.hidden)[0].dataset.workspaceContent,'businesses');
 });
@@ -101,7 +104,7 @@ test('sidebar changes views without modifying game state or triggering save',()=
  assert.ok(x.opened.includes('holdingsPanel'));
  const selected=x.game.find(n=>n.dataset.workspaceView==='markets');
  assert.equal(selected.getAttribute('aria-current'),'page');
- assert.equal(x.savedData.get('profitlands-workspace-view-v1'),'markets');
+ assert.equal(x.savedData.get('profitlands-workspace-view-v2'),'markets');
  assert.equal(x.savedData.has('profitlands-v2'),false);
  assert.equal(api.show('bad-key'),false);
 });

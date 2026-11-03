@@ -101,13 +101,13 @@ function make(demo=false){
  new vm.Script(source,{filename:'layout-panels.js'}).runInContext(ctx);
  return {layout:window.ProfitLandsLayout,ids,stored,hud,lab,growth,econ,businesses,stocks,count,body};
 }
-test('opens only the core dashboard, Businesses and Stocks by default',()=>{
+test('legacy panel manager defaults to Businesses and Stocks expanded',()=>{
  const x=make();
- assert.equal(x.layout.isOpen('dashboard'),true);
  assert.equal(x.layout.isOpen('businessPanel'),true);
  assert.equal(x.layout.isOpen('stockPanel'),true);
  for(const id of ['empireLab','growthPanel','economyPanel'])assert.equal(x.layout.isOpen(id),false,id);
- assert.ok(x.count.textContent.includes('3 of 6'));
+ assert.equal(x.layout.isOpen('dashboard'),false,'dashboard is managed by the newer workspace');
+ assert.ok(x.count.textContent.includes('2 of 5'));
 });
 test('minimized panels preserve all original elements and can be expanded',()=>{
  const x=make(),content=x.lab.children.find(c=>c.classList.contains('pl-panel-content'));
@@ -125,11 +125,11 @@ test('minimized panels preserve all original elements and can be expanded',()=>{
 test('bulk minimize, expand and default-layout actions are functional',()=>{
  const x=make();
  x.ids.get('plMinimizeAll').click();
- for(const id of ['dashboard','empireLab','growthPanel','economyPanel','businessPanel','stockPanel'])assert.equal(x.layout.isOpen(id),false);
+ for(const id of ['empireLab','growthPanel','economyPanel','businessPanel','stockPanel'])assert.equal(x.layout.isOpen(id),false);
  x.ids.get('plExpandAll').click();
- for(const id of ['dashboard','empireLab','growthPanel','economyPanel','businessPanel','stockPanel'])assert.equal(x.layout.isOpen(id),true);
+ for(const id of ['empireLab','growthPanel','economyPanel','businessPanel','stockPanel'])assert.equal(x.layout.isOpen(id),true);
  x.ids.get('plDefaultLayout').click();
- assert.equal(x.layout.isOpen('dashboard'),true);
+ assert.equal(x.layout.isOpen('dashboard'),false);
  assert.equal(x.layout.isOpen('empireLab'),false);
  assert.equal(x.layout.isOpen('businessPanel'),true);
  assert.equal(x.stored.has('profitlands-layout-v1'),false);
@@ -144,13 +144,12 @@ test('legacy Businesses and Stocks toggles stay compatible with existing collaps
  toggle.click();
  assert.equal(x.layout.isOpen('businessPanel'),true);
 });
-test('HUD minimizes only statistics, keeping its controls mounted',()=>{
+test('legacy panel controls cannot accidentally collapse the persistent game HUD',()=>{
  const x=make();
- x.layout.minimize('dashboard');
- assert.equal(x.hud.classList.contains('pl-panel-minimized'),true);
- assert.equal(x.hud.children.some(c=>c.classList.contains('game-controls')),true);
- x.layout.open('dashboard');
+ assert.equal(x.layout.minimize('dashboard'),false,'HUD is no longer a legacy panel');
  assert.equal(x.hud.classList.contains('pl-panel-minimized'),false);
+ assert.equal(x.hud.children.some(c=>c.classList.contains('game-controls')),true);
+ assert.equal(x.layout.open('dashboard'),false);
 });
 test('layout preferences never alter the empire save key',()=>{
  const x=make();
@@ -158,14 +157,16 @@ test('layout preferences never alter the empire save key',()=>{
  assert.ok(x.stored.has('profitlands-layout-v1'));
  assert.equal(x.stored.has('profitlands-v2'),false);
 });
-test('game HTML loads layout manager after existing panel toggle script',()=>{
+test('main game uses modern workspace while legacy panel tools remain in the standalone preview',()=>{
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- assert.ok(html.includes('layout-panels.css'));
- assert.ok(html.indexOf('layout-panels.js')>html.indexOf('compact-panels.js'));
- for(const id of ['plMinimizeAll','plExpandAll','plDefaultLayout','empireLab','growthPanel','economyPanel','bankPanel']){
-  assert.ok(html.includes('id="'+id+'"'),id+' is present');
+ assert.ok(html.includes('workspace.css'));
+ assert.ok(html.indexOf('workspace.js')>html.indexOf('compact-panels.js'));
+ assert.equal(html.includes('layout-panels.js'),false,'no duplicate panel managers on the main page');
+ for(const id of ['empireLab','growthPanel','economyPanel','bankPanel']){
+  assert.ok(html.includes('id="'+id+'"'),id+' remains mounted for gameplay');
  }
- assert.ok(html.includes('Jump to a section'));
+ const preview=fs.readFileSync(path.join(root,'preview/index.html'),'utf8');
+ for(const id of ['plMinimizeAll','plExpandAll','plDefaultLayout'])assert.ok(preview.includes('id="'+id+'"'),id+' remains available in preview');
 });
 test('branch operations open the minimized Empire Lab when navigating to a location',()=>{
  const script=fs.readFileSync(path.join(root,'empire-lab.js'),'utf8');
