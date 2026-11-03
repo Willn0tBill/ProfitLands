@@ -29,6 +29,8 @@ on:
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'crazygames.js'
+      - 'crazygames-coach.js'
+      - 'crazygames-coach.css'
       - 'crazygames.css'
       - 'scripts/build-crazygames.cjs'
       - 'quick-switch.css'
@@ -68,6 +70,8 @@ on:
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'crazygames.js'
+      - 'crazygames-coach.js'
+      - 'crazygames-coach.css'
       - 'crazygames.css'
       - 'scripts/build-crazygames.cjs'
       - 'quick-switch.css'
@@ -119,6 +123,7 @@ jobs:
           node --check executive-briefing.js
           node --check quick-switch.js
           node --check crazygames.js
+          node --check crazygames-coach.js
           node --check scripts/build-crazygames.cjs
       - name: Run economy regression suite
         id: regression
