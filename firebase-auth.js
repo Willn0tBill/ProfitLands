@@ -187,6 +187,8 @@
     }
   }
   function install(){
+    // CrazyGames uses guest play and APS, never external account prompts.
+    if(window.profitLandsPlatform?.externalAuthDisabled)return;
     styles();
     if(!configured){
       window.ProfitLandsAccountTrophies?.onAuthChanged?.(null,null);
