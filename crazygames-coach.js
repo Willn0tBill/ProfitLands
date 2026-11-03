@@ -11,7 +11,7 @@ const STEPS=[
   {id:'inspect',title:'Meet your new company',detail:'Check its popularity, income, operating costs and available upgrades.',action:'Manage my business',done:(s,p)=>Boolean(p.inspectedBusiness)},
   {id:'improve',title:'Make your first improvement',detail:'Try marketing or an upgrade. Improvements have costs, so check your cash first.',action:'View improvements',done:(s,p)=>(s?.businesses||[]).some(b=>
     Number(b.level)>1||Number(b.marketing)>0||Number(b.efficiency)>0||Number(b.workers)>0||Number(b.chainCount)>0||
-    (b.locations||[]).some(l=>Number(l.level)>1||Number(l.marketing)>0||Number(l.efficiency)>0||Number(l.workers)>0||l.manager===true)
+    (Array.isArray(b.locations)&&b.locations.some(l=>Number(l.level)>1||Number(l.marketing)>0||Number(l.efficiency)>0||Number(l.workers)>0||l.manager===true))
   )},
   {id:'markets',title:'Explore the market',detail:'See how fictional company stocks move, then decide how to expand your empire.',action:'Explore stocks',done:(s,p)=>Boolean(p.visitedMarkets)}
 ];
