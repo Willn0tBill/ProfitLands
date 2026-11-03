@@ -84,3 +84,17 @@ refills, and dashboard/workspace v1). This branch updates those tests to the
 current game behavior **without changing the economy formulas or workspace
 implementation**. The complete suite now passes (131/131 in GitHub Actions).
 Live CrazyGames iframe/mobile and account-save tests are still required.
+
+## Local browser smoke test — November 3, 2026
+
+A clean-profile Chrome 156 run on Windows tested a **generated upload package**, not the standard website:
+
+- Fresh-start gameplay and workspace initialization with the four-goal guide visible.
+- Open the enhanced business shop, buy a Coffee Shop, and inspect its management panel.
+- Purchase actual **per-location marketing** and verify starter progress advances to markets, then 4/4 goals complete.
+- Save, reload, and verify the business, marketing upgrade, running game, and returning-player guide preferences persist.
+- Inspect 800×450 mobile landscape and 907×510 iframe-sized viewports: no horizontal document overflow and the guide button is accessible.
+- Boot in an actual 800×450 sandboxed iframe (`allow-scripts allow-same-origin`) and verify game, workspace, and guide scripts initialize.
+- After adding the local favicon, **zero Chrome runtime/console errors** occurred during this smoke test.
+
+This does **not** verify CrazyGames production SDK behavior, APS account synchronization across devices, ad integration, or the Developer Portal review. These require a real authenticated portal preview and must be checked before publishing.
