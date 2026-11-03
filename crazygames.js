@@ -95,6 +95,8 @@
 
   async function boot(){
     document.body?.classList.add('pl-crazygames');
+    // Only first-time players see the optional quick-start guide by default.
+    cg.freshEmpire=!hasSavedEmpire();
     // Give players real gameplay immediately; SDK initialization is not a
     // prerequisite for starting the local offline economy.
     quickStart();
