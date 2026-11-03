@@ -75,7 +75,8 @@ body.pl-crazygames .pl-cg-success {
   font-size:12px;font-weight:650;
 }
 body.pl-crazygames .pl-cg-success[hidden] {display:none!important}
-body.pl-crazygames.pl-cg-first-session #businessChoices .business-choice[data-buy="coffee"] {
+body.pl-crazygames.pl-cg-first-session #businessChoices .business-choice[data-buy="coffee"],
+body.pl-crazygames.pl-cg-first-session #businessChoices .business-choice[data-buy-type="coffee"] {
   border-color:rgba(42,192,161,.62);
   box-shadow:inset 0 0 0 1px rgba(42,192,161,.25);
 }
