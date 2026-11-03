@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - 'crazygames.js'
+      - 'crazygames-coach.js'
+      - 'crazygames-coach.css'
       - 'crazygames.css'
       - 'quick-switch.js'
       - 'firebase-auth.js'
