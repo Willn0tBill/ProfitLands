@@ -114,6 +114,8 @@ test('isolated build removes external account scripts, links, and broken relativ
     assert.match(html,/crazygames\.css/);
     assert.match(html,/crazygames-coach\.css/);
     assert.match(html,/crazygames-coach\.js/);
+    assert.match(html,/href="favicon\.svg"/);
+    assert.match(fs.readFileSync(path.join(output,'favicon.svg'),'utf8'),/<svg[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
     assert.ok(html.indexOf('crazygames-coach.js')>html.indexOf('workspace.js'),'coach loads after workspace');
     assert.doesNotMatch(html,/firebase-auth|firebase-config|www\.gstatic\.com\/firebasejs/);
     assert.doesNotMatch(html,/href="\.\.\//);
