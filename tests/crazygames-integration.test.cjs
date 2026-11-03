@@ -56,6 +56,7 @@ test('host detection recognizes CrazyGames instead of the broken escaped-dot exp
   assert.equal(h.window.profitLandsPlatform.externalAuthDisabled,true);
   await h.callbacks.load();
   assert.equal(h.counters.start,1);
+  assert.equal(h.window.profitLandsPlatform.freshEmpire,true);
   assert.equal(h.window.state.playType,'single');
 });
 
@@ -65,6 +66,7 @@ test('packaged build starts immediately, does not overwrite saved empires',async
   await h.callbacks.load();
   assert.equal(h.counters.start,0);
   assert.equal(h.counters.resume,1);
+  assert.equal(h.window.profitLandsPlatform.freshEmpire,false);
   assert.equal(h.memory.get('profitlands-v2'),JSON.stringify(save));
 });
 
@@ -110,6 +112,9 @@ test('isolated build removes external account scripts, links, and broken relativ
     assert.match(html,/name="profitlands-platform" content="crazygames"/);
     assert.match(html,/crazygames-sdk-v3\.js/);
     assert.match(html,/crazygames\.css/);
+    assert.match(html,/crazygames-coach\.css/);
+    assert.match(html,/crazygames-coach\.js/);
+    assert.ok(html.indexOf('crazygames-coach.js')>html.indexOf('workspace.js'),'coach loads after workspace');
     assert.doesNotMatch(html,/firebase-auth|firebase-config|www\.gstatic\.com\/firebasejs/);
     assert.doesNotMatch(html,/href="\.\.\//);
     assert.doesNotMatch(html,/src="\.\.\//);
@@ -123,4 +128,43 @@ test('isolated build removes external account scripts, links, and broken relativ
     assert.ok(built.fileCount<=1500);
     assert.ok(built.bytes<=50*1024*1024);
   }finally{fs.rmSync(temp,{recursive:true,force:true})}
+});
+
+
+test('first-session coach measures actual business progress without mutating economy or saves',()=>{
+  const script=fs.readFileSync(path.join(root,'crazygames-coach.js'),'utf8');
+  let storageWrites=0;
+  const window={profitLandsPlatform:{name:'crazygames'},addEventListener(){}};
+  const document={readyState:'loading'};
+  vm.runInNewContext(script,{window,document,localStorage:{getItem:()=>null,setItem:()=>{storageWrites++}},console}, {filename:'crazygames-coach.js'});
+  const api=window.ProfitLandsCrazyCoach;
+  assert.ok(api,'CrazyGames coach exposes read-only goal evaluation');
+  const s={started:true,cash:1000,actions:60,businesses:[],stocks:{nova:{shares:0}}};
+  const original=JSON.stringify(s);
+  const first=api.snapshot(s,{});
+  assert.equal(first.completed,0);
+  assert.equal(first.next.id,'open');
+  s.businesses.push({type:'coffee',level:1,marketing:0,efficiency:0,workers:0,chainCount:0});
+  assert.equal(api.snapshot(s,{}).next.id,'inspect');
+  assert.equal(api.snapshot(s,{inspectedBusiness:true}).next.id,'improve');
+  s.businesses[0].marketing=1;
+  assert.equal(api.snapshot(s,{inspectedBusiness:true}).next.id,'markets');
+  const final=api.snapshot(s,{inspectedBusiness:true,visitedMarkets:true});
+  assert.equal(final.completed,4);
+  assert.equal(final.done,true);
+  assert.equal(final.next,null);
+  assert.equal(s.cash,1000,'coach never grants money');
+  assert.equal(s.actions,60,'coach never spends management actions');
+  assert.equal(s.stocks.nova.shares,0,'coach does not trade for the user');
+  assert.equal(storageWrites,0,'evaluating progress never writes to storage');
+  assert.notEqual(JSON.stringify(s),original,'fixture advanced only because the test simulated a real purchase');
+});
+
+test('starter coach is entirely absent from the default web and Steam pages',()=>{
+  const web=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+  assert.doesNotMatch(web,/crazygames-coach\.(?:css|js)/);
+  const source=fs.readFileSync(path.join(root,'crazygames-coach.js'),'utf8');
+  assert.match(source,/profitLandsPlatform\?\.name!=='crazygames'/);
+  const style=fs.readFileSync(path.join(root,'crazygames-coach.css'),'utf8');
+  assert.match(style,/prefers-reduced-motion/);
 });
