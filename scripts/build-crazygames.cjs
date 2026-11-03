@@ -10,7 +10,10 @@ function buildCrazyGames({root=path.resolve(__dirname,'..'),output=path.resolve(
   const input=fs.readFileSync(path.join(root,'play','index.html'),'utf8');
   let html=input;
   // Dedicated marker: the same adapter can run in a local preview iframe.
-  html=html.replace('</head>','  <meta name="profitlands-platform" content="crazygames">\n  <link rel="stylesheet" href="crazygames.css">\n</head>');
+  html=html.replace('</head>','  <meta name="profitlands-platform" content="crazygames">\n  <link rel="stylesheet" href="crazygames.css">\n  <link rel="stylesheet" href="crazygames-coach.css">\n</head>');
+  // The first-session coach runs after the core workspace and never ships to
+  // the regular website. It is optional and keeps its own UI-only preferences.
+  html=html.replace('</body>','  <script src="crazygames-coach.js"></script>\n</body>');
   html=html.replace('<body class="pl-play-page">','<body class="pl-play-page pl-crazygames">');
 
   // CrazyGames accounts are automatic; email/password sign-in is not allowed.
