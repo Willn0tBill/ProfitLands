@@ -170,5 +170,5 @@ test('starter coach is entirely absent from the default web and Steam pages',()=
   assert.match(source,/profitLandsPlatform\?\.name!=='crazygames'/);
   const style=fs.readFileSync(path.join(root,'crazygames-coach.css'),'utf8');
   assert.match(style,/prefers-reduced-motion/);
-  assert.match(style,/data-buy-type=\\"coffee\\"/,'enhanced shop supports the first-business highlight');
+  assert.ok(style.includes('data-buy-type="coffee"'),'enhanced shop supports the first-business highlight');
 });
