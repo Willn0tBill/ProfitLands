@@ -144,11 +144,14 @@ test('first-session coach measures actual business progress without mutating eco
   const first=api.snapshot(s,{});
   assert.equal(first.completed,0);
   assert.equal(first.next.id,'open');
-  s.businesses.push({type:'coffee',level:1,marketing:0,efficiency:0,workers:0,chainCount:0});
+  s.businesses.push({type:'coffee',level:1,marketing:0,efficiency:0,workers:0,chainCount:0,
+    locations:[{level:1,marketing:0,efficiency:0,workers:0,manager:false}]});
   assert.equal(api.snapshot(s,{}).next.id,'inspect');
   assert.equal(api.snapshot(s,{inspectedBusiness:true}).next.id,'improve');
-  s.businesses[0].marketing=1;
+  // Real gameplay now upgrades individual locations, not just the old company fields.
+  s.businesses[0].locations[0].marketing=1;
   assert.equal(api.snapshot(s,{inspectedBusiness:true}).next.id,'markets');
+  assert.equal(s.businesses[0].marketing,0,'location upgrade does not mutate legacy company marketing');
   const final=api.snapshot(s,{inspectedBusiness:true,visitedMarkets:true});
   assert.equal(final.completed,4);
   assert.equal(final.done,true);
@@ -167,4 +170,5 @@ test('starter coach is entirely absent from the default web and Steam pages',()=
   assert.match(source,/profitLandsPlatform\?\.name!=='crazygames'/);
   const style=fs.readFileSync(path.join(root,'crazygames-coach.css'),'utf8');
   assert.match(style,/prefers-reduced-motion/);
+  assert.match(style,/data-buy-type=\\"coffee\\"/,'enhanced shop supports the first-business highlight');
 });
