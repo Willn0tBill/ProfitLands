@@ -15,6 +15,7 @@ function buildCrazyGames({root=path.resolve(__dirname,'..'),output=path.resolve(
   // the regular website. It is optional and keeps its own UI-only preferences.
   html=html.replace('</body>','  <script src="crazygames-coach.js"></script>\n</body>');
   html=html.replace('<body class="pl-play-page">','<body class="pl-play-page pl-crazygames">');
+  html=html.replace('</head>','  <link rel="icon" type="image/svg+xml" href="favicon.svg">\n</head>');
 
   // CrazyGames accounts are automatic; email/password sign-in is not allowed.
   // Firebase is preserved intact on the main website and Steam builds.
@@ -37,6 +38,9 @@ function buildCrazyGames({root=path.resolve(__dirname,'..'),output=path.resolve(
     const source=path.join(root,name);
     if(fs.statSync(source).isFile())fs.copyFileSync(source,path.join(output,name));
   }
+  // A self-contained favicon avoids default /favicon.ico 404s in browser preview.
+  const favicon='<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="15" fill="#a4ef7a"/><text x="32" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="42" fill="#11271d">$</text></svg>';
+  fs.writeFileSync(path.join(output,'favicon.svg'),favicon);
   fs.writeFileSync(path.join(output,'index.html'),html);
   const files=fs.readdirSync(output);
   const bytes=files.reduce((sum,name)=>sum+fs.statSync(path.join(output,name)).size,0);
