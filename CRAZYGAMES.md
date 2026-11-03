@@ -33,6 +33,7 @@ generated upload files.
 - Firebase login UI and Firebase network scripts are excluded only from this
   build. Cross-promotion links and unfinished multiplayer choices are hidden
   or omitted.
+- First-time players get a compact, dismissible four-goal guide (open a business, inspect it, improve it, explore stocks). It reads current game progress, stores only guide preferences under `profitlands-cg-guide-v1`, and cannot grant cash or change game-save data. Returning players can reopen it with **Getting started**.
 - No ads or in-game purchases are integrated. Ads are disabled for Basic Launch.
 
 ## Local testing
@@ -61,9 +62,12 @@ Firebase login are deliberately different.
 3. Test browser iframes at 907×510, 821×462, 1216×684, mobile landscape
    800×450, and a Chromebook-sized display. Confirm controls and the actual
    game remain usable, with no horizontal clipping.
-4. Check the browser console for runtime errors and verify that no external
+4. Try the optional guide on a fresh save: buy a Coffee Shop, open its management,
+   purchase a real improvement, and visit the Stocks workspace. Check that goals
+   advance only when the player completes the corresponding in-game action.
+5. Check the browser console for runtime errors and verify that no external
    sign-in or cross-game promotion appears.
-5. Obtain Developer Portal QA approval. Build/test success alone does not
+6. Obtain Developer Portal QA approval. Build/test success alone does not
    establish acceptance, Full Launch eligibility, or real APS synchronization.
 
 Official documentation:
