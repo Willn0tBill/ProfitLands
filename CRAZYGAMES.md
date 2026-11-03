@@ -74,7 +74,9 @@ Official documentation:
 
 ## Baseline regression note
 
-The full legacy suite has nine failures in the unchanged `main` branch,
-including economy action-budget and workspace layout tests. These are not
-addressed by this platform-only PR. New CrazyGames tests run separately, and
-the full suite still runs to detect unexpected additional failures.
+The unchanged `main` branch had nine stale regression expectations from
+older gameplay and UI designs (variable action regeneration, full market-cycle
+refills, and dashboard/workspace v1). This branch updates those tests to the
+current game behavior **without changing the economy formulas or workspace
+implementation**. The complete suite now passes (131/131 in GitHub Actions).
+Live CrazyGames iframe/mobile and account-save tests are still required.
