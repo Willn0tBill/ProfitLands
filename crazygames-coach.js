@@ -73,7 +73,9 @@ function draw(){
  const progress=snapshot(s,prefs);
  const playing=Boolean(s?.started&&document.getElementById('gameScreen')?.classList.contains('active'));
  const businessCount=Array.isArray(s?.businesses)?s.businesses.length:0;
- if(previousBusinesses===0&&businessCount>0&&playing)announceFirstBusiness();
+ if(previousBusinesses===0&&businessCount>0&&playing&&!prefs.firstBusinessCelebrated){
+   prefs.firstBusinessCelebrated=true;persist();announceFirstBusiness();
+ }
  previousBusinesses=businessCount;
  if(progress.done&&!prefs.completed){prefs.completed=true;persist()}
  trigger.hidden=!playing;
