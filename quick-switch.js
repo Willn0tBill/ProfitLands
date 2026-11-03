@@ -16,8 +16,10 @@ function items(query=''){
   entries.push({kind:'business',key:'business-'+i,label:name,detail:'Open company management',index:i,order:20+i});
  }
  entries.push({kind:'action',key:'buy',label:'Buy a new business',detail:'Open company marketplace',order:50});
- entries.push({kind:'site',key:'wtvi',label:'Wtv Innovations',detail:'Visit studio portfolio',url:studio,order:60});
- entries.push({kind:'site',key:'nation',label:'Nation Wars',detail:'Open WtvI strategy game',url:'https://willn0tbill.github.io/NationWars/',order:61});
+ if(window.profitLandsPlatform?.name!=='crazygames'){
+  entries.push({kind:'site',key:'wtvi',label:'Wtv Innovations',detail:'Visit studio portfolio',url:studio,order:60});
+  entries.push({kind:'site',key:'nation',label:'Nation Wars',detail:'Open WtvI strategy game',url:'https://willn0tbill.github.io/NationWars/',order:61});
+ }
  const q=String(query||'').trim().toLowerCase().slice(0,120);
  if(!q)return entries.sort((a,b)=>a.order-b.order).slice(0,12);
  const scored=entries.map(x=>{const name=x.label.toLowerCase(),detail=x.detail.toLowerCase();
@@ -82,7 +84,7 @@ function initialize(){
  const overlay=document.createElement('div');overlay.id='plQuickSwitch';overlay.className='pl-switch-overlay';overlay.hidden=true;
  overlay.innerHTML='<div class="pl-switch-dialog" role="dialog" aria-modal="true" aria-labelledby="plSwitchTitle">'+
   '<header><span id="plSwitchTitle">Quick Switch</span><button type="button" class="pl-switch-close" aria-label="Close quick switch">ESC</button></header>'+
-  '<div class="pl-switch-search"><span aria-hidden="true">⌕</span><input id="plSwitchInput" type="search" autocomplete="off" placeholder="Search screens, companies, WtvI..." aria-label="Search game screens and companies"></div>'+
+  '<div class="pl-switch-search"><span aria-hidden="true">⌕</span><input id="plSwitchInput" type="search" autocomplete="off" placeholder="Search screens and companies..." aria-label="Search game screens and companies"></div>'+
   '<div id="plSwitchResults" class="pl-switch-results" aria-label="Search results"></div>'+
   '<footer><span>↑ ↓ Navigate</span><span>Enter Select</span><span>Ctrl K / ⌘ K Open</span></footer></div>';
  document.body.appendChild(overlay);
