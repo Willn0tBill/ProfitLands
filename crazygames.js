@@ -97,6 +97,7 @@
     document.body?.classList.add('pl-crazygames');
     // Only first-time players see the optional quick-start guide by default.
     cg.freshEmpire=!hasSavedEmpire();
+    if(cg.freshEmpire)document.body?.classList.add('pl-cg-first-session');
     // Give players real gameplay immediately; SDK initialization is not a
     // prerequisite for starting the local offline economy.
     quickStart();
