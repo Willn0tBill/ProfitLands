@@ -1,0 +1,36 @@
+/* In-game Save & Recovery panel. Functional controls; zero layout shifts outside Settings. */
+#settingsModal .modal-card{max-width:640px;max-height:min(90dvh,850px);overflow-y:auto}
+.pl-save-center{display:grid;gap:15px;margin-top:18px;color:inherit}
+.pl-save-summary,.pl-save-display{
+ padding:15px;border:1px solid rgba(143,172,156,.22);border-radius:14px;
+ background:linear-gradient(120deg,rgba(44,109,77,.13),rgba(44,109,77,.03));
+}
+.pl-save-summary strong{font-size:15px;display:block;margin-bottom:6px;color:inherit}
+.pl-save-summary p,.pl-save-display p{font-size:12px;line-height:1.5;opacity:.78;margin:0}
+.pl-save-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.pl-save-action{
+ min-width:0;min-height:45px;cursor:pointer;border-radius:10px;
+ background:rgba(38,62,54,.65);color:inherit;border:1px solid rgba(127,167,143,.28);
+ font-family:inherit;font-size:13px;font-weight:650;line-height:1.3;padding:10px 12px;text-align:center;
+ transition:background .15s,border-color .15s,transform .15s;
+}
+.pl-save-action:first-child{background:#24866a;color:#fff;border-color:#379b7e}
+.pl-save-action:not(:disabled):hover{background:rgba(47,108,84,.8);border-color:#6fc69e}
+.pl-save-action:focus-visible,.pl-save-display-link:focus-visible{outline:2px solid #7ae2ad;outline-offset:3px}
+.pl-save-action:disabled{opacity:.42;cursor:not-allowed}
+.pl-save-info{grid-column:1/-1;font-size:12px;line-height:1.5;opacity:.78;margin:0}
+.pl-save-display-link{color:#9febba;font-weight:700;display:inline-block;margin-bottom:6px;text-decoration:underline;text-underline-offset:3px}
+.pl-save-note{
+ min-height:18px;font-size:12px;line-height:1.45;opacity:.92;margin:0;
+ color:#9be8bd;
+}
+.pl-save-note[data-error="true"]{color:#ffb2b2}
+@media(max-width:520px){
+ #settingsModal .modal-card{padding:18px 14px;max-height:calc(100dvh - 18px)}
+ .pl-save-actions{grid-template-columns:minmax(0,1fr)}
+ .pl-save-summary,.pl-save-display{padding:12px}
+ .pl-save-center{gap:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ .pl-save-action{transition:none}
+}
