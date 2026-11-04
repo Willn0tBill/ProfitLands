@@ -358,3 +358,6 @@ html.pl-reduced-motion #gameScreen .pl-quest-card .pl-workspace-intro-button:hov
  display:block!important;max-width:340px;
  color:#c8dcf3;font-size:10px!important;line-height:1.4;
 }
+
+/* Details elements must stay genuinely collapsed, even with flex layout overrides. */
+#gameScreen .pl-workspace-advanced-nav:not([open])>.pl-workspace-nav-item{display:none!important}
