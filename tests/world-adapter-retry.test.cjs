@@ -6,7 +6,8 @@ const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 
-function setup(failOnce=false){
+function setup(failOnce=false,storage=null){
+ const store=storage||new Map();
  const sent=[],events=[],callbacks={};
  let current={uid:'alpha'},failure=typeof failOnce==='number'?failOnce:Number(Boolean(failOnce));
  const callable=async payload=>{
@@ -25,7 +26,8 @@ function setup(failOnce=false){
   app:()=>({functions:()=>({httpsCallable:()=>callable})})
  };
  let seq=0;
- const window={state:{playType:'multi'},
+ const sessionStorage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,String(value)),removeItem:key=>store.delete(key)};
+ const window={state:{playType:'multi'},sessionStorage,
   crypto:{getRandomValues:buffer=>{buffer.fill(++seq)}},
   dispatchEvent:e=>events.push(e.type),
   addEventListener:(event,fn)=>{callbacks[event]=fn}
@@ -33,7 +35,7 @@ function setup(failOnce=false){
  const document={getElementById:id=>id==='gameScreen'?{classList:{contains:s=>s==='active'}}:null};
  const CustomEvent=class{constructor(type){this.type=type}};
  vm.runInNewContext(source,{window,document,firebase,CustomEvent,Uint8Array,console});
- return {api:window.ProfitLandsOnline,window,events,callbacks,sent,changeUser:user=>{current=user}};
+ return {api:window.ProfitLandsOnline,window,events,callbacks,sent,store,changeUser:user=>{current=user}};
 }
 test('client connects only with a matching authenticated account',async()=>{
  const h=setup();
@@ -103,4 +105,20 @@ test('double transport failures preserve the ID for the next deliberate retry',a
  await h.api.buyBusiness('coffee');
  const future=h.sent.filter(x=>x.action==='buyBusiness');
  assert.notEqual(future[3].requestId,old,'A confirmed new purchase needs a new transaction ID');
+});
+
+test('in-flight paid request ID survives reload and is cleared after confirmation',async()=>{
+ const sharedStore=new Map();
+ const first=setup(2,sharedStore);
+ await first.api.connect();
+ await assert.rejects(first.api.buyBusiness('coffee'),/Temporary outage/);
+ const original=first.sent.find(x=>x.action==='buyBusiness').requestId;
+ assert.equal(sharedStore.size,1);
+ const reloaded=setup(false,sharedStore);
+ await reloaded.api.connect();
+ await reloaded.api.buyBusiness('coffee');
+ assert.equal(reloaded.sent.find(x=>x.action==='buyBusiness').requestId,original);
+ assert.equal(sharedStore.size,0);
+ await reloaded.api.buyBusiness('coffee');
+ assert.notEqual(reloaded.sent.filter(x=>x.action==='buyBusiness')[1].requestId,original);
 });
