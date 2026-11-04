@@ -50,6 +50,7 @@ function harness(count=7){
  };
  const context={
   window,document,state,console,
+  $:get,
   BUSINESS_TYPES:[{id:'coffee',name:'Coffee Shop',cost:500,baseRevenue:115,baseExpense:48}],
   STOCKS:[],money:n=>'$'+Number(n).toFixed(2),
   spendAction:amount=>{
