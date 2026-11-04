@@ -11,6 +11,11 @@ const canPay=amount=>window.ProfitLandsMoney?window.ProfitLandsMoney.canAfford(a
 const siteNames={downtown:'Downtown',suburbs:'Suburbs',tourist:'Tourist District',university:'University District',waterfront:'Waterfront',tech:'Tech District',industrial:'Industrial Park'};
 const icons={downtown:'🏙️',suburbs:'🏘️',tourist:'🌴',university:'🎓',waterfront:'🌊',tech:'💻',industrial:'🏭'};
 const minimizedLocations=new Set();
+const PAGE_SIZE=24;
+let activePortfolio=null;
+let pageOffset=0;
+let siteQuery='';
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const siteKey=(b,l,index)=>b.name+'|'+(l.labId||l.id||index)+'|'+index;
 
 function locations(b){return Array.isArray(b?.locations)?b.locations:[]}
@@ -117,7 +122,7 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   if(b.locations.length&&state.businesses.includes(b))open(state.businesses.indexOf(b),Math.min(lIndex,b.locations.length-1));
   return true;
 }
-function estimateChange(b,l,index,kind){
+function estimateChange(b,l,index,kind,factors){
   const calculate=window.ProfitLandsEconomy?.locationProfit;
   if(typeof calculate!=='function'||!['upgrade','marketing','efficiency'].includes(kind))return null;
   const future={...l};
@@ -127,27 +132,28 @@ function estimateChange(b,l,index,kind){
     future.basePopularity=clamp(num(l.basePopularity)+8,5,100);
   }else if(kind==='efficiency')future.efficiency=safe(l.efficiency)+1;
   try{
-    const before=calculate(b,l,index),after=calculate(b,future,index);
+    const before=calculate(b,l,index,factors),after=calculate(b,future,index,factors);
     return Number.isFinite(before)&&Number.isFinite(after)?after-before:null;
   }catch(e){return null}
 }
-function view(b,l,index){
-  const actual=window.ProfitLandsEconomy?.locationProfit?.(b,l,index)??0;
+function view(b,l,index,factors,remainingStaff){
+  const actual=window.ProfitLandsEconomy?.locationProfit?.(b,l,index,factors)??0;
   const rate=window.ProfitLandsRealtime?.period||60;
   const sign=actual>=0?'+':'';
   const hireCost=price(b,l,'hire',1);
   const level=safe(l.level)||1;
   const actions=state.actions>0;
   const minimized=minimizedLocations.has(siteKey(b,l,index));
+  const capacity=remainingStaff===undefined?room(l):Math.max(0,Math.min(cap(l)-safe(l.workers),remainingStaff));
   const projection=kind=>{
-    const delta=estimateChange(b,l,index,kind);
+    const delta=estimateChange(b,l,index,kind,factors);
     if(delta===null)return '';
     const sign=delta>=0?'+':'−';
     return ' · Est. '+sign+moneyText(Math.abs(delta))+'/'+rate+'s';
   };
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
-    '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
+    '<div class="site-operation-head"><div><h3>'+escapeHtml(l.icon)+' '+escapeHtml(l.name)+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
     '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong>'+
     '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
     '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
@@ -158,37 +164,152 @@ function view(b,l,index){
     button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing'))+projection('marketing'),!actions||!canPay(price(b,l,'marketing')))+
     button('efficiency','⚙ Improve efficiency','Lower local operating costs · '+moneyText(price(b,l,'efficiency'))+projection('efficiency'),!actions||!canPay(price(b,l,'efficiency')))+
     button('sell','💰 Sell this location','Receive '+moneyText(price(b,l,'sell')))+
-    '</div><div class="site-staff-box"><div><b>👥 Staff & management</b><small>Payroll affects this location only. '+safe(l.workers)+' employed · '+room(l)+' openings available · manager: '+(l.manager?'hired':'none')+'</small></div>'+
-    '<label>Hire <select data-site-qty="'+index+'" aria-label="Staff to hire at '+l.name+'"><option value="1">1 employee</option><option value="5">5 employees</option><option value="10">10 employees</option><option value="25">25 employees</option></select></label>'+
+    '</div><div class="site-staff-box"><div><b>👥 Staff & management</b><small>Payroll affects this location only. '+safe(l.workers)+' employed · '+capacity+' openings available · manager: '+(l.manager?'hired':'none')+'</small></div>'+
+    '<label>Hire <select data-site-qty="'+index+'" aria-label="Staff to hire at '+escapeHtml(l.name)+'"><option value="1">1 employee</option><option value="5">5 employees</option><option value="10">10 employees</option><option value="25">25 employees</option></select></label>'+
     '<div class="site-staff-actions">'+
-    button('hire','Hire employees',moneyText(hireCost)+' for 1 employee',!actions||room(l)<1||!canPay(hireCost))+
+    button('hire','Hire employees',moneyText(hireCost)+' for 1 employee',!actions||capacity<1||!canPay(hireCost))+
     button('manager',l.manager?'Manager employed':'Hire manager',l.manager?'Maintains local popularity':moneyText(price(b,l,'manager'))+' plus salary',l.manager||!actions||!canPay(price(b,l,'manager')))+
     '</div></div></div></section>';
 }
-function open(index,focused=0){
+function open(index,focused){
   normalizeAll();
   const b=state.businesses[index];if(!b)return;
   const t=type(b);if(!t)return;
   const e=$('manageContent'),modal=$('manageModal');if(!e||!modal)return;
+  if(activePortfolio!==b){
+    activePortfolio=b;
+    pageOffset=0;
+    siteQuery='';
+  }
   const locs=b.locations;
+  const matchesSearch=(l,i)=>{
+    if(!siteQuery)return true;
+    const term=siteQuery.toLocaleLowerCase();
+    return String(l.name||'').toLocaleLowerCase().includes(term)||
+      String(l.id||'').toLocaleLowerCase().includes(term)||
+      String(l.labId||'').toLocaleLowerCase().includes(term)||
+      String(i+1)===term;
+  };
+  if(Number.isSafeInteger(focused)&&focused>=0&&focused<locs.length){
+    if(!matchesSearch(locs[focused],focused))siteQuery='';
+    // Keep the edited location visible even if it is on page 200.
+    const matchingBefore=locs.slice(0,focused+1).filter(matchesSearch).length-1;
+    pageOffset=Math.floor(Math.max(0,matchingBefore)/PAGE_SIZE)*PAGE_SIZE;
+  }
   const period=window.ProfitLandsRealtime?.period||60;
   const total=window.businessDailyProfit?.(b)||0;
   const bBalance=num(b.financialBalance);
   const expansion=Math.round(t.cost*10*(1+(locs.length-1)*.35));
   const actions=state.actions>0;
-  e.innerHTML='<div class="manage-head"><div><span class="eyebrow">COMPANY & LOCATION MANAGEMENT</span><h2>'+t.icon+' '+b.name+'</h2><p class="modal-sub">'+t.desc+'</p></div>'+
+  const employed=locs.reduce((n,l)=>n+safe(l.workers),0);
+  const empireEmployees=allWorkers();
+  const empireLimit=empireCap();
+  const remainingStaff=Math.max(0,empireLimit-empireEmployees);
+  const listData=()=>{
+    const matching=[];
+    for(let i=0;i<locs.length;i++)if(matchesSearch(locs[i],i))matching.push(i);
+    const maxOffset=Math.max(0,Math.ceil(matching.length/PAGE_SIZE)-1)*PAGE_SIZE;
+    pageOffset=Math.max(0,Math.min(pageOffset,maxOffset));
+    const displayed=matching.slice(pageOffset,pageOffset+PAGE_SIZE);
+    const shared=displayed.length?window.ProfitLandsEconomy?.companyFactors?.(b):null;
+    return {
+      count:matching.length,
+      displayed,
+      html:displayed.length
+        ?displayed.map(i=>view(b,locs[i],i,shared,remainingStaff)).join('')
+        :'<div class="empty">No matching locations. Try another location name or number.</div>'
+    };
+  };
+  const initial=listData();
+  e.innerHTML='<div class="manage-head"><div><span class="eyebrow">COMPANY & LOCATION MANAGEMENT</span><h2>'+escapeHtml(t.icon)+' '+escapeHtml(b.name)+'</h2><p class="modal-sub">'+escapeHtml(t.desc)+'</p></div>'+
     '<strong class="'+(total<0?'danger':'good')+'">'+(total>=0?'+':'')+moneyText(total/period)+'/sec</strong></div>'+
     '<div class="manage-stats"><div class="mini-stat"><small>LOCATIONS</small><b>'+locs.length+'</b></div>'+
-    '<div class="mini-stat"><small>EMPLOYEES</small><b>'+locs.reduce((n,l)=>n+safe(l.workers),0)+'</b></div>'+
-    '<div class="mini-stat"><small>EMPIRE EMPLOYEES</small><b>'+allWorkers()+'/'+empireCap()+'</b></div>'+
+    '<div class="mini-stat"><small>EMPLOYEES</small><b>'+employed+'</b></div>'+
+    '<div class="mini-stat"><small>EMPIRE EMPLOYEES</small><b>'+empireEmployees+'/'+empireLimit+'</b></div>'+
     '<div class="mini-stat"><small>ACTIONS</small><b>'+state.actions+'</b></div></div>'+
     '<div class="finance-row"><span>Company balance</span><b class="'+(bBalance<0?'danger':'good')+'">'+moneyText(bBalance)+'</b></div>'+
     '<p class="site-help">Each location has separate upgrades, marketing, efficiency, staffing, and resale value. Costs depend on location rent and demand.</p>'+
     '<div class="site-list-toolbar"><button type="button" data-site-bulk="collapse">− Minimize locations</button><button type="button" data-site-bulk="expand">+ Expand locations</button></div>'+
-    '<div class="site-operation-list">'+locs.map((l,i)=>view(b,l,i)).join('')+'</div>'+
+    '<div class="site-pagination" '+(locs.length<=PAGE_SIZE&&!siteQuery?'hidden':'')+'>'+
+      '<label for="siteSearch">Find location</label>'+
+      '<input type="search" id="siteSearch" value="'+escapeHtml(siteQuery)+'" placeholder="Search district, location or number" autocomplete="off" />'+
+      '<span id="sitePageLabel" role="status" aria-live="polite"></span>'+
+      '<button type="button" id="sitePrevious" aria-label="Previous locations">Previous</button>'+
+      '<button type="button" id="siteNext" aria-label="Next locations">Next</button>'+
+    '</div>'+
+    '<div class="site-operation-list">'+initial.html+'</div>'+
     '<div class="chain-box"><b>🏢 Chain expansion</b><p class="modal-sub">Choose a new district and add another independently managed location.</p>'+
     '<button class="chain-button" id="siteExpand" '+(!actions||!canPay(expansion)?'disabled':'')+'>Choose Location #'+(locs.length+1)+' · '+moneyText(expansion)+'</button></div>';
   modal.classList.remove('hidden');
+  const updatePager=page=>{
+    const controls=e.querySelector('.site-pagination');
+    if(controls)controls.hidden=locs.length<=PAGE_SIZE&&!siteQuery;
+    const label=e.querySelector('#sitePageLabel');
+    if(label)label.textContent=page.count
+      ?'Showing '+(pageOffset+1)+'–'+(pageOffset+page.displayed.length)+' of '+page.count+' locations'
+      :'No matching locations';
+    const previous=e.querySelector('#sitePrevious');
+    if(previous)previous.disabled=pageOffset===0;
+    const next=e.querySelector('#siteNext');
+    if(next)next.disabled=pageOffset+PAGE_SIZE>=page.count;
+  };
+  const wireVisible=()=>{
+    e.querySelectorAll('[data-site-toggle]').forEach(button=>{
+      button.onclick=()=>{
+        const i=Number(button.dataset.siteToggle),l=locs[i];
+        if(!l)return;
+        const key=siteKey(b,l,i),collapse=!minimizedLocations.has(key);
+        if(collapse)minimizedLocations.add(key);else minimizedLocations.delete(key);
+        const section=e.querySelector('[data-site-section="'+i+'"]');
+        const content=section?.querySelector('.site-operation-body');
+        if(content)content.hidden=collapse;
+        button.setAttribute('aria-expanded',String(!collapse));
+        button.textContent=collapse?'+ Expand':'− Minimize';
+      };
+    });
+    e.querySelectorAll('[data-site-action]').forEach(button=>{
+      button.onclick=()=>{
+        const n=Number(button.dataset.site),kind=button.dataset.siteAction,qty=e.querySelector('[data-site-qty="'+n+'"]');
+        doAction(index,n,kind,kind==='hire'?Number(qty?.value||1):1);
+      };
+    });
+    e.querySelectorAll('[data-site-qty]').forEach(select=>{
+      const refresh=()=>{
+        const i=Number(select.dataset.siteQty),branch=locs[i];
+        const hire=e.querySelector('[data-site-action="hire"][data-site="'+i+'"]');
+        if(!branch||!hire)return;
+        const quantity=Number(select.value)||1,cost=price(b,branch,'hire',quantity);
+        const note=hire.querySelector('small');
+        if(note)note.textContent=quantity+' employee'+(quantity===1?'':'s')+' · '+moneyText(cost);
+        const available=Math.max(0,Math.min(cap(branch)-safe(branch.workers),remainingStaff));
+        hire.disabled=!state.actions||available<quantity||!canPay(cost);
+      };
+      select.addEventListener('change',refresh);
+      refresh();
+    });
+    e.querySelectorAll('[data-site-advances]').forEach(button=>{
+      button.onclick=()=>{
+        const i=Number(button.dataset.siteAdvances);
+        modal.classList.add('hidden');
+        window.ProfitLandsAdvancements?.select?.(index,i);
+      };
+    });
+    e.querySelectorAll('[data-site-lab]').forEach(button=>{
+      button.onclick=()=>{
+        const i=Number(button.dataset.siteLab),l=locs[i];
+        if(!l)return;
+        modal.classList.add('hidden');
+        window.ProfitLandsEmpire?.selectSite?.(l);
+      };
+    });
+  };
+  const renderPage=()=>{
+    const page=listData();
+    const list=e.querySelector('.site-operation-list');
+    if(list)list.innerHTML=page.html;
+    updatePager(page);
+    wireVisible();
+  };
   e.querySelectorAll('[data-site-bulk]').forEach(button=>{
     button.onclick=()=>{
       const collapse=button.dataset.siteBulk==='collapse';
@@ -196,60 +317,25 @@ function open(index,focused=0){
         const key=siteKey(b,locs[i],i);
         if(collapse)minimizedLocations.add(key);else minimizedLocations.delete(key);
       }
-      open(index);
+      renderPage();
     };
   });
-  e.querySelectorAll('[data-site-toggle]').forEach(button=>{
-    button.onclick=()=>{
-      const i=Number(button.dataset.siteToggle),l=locs[i];
-      if(!l)return;
-      const key=siteKey(b,l,i),collapse=!minimizedLocations.has(key);
-      if(collapse)minimizedLocations.add(key);else minimizedLocations.delete(key);
-      const section=e.querySelector('[data-site-section="'+i+'"]');
-      const content=section?.querySelector('.site-operation-body');
-      if(content)content.hidden=collapse;
-      button.setAttribute('aria-expanded',String(!collapse));
-      button.textContent=collapse?'+ Expand':'− Minimize';
-    };
+  const search=e.querySelector('#siteSearch');
+  if(search)search.addEventListener('input',()=>{
+    siteQuery=String(search.value||'').trim().toLocaleLowerCase();
+    pageOffset=0;
+    renderPage(); // Keep the original search element mounted and focused.
   });
-  e.querySelectorAll('[data-site-action]').forEach(button=>{
-    button.onclick=()=>{
-      const n=Number(button.dataset.site),kind=button.dataset.siteAction,qty=e.querySelector('[data-site-qty="'+n+'"]');
-      doAction(index,n,kind,kind==='hire'?Number(qty?.value||1):1);
-    };
-  });
-  e.querySelectorAll('[data-site-qty]').forEach(select=>{
-    const refresh=()=>{
-      const i=Number(select.dataset.siteQty),branch=locs[i];
-      const hire=e.querySelector('[data-site-action="hire"][data-site="'+i+'"]');
-      if(!branch||!hire)return;
-      const quantity=Number(select.value)||1,cost=price(b,branch,'hire',quantity);
-      const note=hire.querySelector('small');
-      if(note)note.textContent=quantity+' employee'+(quantity===1?'':'s')+' · '+moneyText(cost);
-      hire.disabled=!state.actions||room(branch)<quantity||!canPay(cost);
-    };
-    select.addEventListener('change',refresh);
-    refresh();
-  });
-  e.querySelectorAll('[data-site-advances]').forEach(button=>{
-    button.onclick=()=>{
-      const i=Number(button.dataset.siteAdvances);
-      modal.classList.add('hidden');
-      window.ProfitLandsAdvancements?.select?.(index,i);
-    };
-  });
-  e.querySelectorAll('[data-site-lab]').forEach(button=>{
-    button.onclick=()=>{
-      const i=Number(button.dataset.siteLab),l=locs[i];
-      if(!l)return;
-      modal.classList.add('hidden');
-      window.ProfitLandsEmpire?.selectSite?.(l);
-    };
-  });
+  const previous=e.querySelector('#sitePrevious');
+  if(previous)previous.onclick=()=>{pageOffset=Math.max(0,pageOffset-PAGE_SIZE);renderPage()};
+  const next=e.querySelector('#siteNext');
+  if(next)next.onclick=()=>{pageOffset+=PAGE_SIZE;renderPage()};
+  updatePager(initial);
+  wireVisible();
   const expand=$('siteExpand');
   if(expand)expand.onclick=()=>window.manageAction?.(index,'chain');
-  // A small opt-in focus can make the selected location easy to find.
-  if(focused>0&&locs[focused])e.querySelector('[data-site-section="'+focused+'"]')?.scrollIntoView?.({block:'nearest'});
+  if(Number.isSafeInteger(focused)&&locs[focused])
+    e.querySelector('[data-site-section="'+focused+'"]')?.scrollIntoView?.({block:'nearest'});
 }
 function init(){normalizeAll();window.openManage=open;window.ProfitLandsLocationOps={normalize,normalizeAll,price,estimateChange,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};}
 init();
