@@ -115,7 +115,7 @@ test('game loads locations after economy renderer and uses location-specific eco
  const growth=fs.readFileSync(path.join(root,'growth-system.js'),'utf8');
  assert.ok(html.indexOf('location-operations.js')>html.indexOf('economy-render.js'));
  assert.ok(html.includes('location-operations.css'));
- assert.ok(economy.includes('function locationProfit(b,l,i)'));
+ assert.ok(economy.includes('function locationProfit(b,l,i,factors)'));
  assert.ok(economy.includes('l.level||1'));
  assert.ok(economy.includes('staffingAdjustment'));
  assert.ok(growth.includes('growthStaffLocation'));
@@ -139,8 +139,9 @@ test('company management visibly shows controls and staff for every location',()
 test('per-location economy calculations respond only to that location changes',()=>{
  const h=harness(),b=h.b,ops=h.ops;
  const source=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
- const begin=source.indexOf('  function locationProfit(b,l,i){');
- const end=source.indexOf('  function businessProfit(b){',begin);
+ // Exercise both the context builders and the per-location calculator.
+ const begin=source.indexOf('  function profitFactors(){');
+ const end=source.indexOf('  function businessValue2(b){',begin);
  assert.ok(begin>=0&&end>begin,'location profit implementation available');
  const locationProfit=new Function(
   'BUSINESS_TYPES','state','riskFor','tier','LOCS','activeEffect','window',
