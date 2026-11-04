@@ -166,3 +166,13 @@ test('browser uses the cloud guard before Firebase auth without touching CrazyGa
  assert.ok(html.indexOf('cloud-sync-guard.js')<html.indexOf('firebase-auth.js'));
  assert.ok(html.includes('../crazygames.js'),'existing CrazyGames adapter is still referenced');
 });
+
+test('account switching keeps the previous user snapshot available',async()=>{
+ const db=firestore(empire(19));
+ const d=device(db.db,empire(12),'another-user');
+ await d.login();
+ assert.equal(d.state.day,19);
+ const saved=d.memory.get('profitlands-v2-previous-owner:another-user');
+ assert.equal(JSON.parse(saved).day,12);
+ assert.equal(d.memory.get('profitlands-local-owner'),'player');
+});
