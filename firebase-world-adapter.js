@@ -3,7 +3,8 @@
  */
 (function(){
 'use strict';
-let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null;
+let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,sessionEpoch=0;
+const pendingMutations=new Map();
 let callable=null;
 const playing=()=>window.state?.playType==='multi'&&
   Boolean(document.getElementById('gameScreen')?.classList.contains('active'));
@@ -37,6 +38,7 @@ async function connect(){
  if(connected&&user?.uid===currentUser()?.uid)return true;
  if(connecting)return connecting;
  connecting=(async()=>{
+  const epoch=sessionEpoch;
   try{
    const signed=currentUser();
    if(!signed)throw Error('Please sign in from the account menu first.');
@@ -45,7 +47,7 @@ async function connect(){
    if(!health?.ok||health.worldId!=='world1')throw Error('World 1 is not configured.');
    const result=await call('register');
    if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned an invalid player identity.');
-   if(currentUser()?.uid!==signed.uid||!playing())throw Error('Account or game mode changed while connecting.');
+   if(sessionEpoch!==epoch||currentUser()?.uid!==signed.uid||!playing())throw Error('Session changed while connecting. Please try again.');
    catalog=Array.isArray(health.catalog)?health.catalog:[];
    chatEnabled=health.chatEnabled===true;
    user=signed;connected=true;emit();
@@ -55,7 +57,7 @@ async function connect(){
  })();
  return connecting;
 }
-function disconnect(){connected=false;user=null;chatEnabled=false;catalog=[];emit()}
+function disconnect(){sessionEpoch++;connected=false;user=null;chatEnabled=false;catalog=[];emit()}
 function requireSession(){
  if(!connected||!playing()||user?.uid!==currentUser()?.uid)throw Error('Connect to World 1 first.');
 }
@@ -70,16 +72,29 @@ function nonce(){
 }
 async function submitIdempotent(action,data={}){
  requireSession();
- const caller=user.uid,requestId=nonce();
+ const caller=user.uid;
+ // An ambiguous server result must keep its original request ID. This avoids
+ // buying a second business when a mobile network loses two responses in a row.
+ const fingerprint=JSON.stringify([caller,action,data]);
+ let requestId=pendingMutations.get(fingerprint);
+ if(!requestId){requestId=nonce();pendingMutations.set(fingerprint,requestId)}
  const payload={...data,requestId};
- try{return await call(action,payload)}
- catch(error){
-  // Reuse the SAME requestId after an ambiguous network failure. The server
-  // recognizes replays and will not charge the wallet a second time.
-  if(!/unavailable|deadline-exceeded/i.test(error.code||''))throw error;
-  if(user?.uid!==caller||currentUser()?.uid!==caller||!playing())
-   throw Error('Session changed during request; please reconnect.');
-  return call(action,payload);
+ try{
+  let result;
+  try{result=await call(action,payload)}
+  catch(error){
+   if(!/unavailable|deadline-exceeded/i.test(error.code||''))throw error;
+   if(user?.uid!==caller||currentUser()?.uid!==caller||!playing())
+    throw Error('Session changed during request; please reconnect.');
+   result=await call(action,payload);
+  }
+  pendingMutations.delete(fingerprint);
+  return result;
+ }catch(error){
+  // Keep the key only for uncertain transport failures. A definite rejected
+  // transaction is safe to retry with a fresh request ID.
+  if(!/unavailable|deadline-exceeded/i.test(error.code||''))pendingMutations.delete(fingerprint);
+  throw error;
  }
 }
 async function requestAttack({targetUid,attackId}){
@@ -92,8 +107,8 @@ window.ProfitLandsOnline={
  getMyEmpire:()=>request('me'),
  getLeaderboard:period=>request('getLeaderboard',{period}),
  getPlayers:()=>request('getPlayers'),
- buyBusiness:businessId=>request('buyBusiness',{businessId}),
- upgradeBusiness:index=>request('upgradeBusiness',{index}),
+ buyBusiness:businessId=>submitIdempotent('buyBusiness',{businessId}),
+ upgradeBusiness:index=>submitIdempotent('upgradeBusiness',{index}),
  togglePvP:()=>request('togglePvP'),
  requestAttack,requestDefense,
  getChat:()=>chatEnabled?request('getChat'):Promise.resolve([]),
