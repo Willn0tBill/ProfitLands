@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'workspace.js'),'utf8');
 const PANEL_IDS=['executivePanel','trophyPanel','advancesPanel','arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
-  'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel'];
+  'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel','clanPanel'];
 class Node{
  constructor(tag='div'){
   this.tag=tag;this.children=[];this.parent=null;this.attributes={};this.listeners={};
@@ -78,7 +78,7 @@ test('workspace starts on overview and keeps the business portfolio one click aw
  const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
  assert.ok(workspace);
  const contents=workspace.findAll(n=>n.dataset.workspaceContent);
- assert.equal(contents.length,10);
+ assert.equal(contents.length,11);
  assert.equal(contents.filter(v=>!v.hidden).length,1);
  assert.equal(contents.filter(v=>!v.hidden)[0].dataset.workspaceContent,'overview');
  assert.equal(x.window.ProfitLandsWorkspace.show('businesses'),true);
@@ -164,7 +164,7 @@ test('opening products from company management switches to the Operations worksp
 
 test('Business Arcade is a separate eighth workspace with an original panel',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
- assert.equal(api.views.length,10);
+ assert.equal(api.views.length,11);
  assert.equal(api.show('arcade'),true);
  assert.equal(api.active(),'arcade');
  assert.equal(x.opened.at(-1),'arcadePanel');
@@ -202,4 +202,33 @@ test('Overview contains original executive briefing alongside economy and news p
  for(const id of ['executivePanel','economyPanel','newsPanel'])assert.equal(content.findAll(n=>n.id===id).length,1);
  const html=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','play/index.html'),'utf8');
  assert.ok(html.includes('executive-briefing.js')&&html.includes('executive-briefing.css'));
+});
+
+test('new-player overview uses a three-step quest hub and keeps market reports accessible',()=>{
+ const x=setup();
+ const root=x.game.find(n=>n.dataset.workspaceContent==='overview');
+ const quests=root.findAll(n=>n.classList.contains('pl-game-step'));
+ assert.equal(quests.length,3);
+ const advanced=root.find(n=>n.classList.contains('pl-game-advanced'));
+ assert.ok(advanced,'world economy and news are available but collapsed');
+ for(const id of ['executivePanel','economyPanel','newsPanel'])assert.equal(advanced.findAll(n=>n.id===id).length,1);
+ assert.equal(quests[2].click(),undefined);
+ assert.equal(x.window.ProfitLandsWorkspace.active(),'arcade');
+});
+test('Clans is a real eleventh workspace with a unique existing panel',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.views.length,11);
+ assert.equal(api.show('clans'),true);
+ assert.equal(api.active(),'clans');
+ const content=x.game.find(n=>n.dataset.workspaceContent==='clans');
+ assert.equal(content.findAll(n=>n.id==='clanPanel').length,1);
+ assert.ok(source.includes("e.key.toLowerCase()==='c'"),'Alt+C navigates to Clans');
+ assert.equal(x.savedData.has('profitlands-v2'),false);
+});
+test('advanced game menus are collapsed unless opened or selected',()=>{
+ const x=setup(),menu=x.game.find(n=>n.classList.contains('pl-workspace-advanced-nav'));
+ assert.ok(menu);
+ assert.equal(Boolean(menu.open),false);
+ x.window.ProfitLandsWorkspace.show('finance');
+ assert.equal(menu.open,true);
 });
