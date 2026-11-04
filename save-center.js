@@ -128,7 +128,7 @@ function applySnapshot(data){
  try{
   Object.assign(current,data);
   current.started=true;
-  const duration=window.MODES?.[current.mode]?.daySeconds||900;
+  const duration=DURATIONS[current.mode]||900;
   const remaining=Number(current.timeLeft);
   if(!Number.isFinite(Number(current.dayEndsAt))||Number(current.dayEndsAt)<=Date.now()){
    current.timeLeft=Math.min(duration,Math.max(1,Number.isFinite(remaining)?remaining:duration));
