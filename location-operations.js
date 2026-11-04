@@ -337,8 +337,11 @@ function open(index,focused){
   wireVisible();
   const expand=$('siteExpand');
   if(expand)expand.onclick=()=>window.manageAction?.(index,'chain');
-  if(Number.isSafeInteger(focused)&&locs[focused])
-    e.querySelector('[data-site-section="'+focused+'"]')?.scrollIntoView?.({block:'nearest'});
+  if(Number.isSafeInteger(focused)&&locs[focused]){
+    const selected=e.querySelector('[data-site-section="'+focused+'"]');
+    selected?.classList?.add('site-operation-target');
+    selected?.scrollIntoView?.({behavior:'instant',block:'center'});
+  }
 }
 function init(){normalizeAll();window.openManage=open;window.ProfitLandsLocationOps={normalize,normalizeAll,price,estimateChange,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};}
 init();

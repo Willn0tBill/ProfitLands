@@ -51,3 +51,14 @@
 .site-pagination button:hover:not(:disabled){background:#326442}
 .site-pagination button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:580px){.site-pagination{padding:10px;gap:8px}.site-pagination input[type=search]{flex-basis:100%;max-width:none}.site-pagination span{flex:1 1 100%;margin:0}.site-pagination button{flex:1 1 auto}}
+
+/* Modal management header: keep the cash-flow number clear of the X button. */
+#manageModal .manage-head{padding-top:34px;align-items:flex-start;flex-wrap:wrap}
+#manageModal .manage-head>div{flex:1 1 220px;min-width:0}
+#manageModal .manage-head>strong{flex:0 1 auto;max-width:100%;overflow-wrap:anywhere;white-space:normal}
+#manageModal .site-operation.site-operation-target{border-color:#a5df8e;box-shadow:0 0 0 2px #a5df8e33}
+@media(max-width:600px){
+ #manageModal .manage-head{padding-top:38px;flex-direction:column;align-items:flex-start;gap:8px}
+ #manageModal .manage-head>div{flex:0 0 auto;width:100%}
+ #manageModal .manage-head>strong{flex:0 0 auto;font-size:14px;line-height:1.4;align-self:flex-start;margin:0}
+}
