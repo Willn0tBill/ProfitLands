@@ -6,6 +6,16 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Automated supply reliability and status (v2.0.5)
+
+**Operations & Supply** now summarizes automatic replenishment activity instead of adding one log entry per restocked branch. Large empires can run thousands of managed stores without growing their saved `empireLab.log` without bound. The log retains the most recent 18 messages; older saves with oversized Operations logs are trimmed when the subsystem initializes.
+
+The five-second supply tick now avoids repeating full-empire site initialization and uses one site snapshot for storefront sales, auto-restock and route delivery. No offline purchasing is added: background/hidden-tab execution remains paused. Automatic route deliveries also require an available truck, and stock orders continue to respect inventory limits.
+
+The Store & Staff panel adds a compact **stock health** indicator (inactive, healthy, low or out), auto-restock/pricing status, and accurate purchase prices including any inventory discounts. Unaffordable stock orders, inactive automation and unavailable delivery actions are visibly disabled. The Operations footer reports the last active supply tick's number of restocked branches, in-game cost and deliveries.
+
+Regression tests stress 2,000 automatically replenished branches, demonstrate one bounded summary instead of thousands of log entries, confirm unchanged inventory costs and action usage, and test that hidden browser tabs do not restock. A real Chrome browser check verified low-stock warnings, successful automatic refill, correct `$160` payment without an action charge, and 390px mobile layout with loaded stylesheets. The v4 save schema and game earnings formula remain unchanged.
+
 ## Operations location selection and capacity safety (v2.0.4)
 
 The **Operations & Supply** location picker now shows a searchable maximum of **80 matching sites**, with the current location pinned so actions cannot silently move to the wrong branch. Filtering by branch, business, district or exact location number updates only the dropdown (keeping keyboard focus), rather than rebuilding all panel controls. The same picker is shared by store operations, deliveries, IPO selections and simulated market activity. Selecting **Hire staff / Upgrade this location** opens that specific location even if it is thousands of branches deep.
