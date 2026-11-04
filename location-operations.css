@@ -62,3 +62,24 @@
  #manageModal .manage-head>div{flex:0 0 auto;width:100%}
  #manageModal .manage-head>strong{flex:0 0 auto;font-size:14px;line-height:1.4;align-self:flex-start;margin:0}
 }
+
+/* Quickly move through companies without dismissing the management window. */
+.pl-company-nav{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ margin:0 0 14px;padding:10px 12px;border:1px solid #3c5b47;
+ border-radius:11px;background:#10261d;color:#c9dfcf;
+}
+.pl-company-nav[hidden]{display:none!important}
+.pl-company-nav span{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center}
+.pl-company-nav button{
+ min-height:38px;padding:8px 12px;border:1px solid #68866e;border-radius:8px;
+ background:#244b32;color:#effaf0;font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+}
+.pl-company-nav button:hover:not(:disabled){background:#326442}
+.pl-company-nav button:disabled{opacity:.43;cursor:not-allowed}
+.pl-company-nav button:focus-visible{outline:2px solid #bef48f;outline-offset:2px}
+@media(max-width:560px){
+ .pl-company-nav{flex-wrap:wrap;gap:8px}
+ .pl-company-nav span{order:-1;flex:1 1 100%}
+ .pl-company-nav button{flex:1 1 100px}
+}
