@@ -1,1 +1,5 @@
-{\n  "firestore": {\n    "rules": "firestore.rules"\n  }\n}\n
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}
