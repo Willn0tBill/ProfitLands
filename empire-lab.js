@@ -283,8 +283,31 @@ function tick(now=Date.now()){
  if(now-lastSave>15000){lastSave=now;window.save?.()}
  renderStats();
 }
+const SITE_LIMIT=80;
+let siteQuery='',siteResultText='';
 function optionsSite(){
- const list=allSites();return list.length?list.map(x=>'<option value="'+clean(x.id)+'" '+(chosen()?.id===x.id?'selected':'')+'>'+clean(x.b.name)+' · '+clean(x.l.name)+'</option>').join(''):'<option value="">No businesses yet</option>';
+ const sites=allSites();
+ const selected=chosen();
+ const term=siteQuery.trim().toLocaleLowerCase();
+ const matches=term?sites.filter(x=>String(x.b.name||'').toLocaleLowerCase().includes(term)
+   ||String(x.l.name||'').toLocaleLowerCase().includes(term)
+   ||String(x.l.id||'').toLocaleLowerCase().includes(term)
+   ||String(x.li+1)===term):sites;
+ const visible=matches.slice(0,SITE_LIMIT);
+ if(selected&&!visible.some(x=>x.id===selected.id))visible.unshift(selected);
+ siteResultText='Showing '+visible.length+' of '+matches.length+' matching locations'
+   +(selected&&!matches.some(x=>x.id===selected.id)?' · current selection pinned':'')
+   +(matches.length>SITE_LIMIT?' · refine the search to find more':'');
+ return visible.length?visible.map(x=>'<option value="'+clean(x.id)+'" '+(selected?.id===x.id?'selected':'')+'>'+
+   clean(x.b.name)+' · '+clean(x.l.name)+'</option>').join(''):'<option value="">No locations</option>';
+}
+function siteSelector(title){
+ const opts=optionsSite();
+ return '<div class="lab-site-picker"><label for="labSiteSearch">Find a location'+
+   '<input type="search" id="labSiteSearch" value="'+clean(siteQuery)+'" '+
+   'placeholder="Business, branch or district" autocomplete="off" /></label>'+
+   '<label for="labSite">'+clean(title)+' <select id="labSite">'+opts+'</select></label>'+
+   '<small id="labSiteCount" role="status" aria-live="polite">'+clean(siteResultText)+'</small></div>';
 }
 function button(name,label,disabled=false,opt=''){
  return '<button type="button" data-lab-action="'+clean(name)+'" '+opt+' '+(disabled?'disabled':'')+'>'+label+'</button>';
@@ -297,7 +320,7 @@ function render(){
  if(currentTab==='store'){
    const b=site?.b,l=site?.l,roles=lab?.roles||{sales:0,production:0,logistics:0},assigned=Object.values(roles).reduce((a,v)=>a+amount(v),0),workers=amount(l?.workers);
    content='<h3>Store Operations</h3><p>Manage local products, staffing roles, prices, and inventory. Enable a location to activate these optional operating mechanics.</p>'+
-     '<label>Business location <select id="labSite">'+optionsSite()+'</select></label>';
+     siteSelector('Business location');
    if(!has)content+='<p>Purchase a business first to try store operations.</p>';
    else content+='<div class="lab-metrics"><span>Business <b>'+clean(b.name)+'</b></span><span>Stock <b>'+lab.stock.toFixed(1)+' units</b></span><span>Price <b>'+lab.price.toFixed(2)+'×</b></span><span>Staff assigned <b>'+assigned+'/'+workers+'</b></span></div>'+
      '<p>Products: '+products(b).map(clean).join(' · ')+'</p>'+
@@ -316,7 +339,7 @@ function render(){
      '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Delivery vehicles <b>'+p.trucks+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
      '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+button('buyTruck','Purchase delivery vehicle · '+fmt(900*1.7**p.trucks),!p.warehouse||!have(900*1.7**p.trucks))+
      button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse,'data-qty="50"')+'</div>'+
-     '<label>Delivery destination <select id="labSite">'+optionsSite()+'</select></label>'+
+     siteSelector('Delivery destination')+
      '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!p.trucks||!has)+
      button('dispatch','Send 10 units · pay delivery fee',!p.route||!p.trucks||p.warehouseStock<10,'data-qty="10"')+
      button('autoRoute',p.route?.auto?'Pause supply deliveries':'Auto-deliver when stock is low',!p.route)+'</div>';
@@ -330,7 +353,7 @@ function render(){
      '<div class="lab-metrics"><span>HQ level <b>'+p.hq+'</b></span><span>Completed research <b>'+p.research.length+'/'+RESEARCH.length+'</b></span><span>Public companies <b>'+p.publicCompanies.length+'</b></span></div>'+
      button('buyHQ','Build / upgrade HQ · '+fmt(6000*3**p.hq),!have(6000*3**p.hq))+
      '<h4>Corporate research</h4><div class="lab-cards">'+RESEARCH.map(r=>'<div class="lab-card"><strong>'+clean(r.label)+'</strong><span>'+clean(r.info)+'</span>'+button('research',p.research.includes(r.id)?'Researched':'Research · '+fmt(r.cost),!p.hq||p.research.includes(r.id)||!have(r.cost),'data-research="'+r.id+'"')+'</div>').join('')+'</div>'+
-     '<label>Company for an IPO <select id="labSite">'+optionsSite()+'</select></label>'+
+     siteSelector('Company for an IPO')+
      button('ipo','Launch this company IPO (sell 20% of future revenue)',!p.hq||!has)+
      '<h4>Mergers</h4><p>Combine two companies in the same industry. The acquired company’s locations, staff and existing operations move into the surviving chain. A 5% integration fee and one management action apply.</p>'+
      '<label>Company to merge <select id="labMergeSource">'+s.businesses.map((x,i)=>'<option value="'+i+'">'+clean(x.name)+'</option>').join('')+'</select></label>'+
@@ -338,12 +361,19 @@ function render(){
  }else if(currentTab==='market'){
    content='<h3>Shared Market Concept Demo</h3><p><strong>Offline simulation only.</strong> No other players are connected, no real-world payments occur, and these orders only change your local empire. This previews what a server-backed multiplayer market might feel like.</p>'+
      '<div class="lab-metrics"><span>Reputation <b>'+p.reputation+'</b></span><span>Simulated transactions <b>'+p.trades.length+'</b></span><span>Demo participants <b>4 AI firms</b></span></div>'+
-     '<label>Sell stock from <select id="labSite">'+optionsSite()+'</select></label>'+
+     siteSelector('Sell stock from')+
      button('marketSell','List & simulate a sale of 5 product units',!has||!(lab?.stock>=5),'data-qty="5"')+
      '<h4>Recent simulated trades</h4><div class="lab-events">'+(p.trades.length?p.trades.slice(-8).reverse().map(x=>'<p>'+clean(x.site)+' · '+x.qty+' units · '+fmt(x.proceeds)+' · SIMULATED</p>').join(''):'<p>No simulated transactions yet.</p>')+'</div>';
  }
  box.innerHTML=content;
  box.querySelector('#labSite')?.addEventListener('change',e=>{currentSite=e.target.value;render()});
+ box.querySelector('#labSiteSearch')?.addEventListener('input',e=>{
+   siteQuery=String(e.target.value||'').slice(0,120);
+   const select=box.querySelector('#labSite');
+   if(select)select.innerHTML=optionsSite();
+   const note=box.querySelector('#labSiteCount');
+   if(note)note.textContent=siteResultText;
+ });
  renderStats();
 }
 function renderStats(){
