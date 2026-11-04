@@ -100,8 +100,8 @@ test('fake client cash cannot fund business purchases or corrupt other player',a
  const h=harness();
  await h.call('alpha','register');
  await h.call('beta','register');
- await assert.rejects(h.call('alpha','buyBusiness',{businessId:'factory',cash:999999999}),e=>e.code==='failed-precondition');
- const bought=await h.call('alpha','buyBusiness',{businessId:'coffee',cash:999999999});
+ await assert.rejects(h.call('alpha','buyBusiness',{businessId:'factory',cash:999999999,requestId:'factory_fail_0001'}),e=>e.code==='failed-precondition');
+ const bought=await h.call('alpha','buyBusiness',{businessId:'coffee',cash:999999999,requestId:'coffee_good_0001'});
  assert.equal(bought.player.cash,1000);
  assert.equal(h.get('beta').cash,1500);
  assert.equal(bought.player.businesses.length,1);
@@ -111,8 +111,8 @@ test('concurrent business purchases are serialized and cannot overspend',async()
  await h.call('alpha','register');
  h.set('alpha',{...h.get('alpha'),cash:500});
  const [first,second]=await Promise.allSettled([
-  h.call('alpha','buyBusiness',{businessId:'coffee'}),
-  h.call('alpha','buyBusiness',{businessId:'coffee'})
+  h.call('alpha','buyBusiness',{businessId:'coffee',requestId:'coffee_race_0001'}),
+  h.call('alpha','buyBusiness',{businessId:'coffee',requestId:'coffee_race_0002'})
  ]);
  assert.equal(first.status,'fulfilled');
  assert.equal(second.status,'rejected');
@@ -160,7 +160,7 @@ test('leaderboards read server-owned scores and world chat remains disabled',asy
  const h=harness();
  await h.call('alpha','register');
  await h.call('beta','register');
- await h.call('alpha','buyBusiness',{businessId:'coffee'});
+ await h.call('alpha','buyBusiness',{businessId:'coffee',requestId:'coffee_leader_0001'});
  const ranks=await h.call('alpha','getLeaderboard',{period:'all'});
  assert.equal(ranks.length,2);
  assert.ok(ranks.every(entry=>entry.score===1500));
@@ -168,4 +168,53 @@ test('leaderboards read server-owned scores and world chat remains disabled',asy
  assert.deepEqual(Array.from(await h.call('alpha','getChat')),[]);
  await assert.rejects(h.call('alpha','sendChat',{text:'hello'}),e=>e.code==='failed-precondition');
  assert.equal(h.db.data.size,3,'chat cannot create public messages');
+});
+
+test('replayed business purchase charges once, even when repeated after success',async()=>{
+ const h=harness();await h.call('alpha','register');
+ const input={businessId:'coffee',requestId:'buy_coffee_once_001'};
+ const first=await h.call('alpha','buyBusiness',input);
+ assert.equal(first.replayed,false);
+ assert.equal(first.cost,500);
+ assert.equal(h.get('alpha').businesses.length,1);
+ const second=await h.call('alpha','buyBusiness',input);
+ assert.equal(second.replayed,true);
+ assert.equal(second.cost,500);
+ assert.equal(second.player.cash,first.player.cash);
+ assert.equal(h.get('alpha').businesses.length,1);
+ assert.equal(h.get('alpha').cash,1000);
+});
+test('concurrent duplicate business purchases commit only once',async()=>{
+ const h=harness();await h.call('alpha','register');
+ const input={businessId:'coffee',requestId:'same_buy_race_0001'};
+ const outcomes=await Promise.all([h.call('alpha','buyBusiness',input),h.call('alpha','buyBusiness',input)]);
+ assert.equal(outcomes.filter(p=>p.replayed===false).length,1);
+ assert.equal(outcomes.filter(p=>p.replayed===true).length,1);
+ assert.equal(h.get('alpha').cash,1000);
+ assert.equal(h.get('alpha').businesses.length,1);
+});
+test('business upgrades are idempotent and cannot rerun with a reused request ID',async()=>{
+ const h=harness();await h.call('alpha','register');
+ await h.call('alpha','buyBusiness',{businessId:'coffee',requestId:'buy_to_upgrade_0001'});
+ const requestId='upgrade_once_0001';
+ const input={index:0,requestId};
+ const first=await h.call('alpha','upgradeBusiness',input);
+ assert.equal(first.replayed,false);
+ assert.equal(first.player.businesses[0].level,2);
+ const second=await h.call('alpha','upgradeBusiness',input);
+ assert.equal(second.replayed,true);
+ assert.equal(h.get('alpha').businesses[0].level,2);
+ assert.equal(h.get('alpha').cash,125);
+ await assert.rejects(h.call('alpha','buyBusiness',{businessId:'coffee',requestId}),e=>e.code==='invalid-argument');
+ await assert.rejects(h.call('alpha','upgradeBusiness',{index:1,requestId}),e=>e.code==='invalid-argument');
+ await assert.rejects(h.call('alpha','requestDefense',{requestId}),e=>e.code==='invalid-argument');
+ assert.equal(h.get('alpha').cash,125);
+});
+test('purchase ID cannot be replayed as a different product',async()=>{
+ const h=harness();await h.call('alpha','register');
+ const requestId='shared_product_0001';
+ await h.call('alpha','buyBusiness',{businessId:'coffee',requestId});
+ await assert.rejects(h.call('alpha','buyBusiness',{businessId:'hotel',requestId}),e=>e.code==='invalid-argument');
+ await assert.rejects(h.call('alpha','requestDefense',{requestId}),e=>e.code==='invalid-argument');
+ assert.equal(h.get('alpha').businesses.length,1);
 });
