@@ -188,9 +188,19 @@ function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show')
 function closeModal(id){$(id).classList.add('hidden')}
 document.querySelectorAll('.mode-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.mode=card.dataset.mode}));
 document.querySelectorAll('.type-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.playType=card.dataset.type;$('multiNotice').classList.toggle('hidden',state.playType!=='multi');window.ProfitLandsWorkspace?.syncMode?.()}));
-window.startProfitLands=()=>{resetForMode(state.mode,state.playType);window.ProfitLandsWorkspace?.syncMode?.();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
-window.resumeProfitLands=()=>{window.ProfitLandsBalance?.migrate?.();window.ProfitLandsWorkspace?.syncMode?.();if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;window.ProfitLandsGrowth?.ensure?.();save();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.ProfitLandsGrowth?.render?.();window.profitLandsPlatform?.gameplayStart()};
+function openOnlineWorld(){
+  // Multiplayer uses its own Firestore ledger. Never reset or save local singleplayer data.
+  state.started=false;
+  $('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');
+  window.ProfitLandsWorkspace?.syncMode?.();
+  window.ProfitLandsWorkspace?.show?.('world');
+  window.ProfitLandsWorld?.render?.();
+  window.scrollTo({top:0,left:0,behavior:'instant'});
+}
+window.startProfitLands=()=>{if(state.playType==='multi')return openOnlineWorld();resetForMode(state.mode,state.playType);window.ProfitLandsWorkspace?.syncMode?.();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.profitLandsPlatform?.gameplayStart()};
+window.resumeProfitLands=()=>{if(state.playType==='multi')return openOnlineWorld();window.ProfitLandsBalance?.migrate?.();window.ProfitLandsWorkspace?.syncMode?.();if(!state.dayEndsAt)state.dayEndsAt=Date.now()+(MODES[state.mode]?.daySeconds||900)*1000;state.started=true;window.ProfitLandsGrowth?.ensure?.();save();$('homeScreen').classList.remove('active');$('gameScreen').classList.add('active');window.scrollTo({top:0,left:0,behavior:'instant'});render();(window.startTimer||startTimer)();window.ProfitLandsGrowth?.render?.();window.profitLandsPlatform?.gameplayStart()};
 $('startGame').onclick=()=>{
+  if(state.playType==='multi'){window.startProfitLands();return}
   let progress=false;
   try{
     const saved=JSON.parse(localStorage.getItem('profitlands-v2')||'null');
@@ -202,6 +212,15 @@ $('startGame').onclick=()=>{
 $('openBusinessShop').onclick=()=>{$('businessChoices').innerHTML=BUSINESS_TYPES.map(t=>`<button class="business-choice" data-buy="${t.id}"><h4>${t.icon} ${t.name}</h4><p>${t.desc}</p><div class="choice-bottom"><span>Buy for ${money(t.cost)}</span><span>↑ Chain: ${money(t.cost*10)}</span></div></button>`).join('');$('businessModal').classList.remove('hidden');document.querySelectorAll('[data-buy]').forEach(el=>el.onclick=()=>buyBusiness(el.dataset.buy))};
 document.querySelectorAll('.action-button').forEach(btn=>btn.onclick=()=>action(btn.dataset.action));document.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=()=>closeModal(btn.dataset.close));
 $('endGame').onclick=()=>{
+ if(state.playType==='multi'&&!state.started){
+  window.ProfitLandsOnline?.disconnect?.();
+  $('gameScreen').classList.remove('active');$('homeScreen').classList.add('active');
+  window.ProfitLandsWorld?.updateChat?.();
+  state.playType='single';window.ProfitLandsWorkspace?.syncMode?.();
+  $('multiNotice').classList.add('hidden');
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.toggle('selected',c.dataset.type==='single'));
+  return;
+ }
  if(!state.started)return;
  $('endGameContent').innerHTML='<span class="eyebrow">SAVE & EXIT</span><h2>Leave your empire for now?</h2><p class="modal-sub">Your empire keeps its progress. There is no final wealth goal, and you can return later.</p><div class="confirm-actions"><button id="cancelEndGame" class="secondary-button">Keep Playing</button><button id="confirmEndGame" class="primary-button">Save & Exit</button></div>';
  $('endGameModal').classList.remove('hidden');
