@@ -6,6 +6,7 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const num=x=>Number.isFinite(Number(x))?Number(x):0;
 const safe=x=>Math.max(0,Math.floor(num(x)));
 const moneyText=x=>money(x);
+const flowText=x=>window.ProfitLandsRealtime?.formatRate?.(x)||moneyText(x);
 const type=b=>BUSINESS_TYPES.find(t=>t.id===b?.type);
 const canPay=amount=>window.ProfitLandsMoney?window.ProfitLandsMoney.canAfford(amount):state.cash>=amount;
 const siteNames={downtown:'Downtown',suburbs:'Suburbs',tourist:'Tourist District',university:'University District',waterfront:'Waterfront',tech:'Tech District',industrial:'Industrial Park'};
@@ -84,6 +85,8 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   const b=state.businesses[bIndex];if(!b)return false;
   normalize(b);
   const l=b.locations[lIndex];if(!l)return false;
+  // Do not charge an action for unsupported operations, even via direct API calls.
+  if(!['upgrade','marketing','efficiency','hire','manager','sell'].includes(kind))return false;
   if(kind==='hire'&&(!Number.isInteger(quantity)||quantity<1||quantity>25||quantity>room(l))){toast('Not enough staff positions. Upgrade this location or grow your empire.');return false}
   if(kind==='manager'&&l.manager){toast('This location already has a manager.');return false}
   const cost=price(b,l,kind,quantity);
@@ -149,12 +152,12 @@ function view(b,l,index,factors,remainingStaff){
     const delta=estimateChange(b,l,index,kind,factors);
     if(delta===null)return '';
     const sign=delta>=0?'+':'−';
-    return ' · Est. '+sign+moneyText(Math.abs(delta))+'/'+rate+'s';
+    return ' · Est. '+sign+flowText(Math.abs(delta)/rate)+'/sec';
   };
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
     '<div class="site-operation-head"><div><h3>'+escapeHtml(l.icon)+' '+escapeHtml(l.name)+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
-    '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong>'+
+    '<strong class="'+(actual<0?'danger':'good')+'">'+sign+flowText(actual/rate)+'/sec</strong>'+
     '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
     '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
     '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Products & Operations →</button> <button type="button" data-site-advances="'+index+'">Advancements & Milestones →</button></div>'+  
