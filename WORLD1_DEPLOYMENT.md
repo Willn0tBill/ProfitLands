@@ -56,3 +56,15 @@ The online world is a deliberately smaller alpha economy than the expansive sing
 - Set project budget alerts and monitor Firestore read/write usage before onboarding many players.
 - Test the deployed function with multiple real accounts; local JavaScript tests alone are not a live deployment test.
 - Firebase Cloud Functions requires the Blaze pricing plan, even when calls fit within free quotas. Enabling billing or deploying a paid service requires project-owner authorization.
+
+## Additional pre-launch hardening (November 4, 2026)
+
+- **Cash transaction replay protection:** All client purchase and upgrade requests now include a 128-bit unpredictable `requestId`; the server checks one per-player event document and atomically creates it with the ledger update. Different action/parameter reuse is rejected. Repeating the exact same request returns the existing receipt without a second purchase.
+- **Transient network failures:** The browser retries transport errors with the identical ID, and preserves unresolved IDs in per-tab session storage for up to 24 hours so a page reload does not blindly issue another charge.
+- **Faction/player data:** Leaderboard and rival reads require a registered world identity. Signed-in accounts outside World 1 cannot enumerate player records.
+- **Read efficiency:** Server roster queries share a three-second, per-instance cache and coalesce concurrent requests. Successful gameplay mutations invalidate that instance's cache. Other Cloud Functions instances may show standings up to three seconds old.
+- **Math precision:** Hundredths of a millidollar of income are carried through extreme high-frequency settlements, including while temporary PvP debuffs are active.
+
+### Remaining acceptance tests
+
+This is not a live-production test: verify retry behavior against the Firestore emulator and real multi-account Firebase sessions once deployment access is granted. Confirm two simultaneous charges with different request IDs behave as separate intended actions, while repeated requests with the same ID never duplicate an action. Configure abuse protection, usage budgets, monitoring and App Check before a public launch.

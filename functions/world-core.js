@@ -57,7 +57,7 @@ function fresh(uid,displayName,now){
   dayKey:dayKey(now),weekKey:weekKey(now),dayGain:0,weekGain:0,
   nextAttackAt:0,protectedUntil:0,nextVulnerableAt:0,
   activePenalty:0,activePenaltyUntil:0,lastPvPSwitchAt:0,
-  chatLastAt:0,incomeMilliRemainder:0};
+  chatLastAt:0,incomeMilliRemainder:0,incomeSubMilliRemainder:0};
 }
 function periodRoll(p,at){
  const nextDay=dayKey(at),nextWeek=weekKey(at);
@@ -90,6 +90,10 @@ function settle(player,now){
  // erase income, especially when PvP multipliers reduce earnings below $1/s.
  let milliRemainder=Number.isSafeInteger(p.incomeMilliRemainder)&&p.incomeMilliRemainder>=0&&p.incomeMilliRemainder<1000
   ?p.incomeMilliRemainder:0;
+ // Keep hundredths of a millidollar too. Repeated 1ms polls must not erase
+ // 12%, 20% or 30% PvP-discounted earnings.
+ let subMilliRemainder=Number.isSafeInteger(p.incomeSubMilliRemainder)&&p.incomeSubMilliRemainder>=0&&p.incomeSubMilliRemainder<100
+  ?p.incomeSubMilliRemainder:0;
  while(cursor<now){
   periodRoll(p,cursor);
   const d=new Date(cursor),midnight=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1);
@@ -106,7 +110,9 @@ function settle(player,now){
    // that intermediate can exceed Number.MAX_SAFE_INTEGER for large empires.
    const grossMilli=durationMs*rate;
    const quotient=Math.floor(grossMilli/100),remainder=grossMilli%100;
-   const milliEarned=quotient*(100-penalty)+Math.floor(remainder*(100-penalty)/100);
+   const subMilliEarned=subMilliRemainder+remainder*(100-penalty);
+   const milliEarned=quotient*(100-penalty)+Math.floor(subMilliEarned/100);
+   subMilliRemainder=subMilliEarned%100;
    const totalMilli=milliRemainder+milliEarned;
    const earned=Math.floor(totalMilli/1000);
    milliRemainder=totalMilli%1000;
@@ -117,6 +123,7 @@ function settle(player,now){
  periodRoll(p,now);
  p.lastSettledAt=now;
  p.incomeMilliRemainder=milliRemainder;
+ p.incomeSubMilliRemainder=subMilliRemainder;
  p.netWorth=worth(p);
  return p;
 }
