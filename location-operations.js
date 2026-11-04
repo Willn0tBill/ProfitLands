@@ -85,6 +85,8 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   const b=state.businesses[bIndex];if(!b)return false;
   normalize(b);
   const l=b.locations[lIndex];if(!l)return false;
+  // Do not charge an action for unsupported operations, even via direct API calls.
+  if(!['upgrade','marketing','efficiency','hire','manager','sell'].includes(kind))return false;
   if(kind==='hire'&&(!Number.isInteger(quantity)||quantity<1||quantity>25||quantity>room(l))){toast('Not enough staff positions. Upgrade this location or grow your empire.');return false}
   if(kind==='manager'&&l.manager){toast('This location already has a manager.');return false}
   const cost=price(b,l,kind,quantity);
