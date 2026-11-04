@@ -239,3 +239,11 @@ test('leaderboard and player directory reuse one cached roster snapshot',async()
  assert.equal(after.length,2);
  assert.equal(h.db.rosterReads,2,'a successful purchase must invalidate the cached roster');
 });
+
+test('a signed-in account must join before enumerating other players or rankings',async()=>{
+ const h=harness();
+ await h.call('alpha','register');
+ await assert.rejects(h.call('unjoined','getPlayers'),e=>e.code==='failed-precondition');
+ await assert.rejects(h.call('unjoined','getLeaderboard',{period:'all'}),e=>e.code==='failed-precondition');
+ assert.equal((await h.call('alpha','getLeaderboard',{period:'all'})).length,1);
+});
