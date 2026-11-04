@@ -226,6 +226,11 @@ function open(index,focused){
   const initial=listData();
   e.innerHTML='<div class="manage-head"><div><span class="eyebrow">COMPANY & LOCATION MANAGEMENT</span><h2>'+escapeHtml(t.icon)+' '+escapeHtml(b.name)+'</h2><p class="modal-sub">'+escapeHtml(t.desc)+'</p></div>'+
     '<strong class="'+(total<0?'danger':'good')+'">'+(total>=0?'+':'')+moneyText(total/period)+'/sec</strong></div>'+
+    '<nav class="pl-company-nav" aria-label="Switch companies" '+(state.businesses.length<2?'hidden':'')+'>'+
+      '<button id="plCompanyPrev" type="button" '+(index===0?'disabled':'')+' aria-label="Previous company">← Previous</button>'+
+      '<span role="status" aria-live="polite">Company '+(index+1)+' of '+state.businesses.length+'</span>'+
+      '<button id="plCompanyNext" type="button" '+(index===state.businesses.length-1?'disabled':'')+' aria-label="Next company">Next →</button>'+
+    '</nav>'+
     '<div class="manage-stats"><div class="mini-stat"><small>LOCATIONS</small><b>'+locs.length+'</b></div>'+
     '<div class="mini-stat"><small>EMPLOYEES</small><b>'+employed+'</b></div>'+
     '<div class="mini-stat"><small>EMPIRE EMPLOYEES</small><b>'+empireEmployees+'/'+empireLimit+'</b></div>'+
@@ -244,6 +249,10 @@ function open(index,focused){
     '<div class="chain-box"><b>🏢 Chain expansion</b><p class="modal-sub">Choose a new district and add another independently managed location.</p>'+
     '<button class="chain-button" id="siteExpand" '+(!actions||!canPay(expansion)?'disabled':'')+'>Choose Location #'+(locs.length+1)+' · '+moneyText(expansion)+'</button></div>';
   modal.classList.remove('hidden');
+  const companyPrev=e.querySelector?.('#plCompanyPrev');
+  const companyNext=e.querySelector?.('#plCompanyNext');
+  if(companyPrev)companyPrev.onclick=()=>open(index-1);
+  if(companyNext)companyNext.onclick=()=>open(index+1);
   const updatePager=page=>{
     const controls=e.querySelector('.site-pagination');
     if(controls)controls.hidden=locs.length<=PAGE_SIZE&&!siteQuery;
@@ -343,6 +352,23 @@ function open(index,focused){
     selected?.scrollIntoView?.({behavior:'instant',block:'center'});
   }
 }
-function init(){normalizeAll();window.openManage=open;window.ProfitLandsLocationOps={normalize,normalizeAll,price,estimateChange,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};}
+function init(){
+  normalizeAll();
+  window.openManage=open;
+  // Scope keyboard navigation to company management. This modal is also
+  // used for location pickers and stock trading.
+  document.addEventListener?.('keydown',event=>{
+    if(!event.altKey||event.ctrlKey||event.metaKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+    if(event.target?.closest?.('input,textarea,select,[contenteditable]'))return;
+    const modal=$('manageModal');
+    if(!modal||modal.classList.contains('hidden')||!modal.querySelector?.('.pl-company-nav:not([hidden])'))return;
+    const index=state.businesses.indexOf(activePortfolio);
+    const next=index+(event.key==='ArrowRight'?1:-1);
+    if(index<0||next<0||next>=state.businesses.length)return;
+    event.preventDefault();
+    open(next);
+  });
+  window.ProfitLandsLocationOps={normalize,normalizeAll,price,estimateChange,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};
+}
 init();
 })();

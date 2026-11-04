@@ -172,3 +172,53 @@ test('visible company cards share one economic snapshot instead of recomputing e
  assert.equal(used.length,108);
  assert.ok(used.slice(36).every(x=>x===2));
 });
+
+test('portfolio sorting changes presentation only and keeps source indexes intact',()=>{
+ const h=harness({businessCount:45}),before=JSON.stringify(h.state);
+ h.state.businesses[7].name='AAA Company';
+ h.state.businesses[7].locations=[{id:'downtown'},{id:'suburbs'},{id:'tourist'},{id:'tech'}];
+ h.state.businesses[8].financialBalance=-500;
+ const original=JSON.stringify(h.state);
+ h.window.renderBusinesses();
+ const controls=h.getControls(),sort=controls._sort;
+ sort.value='name';h.trigger(sort,'change');
+ assert.match(h.box.innerHTML,/data-business="7"/);
+ assert.equal(Number([...h.box.innerHTML.matchAll(/data-business="(\d+)"/g)][0][1]),7);
+ sort.value='locations';h.trigger(sort,'change');
+ assert.equal(Number([...h.box.innerHTML.matchAll(/data-business="(\d+)"/g)][0][1]),7);
+ sort.value='balance';h.trigger(sort,'change');
+ assert.equal(Number([...h.box.innerHTML.matchAll(/data-business="(\d+)"/g)][0][1]),8);
+ assert.equal(JSON.stringify(h.state),original);
+ assert.notEqual(before,original,'fixture changes were explicit, not caused by sorting');
+});
+test('attention-only portfolio filter finds negative balances and bankruptcy warnings',()=>{
+ const h=harness({businessCount:75});
+ h.state.businesses[3].financialBalance=-20;
+ h.state.businesses[41].bankruptcyPending=true;
+ h.window.renderBusinesses();
+ const controls=h.getControls(),filter=controls._attention;
+ assert.match(controls._count.textContent,/2 need attention/);
+ filter.checked=true;h.trigger(filter,'change');
+ assert.equal(cards(h.box.innerHTML),2);
+ assert.match(h.box.innerHTML,/data-business="3"/);
+ assert.match(h.box.innerHTML,/data-business="41"/);
+ assert.equal(controls._more.hidden,true);
+ assert.equal(h.profitCalls(),36+2,'filter evaluation does not simulate hidden companies');
+ controls._clear.handlers.get('click')[0]();
+ assert.equal(cards(h.box.innerHTML),36);
+ assert.equal(filter.checked,false);
+ assert.equal(controls._sort.value,'original');
+});
+test('portfolio options remain mounted across refreshes and medium portfolios can use sorting',()=>{
+ const h=harness({businessCount:20});
+ h.window.renderBusinesses();
+ const controls=h.getControls(),sort=controls._sort,filter=controls._attention;
+ assert.equal(controls.hidden,false,'medium portfolios need discovery controls');
+ sort.value='newest';h.trigger(sort,'change');
+ const first=Number([...h.box.innerHTML.matchAll(/data-business="(\d+)"/g)][0][1]);
+ assert.equal(first,19);
+ h.window.renderBusinesses();
+ assert.equal(controls._sort,sort);
+ assert.equal(controls._attention,filter);
+ assert.equal(sort.value,'newest');
+});
