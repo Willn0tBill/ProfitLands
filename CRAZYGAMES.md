@@ -83,7 +83,7 @@ Historically, `main` had nine stale regression expectations from
 older gameplay and UI designs (variable action regeneration, full market-cycle
 refills, and dashboard/workspace v1). The historical regression tests were corrected without changing the economy
 formulas or workspace implementation. This branch now also includes the
-verified v1.8 Save & Recovery and v1.9 portfolio performance updates. The combined suite passes **162/162**
+verified v1.8 Save & Recovery and v1.9 portfolio performance updates. The combined suite passes **168/168**
 automated tests in GitHub Actions. CrazyGames Preview account-save testing remains required.
 
 ## Local browser smoke test — November 3, 2026
@@ -105,10 +105,16 @@ This does **not** verify CrazyGames production SDK behavior, APS account synchro
 - Large portfolios show the first **36** company cards, with a persistent company/industry search field and a **Show more companies** button. Filtering retains the original company index and does not change game state, earnings or saved progress.
 - The HUD avoids repeated net-worth calculations; hidden workspace panels are no longer rebuilt every five seconds and instead refresh when opened. Actual 500 ms income settlement and action regeneration are unchanged.
 - The normal website's performance changes were smoke-tested in clean-profile Chrome with 100 sample companies, company search, management navigation, and a 390-pixel mobile viewport.
-- The combined **CrazyGames** branch passes 162/162 automated regression tests and a successful packaging build. A fresh authenticated Developer Portal preview test is **still required**; browser QA from the normal website does not substitute for a CrazyGames production SDK or APS test.
+- The combined **CrazyGames** branch passes 168/168 automated regression tests and a successful packaging build. A fresh authenticated Developer Portal preview test is **still required**; browser QA from the normal website does not substitute for a CrazyGames production SDK or APS test.
 
 ## v2.0 real-time income performance
 
 The CrazyGames package now includes the independently tested v2.0 income calculation refactor: a fresh shared set of market modifiers and company factors is created once per portfolio evaluation rather than recomputing total net worth for every single location. A 10,000-location portfolio that previously requested the wealth tier about 20,000 times during one profit pass now requests it once. Income formulas, gameplay settlement frequency, saved-game schema, achievements and the CrazyGames SDK/APS adapter are unchanged.
 
 Regression tests compare the optimized math with the complete original formula across all industries, older company states, changing world events, and half-second income settlement. A separate clean-profile Chrome stress run on the main website covered 100 companies with 100 locations each. **A new CrazyGames Developer Portal preview test remains necessary before submission**; standalone automated tests do not verify actual APS synchronization.
+
+## v2.0.1 company management scaling
+
+Large companies now manage locations in groups of 24 with search by district/name/location number and Previous/Next buttons. Original site indexes remain stable for upgrades, payroll, staffing and sales; focused sites stay visible after updates. Income previews use one fresh **company-specific** economic context per visible page rather than re-running wealth-tier calculations for each action. Mobile paging controls fit a 390-pixel viewport.
+
+The standalone browser test with a 10,000-location company confirmed search/editing of Site 8766, correct displayed income, and no runtime errors. The combined CrazyGames branch passes **168/168** automated tests and successfully builds an isolated HTML5 ZIP. This does not replace required authenticated CrazyGames Developer Portal APS and mobile-device testing before publication.
