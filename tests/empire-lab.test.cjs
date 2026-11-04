@@ -209,3 +209,70 @@ test('manage current branch opens its exact location index, not the company firs
  assert.equal(lab.act('manage'),true);
  assert.deepEqual(calls,[[0,1]]);
 });
+
+test('a full warehouse cannot charge cash for inventory it cannot store',()=>{
+ const m=mock(),lab=m.lab;
+ assert.equal(lab.act('buyWarehouse'),true);
+ const p=m.state.empireLab;
+ p.warehouseStock=p.warehouse*1200;
+ const cash=m.cash(),actions=m.state.actions,saves=m.saves();
+ assert.equal(lab.act('warehouseStock',{qty:50}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.saves(),saves);
+ assert.equal(p.warehouseStock,1200);
+});
+test('full store stock and full delivery destination reject payment with no inventory loss',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const location=lab.allSites()[0].l;
+ location.lab.stock=999990;
+ const cash=m.cash();
+ assert.equal(lab.act('buyStock',{qty:20}),false);
+ assert.equal(location.lab.stock,999990);
+ assert.equal(m.cash(),cash);
+ assert.equal(lab.act('buyWarehouse'),true);
+ assert.equal(lab.act('buyTruck'),true);
+ assert.equal(lab.act('route'),true);
+ assert.equal(lab.act('warehouseStock',{qty:50}),true);
+ const afterWarehouse=m.cash(),stored=m.state.empireLab.warehouseStock;
+ assert.equal(lab.act('dispatch',{qty:20}),false);
+ assert.equal(m.cash(),afterWarehouse);
+ assert.equal(m.state.empireLab.warehouseStock,stored);
+ assert.equal(location.lab.stock,999990);
+});
+test('acquisitions refuse a 101st business without spending an action or cash',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const template=m.state.businesses[0];
+ while(m.state.businesses.length<100)m.state.businesses.push({
+  ...template,name:'Other company '+m.state.businesses.length,locations:[{id:'downtown',name:'Site'}]
+ });
+ const cash=m.cash(),actions=m.state.actions,rivals=m.state.empireLab.rivals.length;
+ assert.equal(lab.act('acquire',{rival:'r1'}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.state.businesses.length,100);
+ assert.equal(m.state.empireLab.rivals.length,rivals);
+});
+test('mergers refuse to create companies that exceed the backup limit',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const source={type:'coffee',name:'Oversized Coffee',level:1,financialBalance:0,
+  locations:Array.from({length:50000},(_,i)=>({id:'downtown',name:'Site '+i,level:1,workers:0}))};
+ m.state.businesses.push(source);
+ const cash=m.cash(),actions=m.state.actions,original=m.state.businesses[0].locations.length;
+ assert.equal(lab.act('merge',{merge:2}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.state.businesses.length,3);
+ assert.equal(m.state.businesses[0].locations.length,original);
+});
+test('regional expansion rejects the backup location cap without charging',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ m.state.empireLab.regions.push('ny');
+ const main=m.state.businesses[0];
+ main.locations=Array.from({length:50000},(_,i)=>({id:'downtown',name:'Site '+i,level:1,workers:0}));
+ const cash=m.cash(),actions=m.state.actions;
+ assert.equal(lab.act('openRegion',{region:'ny'}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(main.locations.length,50000);
+});
