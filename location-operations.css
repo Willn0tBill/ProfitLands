@@ -39,3 +39,15 @@
  .site-list-toolbar button{flex:1 1 auto;min-height:42px}
  .site-section-toggle{font-size:11px;min-height:42px}
 }
+
+/* Render large company portfolios in bounded groups without shifting focus. */
+.site-pagination{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:14px 0 10px;padding:11px 13px;border:1px solid #3c5b47;border-radius:12px;background:#11291e}
+.site-pagination[hidden]{display:none!important}
+.site-pagination label{color:#d0e5d0;font-size:12px;font-weight:700}
+.site-pagination input[type=search]{box-sizing:border-box;flex:1 1 180px;min-width:120px;max-width:320px;min-height:41px;border:1px solid #647f6a;border-radius:8px;background:#0e1c17;color:#f0fff3;font:inherit;font-size:12px;padding:9px 11px}
+.site-pagination input[type=search]:focus-visible,.site-pagination button:focus-visible{outline:2px solid #bef48f;outline-offset:2px}
+.site-pagination span{font-size:12px;color:#b9cbbb;margin-left:auto;font-variant-numeric:tabular-nums}
+.site-pagination button{min-height:41px;padding:8px 12px;color:#e9f7e9;background:#244b32;border:1px solid #69876e;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer}
+.site-pagination button:hover:not(:disabled){background:#326442}
+.site-pagination button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:580px){.site-pagination{padding:10px;gap:8px}.site-pagination input[type=search]{flex-basis:100%;max-width:none}.site-pagination span{flex:1 1 100%;margin:0}.site-pagination button{flex:1 1 auto}}
