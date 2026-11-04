@@ -72,6 +72,10 @@ function show(id,{focus=false,remember=true}={}){
  selected?.scrollTo?.({top:0,behavior:'instant'});
  if(focus)heading.focus({preventScroll:true});
  if(remember)save();
+ // Offscreen cards are refreshed on demand as soon as their workspace opens.
+ if(id==='businesses')window.renderBusinesses?.();
+ if(id==='finance')window.renderFinance?.();
+ if(id==='markets')window.renderHoldings?.();
  if(id==='overview')window.ProfitLandsExecutive?.render?.();
  if(id==='analytics')window.ProfitLandsGrowth?.render?.();
  if(id==='operations')window.ProfitLandsEmpire?.render?.();
