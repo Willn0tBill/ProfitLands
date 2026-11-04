@@ -407,7 +407,7 @@ function render(){
 function renderStats(){
  const p=game()?.empireLab;if(!p)return;
  const t=$('empireLabStats');if(t)t.textContent='HQ '+p.hq+' · '+p.regions.length+' regions · '+p.rivals.length+' rival companies · '+p.trades.length+' demo trades'+
-  (recentAuto.empire===p?' · Latest supply tick: '+recentAuto.branches+' branches restocked, '+fmt(recentAuto.cost)+' spent, '+recentAuto.deliveries+' deliveries':'');
+  (recentAuto.empire===p?' · Latest supply tick: '+recentAuto.branches+' '+(recentAuto.branches===1?'branch':'branches')+' restocked, '+fmt(recentAuto.cost)+' spent, '+recentAuto.deliveries+' '+(recentAuto.deliveries===1?'delivery':'deliveries'):'');
 }
 function boxValue(id){return $(id)?.value??''}
 function bind(){
