@@ -48,6 +48,8 @@
   async function resolveConflict(choice){
     if(!pendingConflict||!currentUser||!['local','cloud'].includes(choice))return false;
     const info=pendingConflict,uid=currentUser.uid;
+    const deviceBefore=copy(state);
+    const localBefore=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     const prompt=choice==='local'
       ?'Keep this device and replace the cloud empire? The previous cloud save will be backed up locally.'
       :'Use the cloud empire instead? Current device progress will be backed up locally.';
@@ -60,13 +62,15 @@
       if(choice==='cloud'){
         window.stopProfitLandsTimer?.();
         const restored=copy(info.cloud);
+        // The browser must accept the new snapshot BEFORE active state changes.
+        localStorage.setItem('profitlands-v2',JSON.stringify(restored));
         Object.assign(state,restored);
         window.ProfitLandsMoney?.attach?.(state);
         window.ProfitLandsBalance?.migrate?.();
         window.restoreProfitLandsMarket?.();
-        localStorage.setItem('profitlands-v2',JSON.stringify(restored));
         state.started=false;
         keepBaseline(uid,restored);
+        try{localStorage.setItem('profitlands-local-owner',uid)}catch(e){}
         lastCloudSignature='';
         window.profitlandsLastCloudSave={state:restored,hasSave:true};
         close();refresh();render();
@@ -82,11 +86,19 @@
         state.started=false;
       }
       keepBaseline(uid,info.cloud);
+      try{localStorage.setItem('profitlands-local-owner',uid)}catch(e){}
       close();refresh();render();
       // A transaction below re-checks the revision if another device has
       // changed the account while this choice dialog was open.
       return await cloudSave(true);
     }catch(e){
+      if(choice==='cloud'){
+        Object.assign(state,deviceBefore);
+        try{
+          if(localBefore!==null)localStorage.setItem('profitlands-v2',localBefore);
+        }catch(backupError){console.warn('Cannot restore prior local snapshot',backupError)}
+        window.ProfitLandsMoney?.attach?.(state);
+      }
       blockedCloud=true;pendingConflict=info;
       window.profitlandsCloudConflict={device:brief(info.local),account:brief(info.cloud)};
       const status=$('cloudConflictError');
@@ -130,7 +142,7 @@
     if(!currentUser||!db)return;
     loadingCloud=true;
     const uid=currentUser.uid;
-    let uploadLocal=false;
+    let uploadLocal=false,loaded=false;
     try{
       const p=await db.collection('users').doc(uid).get();
       if(p.exists){
@@ -155,6 +167,14 @@
         const chosen=choice==='local'?local:choice==='cloud'?remote:null;
         if(chosen){
           const restored=copy(chosen);
+          // Preserve the other account's local save before replacing this device.
+          if(choice==='cloud'){
+            if(deviceOwner&&deviceOwner!==uid){
+              const oldDevice=localSave();
+              if(isValid(oldDevice))localStorage.setItem('profitlands-v2-previous-owner:'+deviceOwner,JSON.stringify(oldDevice));
+            }else if(local&&guard.fingerprint(local)!==guard.fingerprint(restored))storeOtherSave(local);
+            localStorage.setItem('profitlands-v2',JSON.stringify(restored));
+          }
           state.actionCapacityVersion=0;
           Object.assign(state,restored);
           window.ProfitLandsMoney?.attach?.(state);
@@ -162,8 +182,6 @@
           window.restoreProfitLandsMarket?.();
           state.started=false;
           if(choice==='cloud'){
-            if(local&&guard.fingerprint(local)!==guard.fingerprint(restored))storeOtherSave(local);
-            localStorage.setItem('profitlands-v2',JSON.stringify(restored));
             keepBaseline(uid,restored);
             window.profitlandsLastCloudSave={...cloudDoc,state:restored,hasSave:true};
           }else{
@@ -171,13 +189,14 @@
             uploadLocal=!remote||guard.fingerprint(remote)!==guard.fingerprint(restored);
           }
         }else window.profitlandsLastCloudSave={hasSave:false};
+        loaded=true;
       }
     }catch(e){
       console.warn('Cloud load failed; device save remains available',e);
       window.profitlandsLastCloudSave={hasSave:false,error:true};
     }finally{
       loadingCloud=false;
-      try{localStorage.setItem('profitlands-local-owner',uid)}catch(e){}
+      if(loaded)try{localStorage.setItem('profitlands-local-owner',uid)}catch(e){}
       render();refresh();
     }
     if(uploadLocal&&!blockedCloud)await cloudSave(true);
