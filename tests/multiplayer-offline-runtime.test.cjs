@@ -45,8 +45,8 @@ test('singleplayer does not show multiplayer chat or World 1 features',()=>{
 test('local multiplayer preview visibly reports no server and disables sending messages',()=>{
  const h=harness('multi'),before=JSON.stringify(h.state);
  assert.equal(h.window.ProfitLandsWorld.render(),true);
- assert.match(h.nodes.worldContent.innerHTML,/Shared world is not connected yet/);
- assert.match(h.nodes.worldContent.innerHTML,/still runs a local economy/);
+ assert.match(h.nodes.worldContent.innerHTML,/Join the online tycoon world/);
+ assert.match(h.nodes.worldContent.innerHTML,/Your local singleplayer save is separate/);
  assert.equal(h.nodes.worldChatDock.hidden,false);
  assert.equal(h.nodes.worldChatInput.disabled,true);
  assert.equal(h.nodes.worldChatSend.disabled,true);
