@@ -17,7 +17,8 @@ function harness(){
   return dom.get(id);
  };
  const document={getElementById:elements};
- const window={confirm:()=>true,ProfitLandsGrowth:{workforceTier:()=>({cap:150}),render(){}},ProfitLandsRealtime:{period:60},businessDailyProfit:()=>0};
+ let allowSell=true;const prompts=[];
+ const window={confirm:msg=>{prompts.push(msg);return allowSell},ProfitLandsGrowth:{workforceTier:()=>({cap:150}),render(){}},ProfitLandsRealtime:{period:60},businessDailyProfit:()=>0};
  let saved=0,rendered=0;
  const context={state,window,document,BUSINESS_TYPES:[type],money:n=>'$'+Math.round(n),spendAction:cost=>{
    if(state.cash<cost||state.actions<1)return false;
@@ -25,7 +26,8 @@ function harness(){
   },save:()=>saved++,render:()=>rendered++,toast(){},console};
  vm.createContext(context);
  new vm.Script(fs.readFileSync(path.join(root,'location-operations.js'),'utf8')).runInContext(context);
- return {ops:window.ProfitLandsLocationOps,b,state,window,dom,saved:()=>saved,rendered:()=>rendered};
+ return {ops:window.ProfitLandsLocationOps,b,state,window,dom,saved:()=>saved,rendered:()=>rendered, prompts,
+  allowSell:value=>{allowSell=value}};
 }
 test('migrates company-wide settings into independent location state once',()=>{
  const h=harness(),b=h.b,ops=h.ops;
@@ -170,4 +172,37 @@ test('each location has an independent minimize toggle that preserves its action
  assert.equal((markup.match(/data-site-action="hire"/g)||[]).length,2);
  assert.ok(markup.includes('Minimize locations'));
  assert.ok(markup.includes('Expand locations'));
+});
+
+test('final company closure clearly warns players, and cancellation leaves everything unchanged',()=>{
+ const h=harness(),ops=h.ops;
+ assert.equal(ops.doAction(0,1,'sell'),true,'sell the second branch first');
+ assert.equal(h.state.businesses.length,1);
+ const before=JSON.stringify(h.state),saveCount=h.saved(),cash=h.state.cash;
+ h.allowSell(false);
+ assert.equal(ops.doAction(0,0,'sell'),false);
+ assert.ok(h.prompts.at(-1).includes('FINAL location'),'final closure must be unmistakable');
+ assert.ok(h.prompts.at(-1).includes('permanently closes the entire company'));
+ assert.equal(JSON.stringify(h.state),before,'cancelled action cannot mutate the active empire');
+ assert.equal(h.saved(),saveCount,'no save triggered for cancelled sale');
+ assert.equal(h.state.cash,cash);
+ h.allowSell(true);
+ assert.equal(ops.doAction(0,0,'sell'),true);
+ assert.equal(h.state.businesses.length,0);
+});
+test('selling fails closed when confirmations are unavailable or a sale price is invalid',()=>{
+ const h=harness(),ops=h.ops;
+ const before=JSON.stringify(h.state);
+ delete h.window.confirm;
+ assert.equal(ops.doAction(0,1,'sell'),false);
+ assert.equal(JSON.stringify(h.state),before);
+ h.window.confirm=()=>true;
+ const original=h.b.type;
+ h.b.type='coffee';
+ const originalCost=500;
+ // This branch uses a normal valid price; accidentally passing non-finite
+ // values must never credit Infinity or remove the location.
+ h.b.locations[1].demand=Infinity;
+ assert.equal(ops.price(h.b,h.b.locations[1],'sell')<Infinity,true,'rent and demand clamps maintain bounded prices');
+ assert.equal(h.state.businesses.length,1);
 });
