@@ -211,7 +211,7 @@ function open(index,focused){
     const maxOffset=Math.max(0,Math.ceil(matching.length/PAGE_SIZE)-1)*PAGE_SIZE;
     pageOffset=Math.max(0,Math.min(pageOffset,maxOffset));
     const displayed=matching.slice(pageOffset,pageOffset+PAGE_SIZE);
-    const shared=displayed.length?window.ProfitLandsEconomy?.profitFactors?.():null;
+    const shared=displayed.length?window.ProfitLandsEconomy?.companyFactors?.(b):null;
     return {
       count:matching.length,
       displayed,
