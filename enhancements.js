@@ -18,8 +18,69 @@
   function uniqueOwned(typeId){return state.businesses.some(b=>b.type===typeId)}
   function buyBusinessFixed(typeId){const t=BUSINESS_TYPES.find(x=>x.id===typeId);if(!t)return;if(uniqueOwned(typeId)){toast(`You already own a ${t.name}. Expand its chain instead.`);return}if(!spendAction(t.cost))return;const popularity=50+Math.random()*20;const startId=window.ProfitLandsCountry?.startingDistrict?.(typeId)||'downtown';const start=LOCATIONS.find(x=>x.id===startId)||LOCATIONS[0];const b={type:typeId,name:`${t.name} #${state.businesses.length+1}`,level:1,popularity,marketing:0,efficiency:0,chainCount:0,locations:[{id:start.id,name:start.name,icon:start.icon,demand:start.demand,rent:start.rent,basePopularity:popularity}]};state.businesses.push(b);state.news.push(`You opened ${b.name} in ${start.name}.`);closeModal('businessModal');toast(`${t.name} opened in ${start.name}.`);save();render()}
   function renderBusinessShopFixed(){const box=$('businessChoices');if(!box)return;box.innerHTML=BUSINESS_TYPES.map(t=>{const owned=uniqueOwned(t.id);return `<button class="business-choice ${owned?'owned-choice':''}" data-buy-type="${t.id}" ${owned?'disabled':''}><h4>${t.icon} ${t.name}</h4><p>${owned?'Already owned. Expand this company to open another location.':t.desc}</p><div class="choice-bottom"><span>${owned?'OWNED':'START COMPANY'}</span><span>${owned?'CHAIN EXPANSION':moneyFmt(t.cost)}</span></div></button>`}).join('');box.querySelectorAll('[data-buy-type]').forEach(el=>el.onclick=()=>buyBusinessFixed(el.dataset.buyType))}
-  function locationPicker(index){const b=state.businesses[index],t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!b)return;const occupied=new Set(b.locations.map(l=>l.id));const number=b.locations.length+1;const cost=Math.round(t.cost*10*(1+(b.locations.length-1)*.35));$('manageContent').innerHTML=`<div class="location-picker"><span class="eyebrow">CHAIN EXPANSION</span><h2>Choose Location #${number}</h2><p class="modal-sub">Your first expansion costs 10× the original ${t.name} price. Pick where your next location should open.</p><div class="location-grid">${LOCATIONS.map(l=>{const used=occupied.has(l.id);const temp={...b,locations:[l]};const profit=used?0:locationDaily(temp,l,0);return `<button class="location-card" data-location="${l.id}" ${used?'disabled':''}><div class="location-icon">${l.icon}</div><div class="location-main"><b>${l.name}</b><small>${l.desc}</small><span>Demand ${Math.round(l.demand*100)}% · Rent ${Math.round(l.rent*100)}%</span></div><strong>${used?'OWNED':(profit>=0?'+':'')+moneyFmt(profit)+'/day'}</strong></button>`}).join('')}</div><div class="location-cost">Expansion cost <b>${moneyFmt(cost)}</b></div><button class="secondary-button" id="backToManage">← Back to company</button></div>`;document.querySelectorAll('[data-location]').forEach(el=>el.onclick=()=>openLocation(index,el.dataset.location));$('backToManage').onclick=()=>openManage(index)}
-  function openLocation(index,id){const b=state.businesses[index],t=BUSINESS_TYPES.find(x=>x.id===b.type),l=LOCATIONS.find(x=>x.id===id);if(!b||!l)return;if(b.locations.some(x=>x.id===id)){toast('That location is already part of this chain.');return}const cost=Math.round(t.cost*10*(1+(b.locations.length-1)*.35));if(!spendAction(cost))return;b.locations.push({id:l.id,name:l.name,icon:l.icon,demand:l.demand,rent:l.rent,basePopularity:Math.min(100,(b.popularity||55)+Math.random()*8-4)});b.chainCount=b.locations.length-1;state.news.push(`${b.name} opened Location #${b.locations.length} in ${l.name}.`);toast(`${l.name} location opened.`);save();render();closeModal('manageModal')}
+  // Branches may share a district. Locations are identified by their array
+  // index/labId and keep separate staff, upgrades, cash flow and inventory.
+  // Match the Save Center safety limits so players can still export progress.
+  const MAX_BRANCHES_PER_COMPANY=50000,MAX_BRANCHES_PER_EMPIRE=100000;
+  function canExpand(b){
+    const total=(state.businesses||[]).reduce((n,x)=>n+(Array.isArray(x.locations)?x.locations.length:0),0);
+    return b.locations.length<MAX_BRANCHES_PER_COMPANY&&total<MAX_BRANCHES_PER_EMPIRE;
+  }
+  function locationPicker(index){
+    const b=state.businesses[index],t=b&&BUSINESS_TYPES.find(x=>x.id===b.type);
+    if(!b||!t)return;
+    const counts=new Map();
+    for(const site of b.locations)counts.set(site.id,(counts.get(site.id)||0)+1);
+    const number=b.locations.length+1;
+    const cost=Math.round(t.cost*10*(1+(b.locations.length-1)*.35));
+    const hasCapacity=canExpand(b);
+    const available=hasCapacity&&state.actions>0&&(window.ProfitLandsMoney?window.ProfitLandsMoney.canAfford(cost):state.cash>=cost);
+    const factors=window.ProfitLandsEconomy?.companyFactors?.(b);
+    const period=window.ProfitLandsRealtime?.period||60;
+    const outputRate=n=>window.ProfitLandsRealtime?.formatRate?.(n)||moneyFmt(n);
+    const choices=LOCATIONS.map(l=>{
+      const existing=counts.get(l.id)||0;
+      const preview={...l,level:1,marketing:0,efficiency:0,workers:0,manager:false,basePopularity:b.popularity||55};
+      const actual=window.ProfitLandsEconomy?.locationProfit?.(b,preview,b.locations.length,factors);
+      // The old estimate is a fallback only for older runtimes.
+      const estimate=Number.isFinite(actual)?actual:locationDaily({...b,level:1,marketing:0,efficiency:0},preview,b.locations.length);
+      const label=(estimate>=0?'+':'')+outputRate(estimate/period)+'/sec';
+      return '<button type="button" class="location-card" data-location="'+l.id+'" '+(!available?'disabled':'')+'>'+
+        '<div class="location-icon">'+l.icon+'</div><div class="location-main"><b>'+l.name+'</b><small>'+l.desc+'</small>'+
+        '<span>Demand '+Math.round(l.demand*100)+'% · Rent '+Math.round(l.rent*100)+'% · '+existing+' existing '+(existing===1?'branch':'branches')+'</span></div>'+
+        '<strong>Est. '+label+'</strong></button>';
+    }).join('');
+    $('manageContent').innerHTML='<div class="location-picker"><span class="eyebrow">CHAIN EXPANSION</span>'+
+      '<h2>Choose Location #'+number+'</h2>'+
+      '<p class="modal-sub">You can open multiple independently managed branches in any district. Each new location has its own employees, upgrades and products.</p>'+
+      (!hasCapacity?'<p class="site-help" role="status">Your empire reached the supported location limit. No money or actions were charged.</p>':
+        !available?'<p class="site-help" role="status">You need one action and enough funds before opening a new branch.</p>':'')+
+      '<div class="location-grid">'+choices+'</div><div class="location-cost">Expansion cost <b>'+moneyFmt(cost)+'</b></div>'+
+      '<button class="secondary-button" id="backToManage">← Back to company</button></div>';
+    document.querySelectorAll('[data-location]').forEach(el=>el.onclick=()=>openLocation(index,el.dataset.location));
+    $('backToManage').onclick=()=>window.openManage?.(index);
+  }
+  function openLocation(index,id){
+    const b=state.businesses[index],t=b&&BUSINESS_TYPES.find(x=>x.id===b.type),l=LOCATIONS.find(x=>x.id===id);
+    if(!b||!t||!l)return false;
+    if(!canExpand(b)){toast('This empire has reached the supported location limit.');return false}
+    const cost=Math.round(t.cost*10*(1+(b.locations.length-1)*.35));
+    if(!Number.isFinite(cost)||cost<0||!spendAction(cost))return false;
+    const existing=b.locations.reduce((n,x)=>n+(x.id===id?1:0),0);
+    const name=existing?l.name+' · Branch '+(existing+1):l.name;
+    const newIndex=b.locations.length;
+    b.locations.push({id:l.id,name,icon:l.icon,demand:l.demand,rent:l.rent,
+      level:1,marketing:0,efficiency:0,workers:0,manager:false,
+      basePopularity:Math.min(100,(b.popularity||55)+Math.random()*8-4)});
+    b.chainCount=b.locations.length-1;
+    state.news.push(b.name+' opened Location #'+b.locations.length+' in '+l.name+'.');
+    toast(name+' opened.');
+    save();render();
+    // Keep players in management, at the location they just purchased.
+    if(typeof window.openManage==='function')window.openManage(index,newIndex);
+    else closeModal('manageModal');
+    return true;
+  }
   function renderBusinessesFixed(){if(!state.businesses.length){$('businessList').innerHTML='<div class="empty">No businesses yet. Buy one to start building your empire.</div>';return}$('businessList').innerHTML=state.businesses.map((b,i)=>{const t=BUSINESS_TYPES.find(x=>x.id===b.type),p=totalProfit(b);return `<div class="business-card" data-business="${i}"><div class="business-top"><div><div class="business-name">${t.icon} ${b.name}</div><div class="business-type">${t.name} · Level ${b.level} · ${b.locations.length} location${b.locations.length===1?'':'s'}</div></div><div class="business-profit ${p<0?'danger':''}">${p>=0?'+':''}${moneyFmt(p)}/day</div></div><div class="business-meta"><div class="mini-stat"><small>POPULARITY</small><b>${Math.round(b.popularity)}%</b><div class="popbar"><i style="width:${Math.max(0,Math.min(100,b.popularity))}%"></i></div></div><div class="mini-stat"><small>LOCATIONS</small><b>${b.locations.length}</b></div><div class="mini-stat"><small>UPGRADES</small><b>${b.level-1}</b></div><div class="mini-stat"><small>HEALTH</small><b class="${p<0?'danger':'good'}">${p<0?'LOSS':'PROFIT'}</b></div></div></div>`}).join('');document.querySelectorAll('.business-card').forEach(el=>el.onclick=()=>openManage(Number(el.dataset.business)))}
   function openManageFixed(index){const b=state.businesses[index],t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!b)return;const profit=totalProfit(b),upgradeCost=Math.round(t.cost*(1+b.level*.75)),chainCost=Math.round(t.cost*10*(1+(b.locations.length-1)*.35)),marketingCost=Math.round(t.cost*.65*(b.marketing+1)),efficiencyCost=Math.round(t.cost*.7*(b.efficiency+1));$('manageContent').innerHTML=`<div class="manage-head"><div><span class="eyebrow">COMPANY MANAGEMENT</span><h2>${t.icon} ${b.name}</h2><p class="modal-sub">${t.desc}</p></div><div class="business-profit ${profit<0?'danger':''}">${profit>=0?'+':''}${moneyFmt(profit)}/day</div></div><div class="manage-stats"><div class="mini-stat"><small>LEVEL</small><b>${b.level}</b></div><div class="mini-stat"><small>POPULARITY</small><b>${Math.round(b.popularity)}%</b></div><div class="mini-stat"><small>LOCATIONS</small><b>${b.locations.length}</b></div><div class="mini-stat"><small>STATUS</small><b class="${profit<0?'danger':'good'}">${profit<0?'LOSING':'PROFITABLE'}</b></div></div><div class="location-summary">${b.locations.map((l,i)=>`<div><span>${l.icon}</span><b>Location ${i+1}</b><small>${l.name}</small><strong>${locationDaily(b,l,i)>=0?'+':''}${moneyFmt(locationDaily(b,l,i))}/day</strong></div>`).join('')}</div><div class="manage-actions"><button class="upgrade-button" data-manage="upgrade"><b>⬆ Upgrade Business</b><small>Level ${b.level+1} · ${moneyFmt(upgradeCost)}</small></button><button class="upgrade-button" data-manage="marketing"><b>📢 Marketing</b><small>+8 popularity · ${moneyFmt(marketingCost)}</small></button><button class="upgrade-button" data-manage="efficiency"><b>⚙ Improve Efficiency</b><small>Lower daily expenses · ${moneyFmt(efficiencyCost)}</small></button><button class="upgrade-button" data-manage="sell"><b>💰 Sell Business</b><small>Recover part of its current value</small></button></div><div class="chain-box"><b>🏢 Chain Expansion</b><p class="modal-sub">Open another ${t.name} location. You choose the location, and the first expansion costs 10× the original business price.</p><button class="chain-button" data-manage="chain" ${(window.ProfitLandsMoney?!window.ProfitLandsMoney.canAfford(chainCost):state.cash<chainCost)?'disabled':''}>Choose Location #${b.locations.length+1} · ${moneyFmt(chainCost)}</button></div>`;$('manageModal').classList.remove('hidden');document.querySelectorAll('[data-manage]').forEach(el=>el.onclick=()=>manageActionFixed(index,el.dataset.manage))}
   function manageActionFixed(index,what){const b=state.businesses[index],t=b&&BUSINESS_TYPES.find(x=>x.id===b.type);if(!b||!t)return;if(what==='chain'){locationPicker(index);return}if(what==='upgrade'){const c=Math.round(t.cost*(1+b.level*.75));if(!spendAction(c))return;b.level++;state.news.push(`${b.name} reached Level ${b.level}.`);toast('Business upgraded.')}else if(what==='marketing'){const c=Math.round(t.cost*.65*(b.marketing+1));if(!spendAction(c))return;b.marketing++;b.popularity=Math.min(100,b.popularity+8);b.locations.forEach(l=>l.basePopularity=Math.min(100,l.basePopularity+8));toast('Marketing boosted popularity.')}else if(what==='efficiency'){const c=Math.round(t.cost*.7*(b.efficiency+1));if(!spendAction(c))return;b.efficiency++;toast('Efficiency improved.')}else if(what==='sell'){const refund=Math.round(value(b)*.7);(window.ProfitLandsMoney?window.ProfitLandsMoney.gain(refund):state.cash+=refund);state.businesses.splice(index,1);state.news.push(`You sold ${b.name} for ${moneyFmt(refund)}.`);toast('Business sold.');closeModal('manageModal')}save();render();if(what!=='sell')openManageFixed(index)}
