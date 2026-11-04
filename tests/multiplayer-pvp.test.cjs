@@ -61,3 +61,32 @@ test('multiplayer UI shows offline state rather than inventing players or scores
  assert.match(source,/Shared world is not connected yet/);
  assert.match(source,/No verified scores/);
 });
+
+test('server attack helper debits only the attacker and applies a finite income penalty',()=>{
+ const {now,attacker,defender}=players();
+ attacker.cash=100000;
+ const before=JSON.stringify({attacker,defender});
+ const result=rules.applyAttack({attacker,defender,attackId:'supplier',targetCompanyValue:100000,nowSeconds:now});
+ assert.equal(result.ok,true);
+ assert.equal(result.cost,5000);
+ assert.equal(result.attacker.cash,95000);
+ assert.equal(result.defender.netWorth,100000,'victim is not directly deprived of assets');
+ assert.equal(result.defender.activePenalty,0.12);
+ assert.equal(result.defender.activePenaltyUntil,now+480);
+ assert.equal(result.attacker.nextAttackAt,now+900);
+ assert.equal(JSON.stringify({attacker,defender}),before,'helper is pure');
+ const repeat=rules.applyAttack({attacker:result.attacker,defender:result.defender,attackId:'supplier',targetCompanyValue:100000,nowSeconds:now+1});
+ assert.equal(repeat.ok,false,'back-to-back attacks are denied');
+});
+test('server defense helper charges for protection without minting money',()=>{
+ const {now,defender}=players();defender.cash=30000;
+ const result=rules.applyDefense({player:defender,nowSeconds:now,ownEmpireWorth:100000});
+ assert.equal(result.ok,true);
+ assert.equal(result.cost,10000);
+ assert.equal(result.player.cash,20000);
+ assert.equal(result.player.protectedUntil,now+1200);
+ const blocked=rules.applyDefense({player:result.player,nowSeconds:now+100,ownEmpireWorth:100000});
+ assert.equal(blocked.reason,'already_protected');
+ const poorer=rules.applyDefense({player:{...defender,cash:100},nowSeconds:now,ownEmpireWorth:100000});
+ assert.equal(poorer.reason,'insufficient_cash');
+});
