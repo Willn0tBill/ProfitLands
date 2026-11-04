@@ -16,13 +16,14 @@ class MemoryRef{
  collection(name){return new MemoryRef(this.db,this.path+'/'+name)}
  doc(id){return new MemoryRef(this.db,this.path+'/'+id)}
  limit(max){return {get:async()=>{
+  this.db.rosterReads++;
   const prefix=this.path+'/';
   return {docs:[...this.db.data].filter(([key])=>key.startsWith(prefix)&&key.slice(prefix.length).split('/').length===1)
    .slice(0,max).map(([key,value])=>({id:key.slice(prefix.length),data:()=>copy(value)}))};
  }}}
 }
 class MemoryFirestore{
- constructor(){this.data=new Map();this.queue=Promise.resolve()}
+ constructor(){this.data=new Map();this.queue=Promise.resolve();this.rosterReads=0}
  collection(name){return new MemoryRef(this,name)}
  snapshot(ref){
   const value=this.data.get(ref.path);
@@ -217,4 +218,24 @@ test('purchase ID cannot be replayed as a different product',async()=>{
  await assert.rejects(h.call('alpha','buyBusiness',{businessId:'hotel',requestId}),e=>e.code==='invalid-argument');
  await assert.rejects(h.call('alpha','requestDefense',{requestId}),e=>e.code==='invalid-argument');
  assert.equal(h.get('alpha').businesses.length,1);
+});
+
+test('leaderboard and player directory reuse one cached roster snapshot',async()=>{
+ const h=harness();
+ await h.call('alpha','register');
+ await h.call('beta','register');
+ const results=await Promise.all([
+  h.call('alpha','getLeaderboard',{period:'all'}),
+  h.call('alpha','getPlayers'),
+  h.call('alpha','getLeaderboard',{period:'day'})
+ ]);
+ assert.equal(results[0].length,2);
+ assert.equal(results[1].length,1);
+ assert.equal(h.db.rosterReads,1,'parallel online queries must share a single database scan');
+ await h.call('alpha','getLeaderboard',{period:'week'});
+ assert.equal(h.db.rosterReads,1,'rapid repeated queries should reuse cache');
+ await h.call('alpha','buyBusiness',{businessId:'coffee',requestId:'cache_invalidation_001'});
+ const after=await h.call('alpha','getLeaderboard',{period:'all'});
+ assert.equal(after.length,2);
+ assert.equal(h.db.rosterReads,2,'a successful purchase must invalidate the cached roster');
 });
