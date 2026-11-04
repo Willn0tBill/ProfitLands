@@ -74,9 +74,10 @@ test('chat can open in multiplayer preview but cannot send messages',()=>{
  for(const handler of h.nodes.worldChatClose.events.click)handler();
  assert.equal(h.nodes.worldChatPanel.hidden,true);
 });
-test('client does not implement an authoritative server or locally award PvP cash',()=>{
+test('Firebase server is isolated and client cannot locally award PvP cash',()=>{
  const repo=fs.readdirSync(root);
- assert.equal(repo.some(x=>x==='server.js'||x==='server'||x==='functions'),false);
+ assert.equal(repo.includes('functions'),true,'authoritative server source now exists');
+ assert.equal(fs.existsSync(require('node:path').join(root,'functions','index.js')),true);
  assert.doesNotMatch(code,/state\.cash\s*(\+\+|--|[+\-*/]?=)/);
  assert.match(code,/window\.ProfitLandsOnline/);
  assert.match(code,/isConnected\?\.\(\)===true/);
