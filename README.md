@@ -6,6 +6,16 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Chain expansion and dialog accessibility (v2.0.3)
+
+**Chain growth no longer stops after the seven original districts are occupied.** Players can open multiple independently managed locations in any district. Repeat branches get distinct display names (for example, `Downtown · Branch 2`) and retain separate local staff, upgrades, finances and inventory. New purchases cost the same as the existing chain formula and immediately open the purchased location in management rather than closing the modal.
+
+The location picker now displays the number of existing branches per district and uses current, company-specific economy calculations for per-second profit estimates. Branch purchases stop at Save Center's supported size caps (50,000 locations per company, 100,000 per empire) rather than producing progress that cannot be backed up.
+
+Quick Switch now traps Tab/Shift+Tab inside its modal dialog and handles Escape before the document's other backdrop handlers. Closing Quick Switch does not also dismiss an underlying game modal; focus returns to the previously active control. The mobile management header now reserves clearance for the Close button without pushing the profit display far below the company title, and the selected location is highlighted.
+
+Tests verify repeat-district purchases, independent staff/upgrade state, exact action/cash costs, save-cap safety, correct profit estimate units, keyboard focus, Escape propagation, and mobile header spacing. A clean-profile Chrome smoke test passed with seven occupied districts, purchase of an eighth location, Quick Switch tab/escape, and 390px mobile layout.
+
 ## Save, stock trade, and mobile UI fixes (v2.0.2)
 
 - **Save & Recovery:** accepts version 4 saves with up to 50,000 locations in one business (100,000 total, subject to the 16 MB file limit) and supports legitimate negative balances from debt/recovery. Malformed and unsafe files remain rejected.
