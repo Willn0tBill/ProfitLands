@@ -6,6 +6,20 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Save & Recovery and safer management (v1.8)
+
+The in-game **Settings** button now opens a functional Save & Recovery panel instead of redirecting away from gameplay. It offers:
+
+- **Save now:** verify a local snapshot is written using the existing `profitlands-v2` save format.
+- **Download backup:** export a private JSON copy of the current empire.
+- **Import backup:** restore only a valid version 4 ProfitLands save (max 4 MB) after a clear confirmation. The previous local save is retained separately under `profitlands-v2-before-import` for troubleshooting.
+- **Restore last backup:** choose the game's existing automatic recovery snapshot (`profitlands-v2-backup`) after confirmation.
+- **Display & accessibility:** use the dedicated settings page without losing current progress.
+
+Imports are intentionally **disabled for signed-in Firebase accounts** to prevent silently replacing cloud progress, and file import/export is disabled in CrazyGames builds (which instead rely on platform Automatic Progress Save). Unknown game modes, invalid businesses, non-finite values and embedded markup are rejected before altering the active game. Restoring a valid save keeps the same game-state object, retains the active screen, and restarts the appropriate automatic market timer.
+
+The **Ctrl+K Quick Switch** also includes a Save & Recovery shortcut. Selling the final branch of a company now requires explicit confirmation that the entire company, staff and upgrades will be removed. Local file backups can contain personal game details: keep them private.
+
 ## WtvI Executive Quick Switch (v1.6)
 
 Use **Ctrl+K** (or **Cmd+K** on macOS) to open a searchable command palette in the live game. Players can jump to management screens, open any owned business, buy a new company, or open other WtvI projects. The header also includes a touch-friendly Search control. Use `/` outside text fields as an alternative shortcut. The palette does not alter saves, time cycles, action pools, or cash.

@@ -14,15 +14,10 @@
       const start=document.getElementById('startGame');
       start?.focus({preventScroll:true});
     }
+    // Let the in-game button open its Settings modal. The separate Settings
+    // link in the topbar still navigates to display and accessibility options.
     const settings=document.getElementById('openSettings');
-    if(settings){
-      settings.title='Open display and accessibility settings';
-      settings.addEventListener('click',e=>{
-        e.preventDefault();e.stopImmediatePropagation();
-        if(typeof window.save==='function'&&window.state?.started)window.save();
-        location.href='../settings/';
-      },true);
-    }
+    if(settings)settings.title='Open in-game settings, saving and recovery';
     if(q.get('resume')==='1'){
       const box=document.getElementById('homeScreen');
       if(box){

@@ -81,8 +81,16 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   const l=b.locations[lIndex];if(!l)return false;
   if(kind==='hire'&&(!Number.isInteger(quantity)||quantity<1||quantity>25||quantity>room(l))){toast('Not enough staff positions. Upgrade this location or grow your empire.');return false}
   if(kind==='manager'&&l.manager){toast('This location already has a manager.');return false}
-  if(kind==='sell'&&!(window.confirm?.('Sell '+l.name+'? This removes this location and its staff permanently.')??true))return false;
   const cost=price(b,l,kind,quantity);
+  if(!Number.isFinite(cost)||cost<0){toast('This transaction is unavailable.');return false}
+  if(kind==='sell'){
+    const last=b.locations.length===1;
+    const question=last
+      ?'Sell your FINAL location in '+b.name+'? This permanently closes the entire company, removes its employees and upgrades, and pays '+moneyText(cost)+'.'
+      :'Sell '+l.name+' in '+b.name+'? This permanently removes its employees and local upgrades and pays '+moneyText(cost)+'.';
+    // Destructive transactions must not succeed without explicit confirmation.
+    if(!window.confirm?.(question))return false;
+  }
   if(kind==='sell'){
     // Selling is not an action cost; revenue is credited to the huge ledger.
     if(window.ProfitLandsMoney)window.ProfitLandsMoney.gain(cost);
