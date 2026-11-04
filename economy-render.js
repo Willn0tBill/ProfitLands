@@ -8,16 +8,100 @@
   const showFlow=n=>(n>=0?'+':'')+perSec(n)+'/sec';
   function riskLabel(b){const r=RISK[b.type]||{econ:1,cost:1,weather:.7,vol:.15};const score=(r.econ+r.cost+r.weather+r.vol*2)/4;return score<.85?'Low':score<1.1?'Moderate':score<1.35?'High':score<1.65?'Very High':'Extreme'}
   function profit(b){return window.businessDailyProfit?window.businessDailyProfit(b):0}
+  // Render only the visible portfolio window, not hundreds of hidden cards.
+  // Controls live OUTSIDE businessList, so periodic updates cannot steal input focus.
+  const PAGE_SIZE=36;
+  let portfolioQuery='',portfolioLimit=PAGE_SIZE,portfolioControls=null,portfolioInput=null;
+  const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  function setupPortfolio(box){
+    if(portfolioControls?.isConnected)return portfolioControls;
+    if(!box.parentElement||!document.createElement)return null;
+    const controls=document.createElement('div');
+    controls.className='pl-portfolio-controls';
+    const label=document.createElement('label');
+    label.className='pl-portfolio-search-label';
+    label.textContent='Search companies';
+    const input=document.createElement('input');
+    input.type='search';input.className='pl-portfolio-search';
+    input.placeholder='Company or industry';input.setAttribute('aria-label','Search your business portfolio');
+    input.autocomplete='off';input.value=portfolioQuery;
+    input.addEventListener('input',()=>{
+      portfolioQuery=String(input.value||'').trim().toLocaleLowerCase();
+      portfolioLimit=PAGE_SIZE;
+      renderBusinesses();
+    });
+    label.appendChild(input);
+    const count=document.createElement('span');
+    count.className='pl-portfolio-count';count.setAttribute('aria-live','polite');
+    const more=document.createElement('button');
+    more.type='button';more.className='pl-portfolio-more';
+    more.textContent='Show more companies';
+    more.addEventListener('click',()=>{portfolioLimit+=PAGE_SIZE;renderBusinesses()});
+    controls.append(label,count,more);
+    box.parentElement.insertBefore(controls,box);
+    portfolioControls=controls;portfolioInput=input;
+    controls._count=count;controls._more=more;
+    return controls;
+  }
   function renderBusinesses(){
     const box=document.getElementById('businessList');if(!box)return;
-    if(!state.businesses.length){box.innerHTML='<div class="empty">No businesses yet. Buy one to start building your empire.</div>';return}
-    box.innerHTML=state.businesses.map((b,i)=>{
-      const t=BUSINESS_TYPES.find(x=>x.id===b.type),p=profit(b),r=riskLabel(b),bal=b.financialBalance||0,limit=-(b.originalCost||t.cost);
-      const sites=b.locations||[],highest=b.locationManagementVersion===1?Math.max(1,...sites.map(l=>Number(l.level)||1)):b.level;
-      const staff=b.locationManagementVersion===1?sites.reduce((sum,l)=>sum+(Number(l.workers)||0),0):(b.workers||0);
-      return '<div class="business-card" data-business="'+i+'"><div class="business-top"><div><div class="business-name">'+t.icon+' '+b.name+'</div><div class="business-type">'+t.name+' · '+(b.locations?.length||b.chainCount+1)+' locations · Highest Lv '+highest+' · '+staff+' staff'+'</div></div><div class="business-profit '+(p<0?'danger':'')+'">' +showFlow(p)+'</div></div><div class="business-meta"><div class="mini-stat"><small>POPULARITY</small><b>'+Math.round(b.popularity||55)+'%</b><div class="popbar"><i style="width:'+Math.max(0,Math.min(100,b.popularity||55))+'%"></i></div></div><div class="mini-stat"><small>RISK</small><b>'+r+'</b></div><div class="mini-stat"><small>BUSINESS BALANCE</small><b class="'+(bal<0?'danger':'')+'">'+moneyF(bal)+'</b></div><div class="mini-stat"><small>STATUS</small><b class="'+(b.bankruptcyPending?'danger':p<0?'danger':'good')+'">'+(b.bankruptcyPending?'BANKRUPTCY':p<0?'LOSS':'PROFIT')+'</b></div></div></div>'
-    }).join('');
-    document.querySelectorAll('.business-card').forEach(el=>el.onclick=()=>window.openManage?.(Number(el.dataset.business)));
+    const controls=setupPortfolio(box);
+    const all=state.businesses||[];
+    const matched=[];
+    for(let i=0;i<all.length;i++){
+      const b=all[i];
+      if(!portfolioQuery||String(b.name||'').toLocaleLowerCase().includes(portfolioQuery)||
+        String(BUSINESS_TYPES.find(t=>t.id===b.type)?.name||b.type||'').toLocaleLowerCase().includes(portfolioQuery))matched.push(i);
+    }
+    const visible=controls?matched.slice(0,portfolioLimit):matched;
+    if(controls){
+      controls.hidden=all.length<=PAGE_SIZE&&!portfolioQuery;
+      controls._count.textContent=matched.length?'Showing '+visible.length+' of '+matched.length+' companies':'No matching companies';
+      controls._more.hidden=visible.length>=matched.length;
+      controls._more.disabled=visible.length>=matched.length;
+    }
+    const html=!all.length?
+      '<div class="empty">No businesses yet. Buy one to start building your empire.</div>':
+      !matched.length?'<div class="empty">No companies match that search.</div>':
+      visible.map(i=>{
+        const b=all[i],t=BUSINESS_TYPES.find(x=>x.id===b.type);
+        if(!t)return '';
+        const p=profit(b),r=riskLabel(b),bal=b.financialBalance||0;
+        const sites=b.locations||[];
+        // Avoid spreading a growing location list into Math.max arguments.
+        const highest=b.locationManagementVersion===1?
+          sites.reduce((max,l)=>Math.max(max,Number(l.level)||1),1):b.level;
+        const staff=b.locationManagementVersion===1?sites.reduce((sum,l)=>sum+(Number(l.workers)||0),0):(b.workers||0);
+        const count=b.locations?.length||b.chainCount+1;
+        const safeName=escapeHtml(b.name),safeType=escapeHtml(t.name);
+        return '<div class="business-card" data-business="'+i+'" role="button" tabindex="0" aria-label="Manage '+safeName+'">'+
+          '<div class="business-top"><div><div class="business-name">'+t.icon+' '+safeName+'</div>'+
+          '<div class="business-type">'+safeType+' · '+count+' locations · Highest Lv '+highest+' · '+staff+' staff</div></div>'+
+          '<div class="business-profit '+(p<0?'danger':'')+'">'+showFlow(p)+'</div></div>'+
+          '<div class="business-meta"><div class="mini-stat"><small>POPULARITY</small><b>'+Math.round(b.popularity||55)+
+          '%</b><div class="popbar"><i style="width:'+Math.max(0,Math.min(100,b.popularity||55))+'%"></i></div></div>'+
+          '<div class="mini-stat"><small>RISK</small><b>'+r+'</b></div>'+
+          '<div class="mini-stat"><small>BUSINESS BALANCE</small><b class="'+(bal<0?'danger':'')+'">'+moneyF(bal)+'</b></div>'+
+          '<div class="mini-stat"><small>STATUS</small><b class="'+(b.bankruptcyPending?'danger':p<0?'danger':'good')+'">'+
+          (b.bankruptcyPending?'BANKRUPTCY':p<0?'LOSS':'PROFIT')+'</b></div></div></div>';
+      }).join('');
+    // Preserve DOM nodes, scroll position and keyboard focus when nothing changed.
+    if(box.innerHTML!==html)box.innerHTML=html;
+    if(!box._plPortfolioEvents){
+      box._plPortfolioEvents=true;
+      const openFrom=target=>{
+        const card=target?.closest?.('.business-card');
+        if(!card||!box.contains(card))return;
+        const i=Number(card.dataset.business);
+        if(Number.isSafeInteger(i)&&i>=0&&i<state.businesses.length)window.openManage?.(i);
+      };
+      box.addEventListener('click',event=>openFrom(event.target));
+      box.addEventListener('keydown',event=>{
+        if(event.key!=='Enter'&&event.key!==' ')return;
+        if(!event.target?.closest?.('.business-card'))return;
+        event.preventDefault();openFrom(event.target);
+      });
+    }
   }
   function renderHoldings(){
     const box=document.getElementById('holdings');if(!box)return;const items=[];
