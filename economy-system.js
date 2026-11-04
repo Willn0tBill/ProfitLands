@@ -109,16 +109,46 @@
     if(Array.isArray(b.locations)&&b.locations.length)return b.locations;
     return [{id:'downtown',name:'Downtown',demand:1.22,rent:1.65,basePopularity:b.popularity||55}];
   }
-  function locationProfit(b,l,i){
-    const t=BUSINESS_TYPES.find(x=>x.id===b.type);if(!t)return 0;
-    const r=riskFor(b), e=state.economy, scale=1+tier()*.045;
+  // Read global economic factors once per portfolio calculation. Previously
+  // tier() recalculated total empire net worth inside EVERY location's profit,
+  // causing quadratic work when a player accumulated thousands of sites.
+  // Never cache across ticks: upgrades, market events and account resumes
+  // must affect the very next settlement.
+  function profitFactors(){
+    const level=tier();
     const difficulty=window.ProfitLandsDifficulty?.current?.()||{revenue:1,expenses:1};
     const country=window.ProfitLandsCountry?.current?.()||{demand:1,revenue:1,rent:1,wage:1};
-    const countryDemand=Number(country.demand)||1;
-    const countryRevenue=Number(country.revenue)||1;
-    const countryCost=window.ProfitLandsCountry?.costIndex?.(country)||1;
-    const industryStrength=window.ProfitLandsCountry?.industry?.(b.type)||1;
-    const independent=b.locationManagementVersion===1;
+    return {
+      level,
+      scale:1+level*.045,
+      randomScale:1+level*.22,
+      country,
+      difficultyRevenue:Number(difficulty.revenue)||1,
+      difficultyExpenses:Number(difficulty.expenses)||1,
+      countryDemand:Number(country.demand)||1,
+      countryRevenue:Number(country.revenue)||1,
+      countryCost:window.ProfitLandsCountry?.costIndex?.(country)||1,
+      demandEffect:activeEffect('demand'),
+      supplyEffect:activeEffect('supply'),
+      techEffect:activeEffect('tech'),
+      travelEffect:activeEffect('travel'),
+      weatherEffect:activeEffect('weather')
+    };
+  }
+  function businessFactors(b,global){
+    return {
+      ...global,
+      type:BUSINESS_TYPES.find(x=>x.id===b.type),
+      risk:riskFor(b),
+      industryStrength:window.ProfitLandsCountry?.industry?.(b.type)||1,
+      independent:b.locationManagementVersion===1
+    };
+  }
+  function locationProfit(b,l,i,factors){
+    const f=factors||businessFactors(b,profitFactors());
+    const t=f.type;if(!t)return 0;
+    const r=f.risk, e=state.economy;
+    const independent=f.independent;
     const lvl=1+((independent?(l.level||1):(b.level||1))-1)*.22;
     const marketing=independent?(l.marketing||0):(b.marketing||0);
     const efficiency=independent?(l.efficiency||0):(b.efficiency||0);
@@ -127,15 +157,15 @@
     const pop=Math.max(0,Math.min(100,(l.basePopularity??basePop)+marketing*1.5))/100;
     const seeded=Math.sin((state.day*97+i*31+String(l.id).length*17)+b.type.length)*43758.5453;
     const noise=(seeded-Math.floor(seeded))-.5;
-    const random=1+noise*(r.vol*(1+tier()*.22)+.08);
-    const demand=e.demandIndex*loc.demand*countryDemand*activeEffect('demand')*(1+(e.health-60)/250*r.econ);
-    const revenue=t.baseRevenue*lvl*demand*countryRevenue*industryStrength*(Number(difficulty.revenue)||1)*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*scale;
-    const runningCost=t.baseExpense*lvl*loc.rent*countryCost*(Number(difficulty.expenses)||1)*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*activeEffect('supply')*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
+    const random=1+noise*(r.vol*f.randomScale+.08);
+    const demand=e.demandIndex*loc.demand*f.countryDemand*f.demandEffect*(1+(e.health-60)/250*r.econ);
+    const revenue=t.baseRevenue*lvl*demand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
+    const runningCost=t.baseExpense*lvl*loc.rent*f.countryCost*f.difficultyExpenses*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*f.supplyEffect*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
     const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
     let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
-    if(b.type==='software')profit*=activeEffect('tech');
-    if(b.type==='hotel')profit*=activeEffect('travel');
-    profit*=activeEffect('weather')>1?(1-(activeEffect('weather')-1)*.10*r.weather):1;
+    if(b.type==='software')profit*=f.techEffect;
+    if(b.type==='hotel')profit*=f.travelEffect;
+    profit*=f.weatherEffect>1?(1-(f.weatherEffect-1)*.10*r.weather):1;
     if(independent){
       profit+=window.ProfitLandsLocationOps?.staffingAdjustment?.(b,l,revenue,runningCost)||0;
       if(Number.isFinite(b.initiativeUntilTime)&&b.initiativeUntilTime>Date.now())profit+=revenue*.12;
@@ -143,9 +173,10 @@
     profit+=window.ProfitLandsEmpire?.delta?.(b,l,revenue,runningCost)||0;
     return profit;
   }
-  function businessProfit(b){
+  function businessProfit(b,global){
     const locs=locationList(b);
-    const total=locs.reduce((sum,l,i)=>sum+locationProfit(b,l,i),0);
+    const factors=businessFactors(b,global||profitFactors());
+    const total=locs.reduce((sum,l,i)=>sum+locationProfit(b,l,i,factors),0);
     const legacyBonus=b.locationManagementVersion===1?0:(window.ProfitLandsGrowth?.adjustProfit?.(b)||0);
     return Math.round(total+legacyBonus);
   }
@@ -306,7 +337,8 @@
     });
   }
   function projectedProfit(){
-    const business=(state.businesses||[]).reduce((sum,b)=>sum+businessProfit(b),0);
+    const factors=profitFactors();
+    const business=(state.businesses||[]).reduce((sum,b)=>sum+businessProfit(b,factors),0);
     const majors=(state.majorCompanies||[]).reduce((sum,c)=>{
       if(!Number.isFinite(c.liveDayRate))c.liveDayRate=majorDaily(c);
       return sum+c.liveDayRate;
@@ -343,8 +375,9 @@
     if(!elapsed)return 0;
     const multiplier=elapsed/INCOME_UNIT_SECONDS;
     let realized=0;
+    const factors=profitFactors();
     (state.businesses||[]).forEach(b=>{
-      const amount=businessProfit(b)*multiplier;
+      const amount=businessProfit(b,factors)*multiplier;
       window.ProfitLandsBadges?.record?.(b.type,'earnings',Math.max(0,amount));
       realized+=amount;
       b.financialBalance=(Number(b.financialBalance)||0)+amount;
@@ -587,7 +620,10 @@
     window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit,businessValue:businessValue2};
     window.businessDailyProfit=businessProfit;
     window.businessValue=businessValue2;
-    window.totalBusinessProfit=()=>state.businesses.reduce((s,b)=>s+businessProfit(b),0);
+    window.totalBusinessProfit=()=>{
+      const factors=profitFactors();
+      return state.businesses.reduce((s,b)=>s+businessProfit(b,factors),0);
+    };
     window.netWorth=calcNetWorth;
     window.ProfitLandsRealtime={rate:perSecond,settle:settleIncome,formatRate:rateMoney,period:INCOME_UNIT_SECONDS};
     window.endDay=()=>false; // Manual market advances are disabled.
