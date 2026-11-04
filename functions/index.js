@@ -151,7 +151,7 @@ exports.worldApi=onCall({region:'us-west1',memory:'256MiB',maxInstances:5,timeou
  cors:['https://willn0tbill.github.io',/^http:\/\/localhost:\d+$/]},async request=>{
  const data=request.data&&typeof request.data==='object'?request.data:{},action=data.action;
  if(!ACTIONS.has(action))err('invalid-argument','Unknown online action.');
- if(action==='health')return {ok:true,worldId:core.WORLD_ID,chatEnabled:CHAT_ENABLED,version:1};
+ if(action==='health')return {ok:true,worldId:core.WORLD_ID,chatEnabled:CHAT_ENABLED,version:1,catalog:core.BUSINESS_TYPES};
  const uid=uidOf(request);
  switch(action){
   case 'register':return register(request);
