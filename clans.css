@@ -1,0 +1,67 @@
+/* Clans are a game social feature, not a simulated leaderboard. */
+#clanPanel{min-width:0}
+#clanPanel .panel-head{margin-bottom:12px}
+.pl-clan-intro{
+  display:flex;align-items:center;gap:17px;padding:20px;
+  border-radius:17px;border:1px solid #99a4ef85;
+  background:linear-gradient(115deg,#3f3069,#24385a 62%,#174e51);
+  box-shadow:0 9px 20px #0004;margin-bottom:18px;
+}
+.pl-clan-emblem{
+  display:grid;place-items:center;flex:0 0 74px;width:74px;height:74px;
+  font-size:37px;border:2px solid #ffe39e9e;border-radius:19px;
+  background:linear-gradient(135deg,#57447d,#1c4157);
+  box-shadow:0 5px 0 #15283b,0 0 30px #ffe5a33c;
+}
+.pl-clan-intro h3{font-size:clamp(18px,2vw,25px)!important;color:#fff0ba!important;margin:4px 0}
+.pl-clan-intro p{font-size:12px;line-height:1.6;color:#dfedfc;margin:5px 0 13px}
+.pl-clan-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.pl-clan-box{
+  border:1px solid #647da366;border-radius:14px;background:linear-gradient(140deg,#212d49,#192d3c);
+  padding:17px;min-width:0;margin-bottom:14px;
+}
+.pl-clan-box h4{font-size:16px;margin:0 0 10px;color:#fff0ca}
+.pl-clan-box p,.pl-clan-note{font-size:12px;line-height:1.6;color:#bacde4;margin:0 0 12px}
+.pl-clan-box label{display:block;margin:10px 0 6px;font-size:11px;color:#c6d7ef;font-weight:750}
+.pl-clan-box input:not([type=checkbox]),.pl-clan-box textarea{
+  display:block;width:100%;box-sizing:border-box;min-width:0;
+  border:1px solid #8093b2;border-radius:10px;background:#101e33;color:#f3f8ff;
+  padding:10px 12px;font:inherit;font-size:13px;
+}
+.pl-clan-box textarea{resize:vertical;min-height:68px;max-height:180px}
+.pl-clan-primary,.pl-clan-row button,.pl-clan-toolbar button,.pl-clan-copy button{
+  appearance:none;border:1px solid #c5efa6;border-radius:10px;min-height:38px;
+  padding:9px 14px;background:linear-gradient(125deg,#ffdf90,#b5f3ab);
+  color:#152824;font-size:12px;font-family:inherit;font-weight:900;cursor:pointer;
+}
+.pl-clan-primary{margin-top:12px}
+.pl-clan-primary:hover,.pl-clan-row button:hover,.pl-clan-toolbar button:hover,.pl-clan-copy button:hover{
+  filter:brightness(1.08);transform:translateY(-1px)
+}
+.pl-clan-directory,.pl-clan-roster{display:grid;gap:9px}
+.pl-clan-row,.pl-clan-member{
+  display:flex;justify-content:space-between;align-items:center;gap:13px;
+  border:1px solid #60789a66;border-radius:11px;background:#16263c;
+  padding:11px 12px;
+}
+.pl-clan-row>div{min-width:0}
+.pl-clan-row strong,.pl-clan-member span{font-size:13px;color:#f2f6ff;overflow-wrap:anywhere}
+.pl-clan-row small,.pl-clan-member small{display:block;margin-top:5px;color:#aec5db;font-size:11px}
+.pl-clan-alert{background:#1d433a;border:1px solid #81dfb9;color:#d7ffeb;border-radius:10px;padding:12px;font-size:12px}
+.pl-clan-alert.error{background:#492a37;border-color:#eeaab7;color:#ffe1e7}
+.pl-clan-toolbar,.pl-clan-copy{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pl-clan-copy code{font-size:12px;color:#ffefa6;overflow-wrap:anywhere}
+.pl-clan-leave{
+  background:#3d253b;color:#ffd9e5;border:1px solid #ad6b89;border-radius:10px;
+  min-height:38px;padding:9px 13px;cursor:pointer;font:inherit;font-size:12px;font-weight:800;
+}
+.pl-clan-loading{padding:20px;color:#cae4ed;font-size:13px}
+#clanPanel button:focus-visible,#clanPanel input:focus-visible,#clanPanel textarea:focus-visible{
+  outline:3px solid #ffdf91;outline-offset:2px;
+}
+@media(max-width:690px){
+ .pl-clan-columns{grid-template-columns:minmax(0,1fr)}
+ .pl-clan-intro{padding:14px;gap:11px}
+ .pl-clan-emblem{width:52px;height:52px;flex-basis:52px;font-size:27px}
+ .pl-clan-row{align-items:start}
+}
