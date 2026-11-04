@@ -176,3 +176,18 @@ test('account switching keeps the previous user snapshot available',async()=>{
  assert.equal(JSON.parse(saved).day,12);
  assert.equal(d.memory.get('profitlands-local-owner'),'player');
 });
+
+test('a rejected backup write prevents a destructive cloud switch',async()=>{
+ const db=firestore(empire(20));
+ const d=device(db.db,empire(13),'player');
+ await d.login();
+ const prior=JSON.stringify(d.state);
+ const originalSet=d.localStorage.setItem;
+ d.localStorage.setItem=(key,value)=>{
+   if(key==='profitlands-v2-conflict-backup')throw Error('Storage unavailable');
+   originalSet(key,value);
+ };
+ assert.equal(await d.resolve('cloud'),false);
+ assert.equal(JSON.stringify(d.state),prior);
+ assert.equal(d.status().blocked,true);
+});
