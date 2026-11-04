@@ -37,6 +37,7 @@ const fmt=v=>window.ProfitLandsMoney?.format?.(v)||window.money?.(v)||'$'+Number
 const clean=t=>String(t??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const amount=n=>Number.isFinite(Number(n))?Number(n):0;
 let currentTab='store',currentSite=null,lastTick=0,lastSave=0;
+let recentAuto={empire:null,branches:0,cost:0,deliveries:0};
 function game(){return window.state}
 function companyType(b){return(window.BUSINESS_TYPES||[]).find(x=>x.id===b.type)}
 function ensure(){
@@ -265,7 +266,7 @@ function tick(now=Date.now()){
  const elapsed=clamp((now-lastTick)/1000,0,5);lastTick=now;
  if(!elapsed)return;
  const sites=allSites();
- let replenished=0,replenishmentCost=0;
+ let replenished=0,replenishmentCost=0,deliveries=0;
  for(const site of sites){
    const l=site.l,a=l.lab;if(!a?.enabled)continue;
    const roles=a.roles||{},units=elapsed*(.09+Math.min(1,(roles.sales||0)*.04));
@@ -285,10 +286,11 @@ function tick(now=Date.now()){
    const target=sites.find(x=>x.id===p.route.siteId);
    if(target&&target.l.lab.stock<15){
      const fee=Math.round(15*(p.research.includes('routes')?.6:1));
-     if(charge(fee)){p.warehouseStock-=10;target.l.lab.stock+=10;p.log.push('Auto-route supplied '+target.l.name)}
+     if(charge(fee)){p.warehouseStock-=10;target.l.lab.stock+=10;deliveries++;p.log.push('Auto-route supplied '+target.l.name)}
    }
  }
  if(p.log.length>18)p.log.splice(0,p.log.length-18);
+ recentAuto={empire:p,branches:replenished,cost:replenishmentCost,deliveries};
  p.lastTick=now;
  if(now-(p.lastRivalTick||0)>30000){
    p.lastRivalTick=now;
@@ -337,30 +339,38 @@ function render(){
  let content='';
  if(currentTab==='store'){
    const b=site?.b,l=site?.l,roles=lab?.roles||{sales:0,production:0,logistics:0},assigned=Object.values(roles).reduce((a,v)=>a+amount(v),0),workers=amount(l?.workers);
+   const stock=amount(lab?.stock),stockPrice=Math.round(20*8*(p.research.includes('inventory')?.85:1)*(window.ProfitLandsAdvancements?.modifiers?.(l)?.stock||1));
+   const stockHealth=!lab?.enabled?'Inactive':stock<1?'Out of stock':stock<8?'Low stock':'Stock healthy';
    content='<h3>Store Operations</h3><p>Manage local products, staffing roles, prices, and inventory. Enable a location to activate these optional operating mechanics.</p>'+
      siteSelector('Business location');
    if(!has)content+='<p>Purchase a business first to try store operations.</p>';
    else content+='<div class="lab-metrics"><span>Business <b>'+clean(b.name)+'</b></span><span>Stock <b>'+lab.stock.toFixed(1)+' units</b></span><span>Price <b>'+lab.price.toFixed(2)+'×</b></span><span>Staff assigned <b>'+assigned+'/'+workers+'</b></span></div>'+
+     '<div class="lab-supply-health" role="status" aria-label="Location supply status">'+
+       '<span class="'+(lab.enabled&&stock<8?'lab-supply-alert':'')+'">'+stockHealth+'</span>'+
+       '<span>Auto-restock: '+(lab.autoRestock?'On':'Off')+'</span>'+
+       '<span>Auto-pricing: '+(lab.autoPrice?'On':'Off')+'</span></div>'+
      '<p>Products: '+products(b).map(clean).join(' · ')+'</p>'+
      (!lab.enabled?button('enable','Activate store simulation (free)'):'<p class="lab-status">Store simulation active · Inventory shortages will reduce local revenue.</p>')+
-     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),lab.stock+20>MAX_STORE_STOCK,'data-qty="20"')+
+     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(stockPrice),lab.stock+20>MAX_STORE_STOCK||!have(stockPrice),'data-qty="20"')+
      button('priceDown','Lower prices 5%')+button('priceUp','Raise prices 5%')+'</div>'+
      '<h4>Employee roles</h4><p>Assign your existing employees. Hire more through the location-management window. Assignments are free.</p>'+
      '<div class="lab-role-grid">'+['sales','production','logistics'].map(role=>'<div><b>'+role+'</b><span>'+amount(roles[role])+' employees</span>'+
        button('roleDown','−',amount(roles[role])<1,'data-role="'+role+'"')+
        button('roleUp','+',assigned>=workers,'data-role="'+role+'"')+'</div>').join('')+'</div>'+
-     '<h4>Managed automation</h4><div class="lab-actions">'+button('autoRestock',lab.autoRestock?'Pause automatic replenishment':'Enable automatic replenishment',!l.manager)+
-     button('autoPrice',lab.autoPrice?'Pause automatic pricing':'Enable automatic pricing',!l.manager||!p.research.includes('automation'))+'</div>';
+     '<h4>Managed automation</h4><div class="lab-actions">'+button('autoRestock',lab.autoRestock?'Pause automatic replenishment':'Enable automatic replenishment',!lab.enabled||!l.manager)+
+     button('autoPrice',lab.autoPrice?'Pause automatic pricing':'Enable automatic pricing',!lab.enabled||!l.manager||!p.research.includes('automation'))+'</div>';
  }else if(currentTab==='logistics'){
    const route=allSites().find(x=>x.id===p.route?.siteId);
+   const warehouseOrder=Math.round(50*7*(p.research.includes('inventory')?.85:1));
+   const deliveryFee=Math.max(1,Math.round((9+10*.5)*(p.research.includes('routes')?.6:1)));
    content='<h3>Warehouses & Supply Lines</h3><p>Buy stock centrally and ship it to your locations. Delivery fees consume cash; researched logistics lowers the cost.</p>'+
      '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Delivery vehicles <b>'+p.trucks+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
      '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+button('buyTruck','Purchase delivery vehicle · '+fmt(900*1.7**p.trucks),!p.warehouse||!have(900*1.7**p.trucks))+
-     button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse||p.warehouseStock+50>p.warehouse*1200,'data-qty="50"')+'</div>'+
+     button('warehouseStock','Buy 50 warehouse units · '+fmt(warehouseOrder),!p.warehouse||p.warehouseStock+50>p.warehouse*1200||!have(warehouseOrder),'data-qty="50"')+'</div>'+
      siteSelector('Delivery destination')+
      '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!p.trucks||!has)+
-     button('dispatch','Send 10 units · pay delivery fee',!p.route||!p.trucks||p.warehouseStock<10,'data-qty="10"')+
-     button('autoRoute',p.route?.auto?'Pause supply deliveries':'Auto-deliver when stock is low',!p.route)+'</div>';
+     button('dispatch','Send 10 units · '+fmt(deliveryFee)+' delivery',!route||!p.trucks||p.warehouseStock<10||route.l.lab.stock+10>MAX_STORE_STOCK||!have(deliveryFee),'data-qty="10"')+
+     button('autoRoute',p.route?.auto?'Pause supply deliveries':'Auto-deliver when stock is low',!route||!p.trucks)+'</div>';
  }else if(currentTab==='world'){
    content='<h3>Cities, Countries & AI Rivals</h3><p>Expand into new markets with their own rent, demand, and taxes. Rival businesses compete for customers; you can acquire them.</p>'+
      '<h4>Regional markets</h4><div class="lab-cards">'+REGIONS.map(r=>'<div class="lab-card"><strong>'+clean(r.label)+'</strong><span>Demand '+r.demand.toFixed(2)+'× · Rent '+r.rent.toFixed(2)+'× · Tax '+Math.round(r.tax*100)+'%</span>'+
@@ -396,7 +406,8 @@ function render(){
 }
 function renderStats(){
  const p=game()?.empireLab;if(!p)return;
- const t=$('empireLabStats');if(t)t.textContent='HQ '+p.hq+' · '+p.regions.length+' regions · '+p.rivals.length+' rival companies · '+p.trades.length+' demo trades';
+ const t=$('empireLabStats');if(t)t.textContent='HQ '+p.hq+' · '+p.regions.length+' regions · '+p.rivals.length+' rival companies · '+p.trades.length+' demo trades'+
+  (recentAuto.empire===p?' · Latest supply tick: '+recentAuto.branches+' branches restocked, '+fmt(recentAuto.cost)+' spent, '+recentAuto.deliveries+' deliveries':'');
 }
 function boxValue(id){return $(id)?.value??''}
 function bind(){
