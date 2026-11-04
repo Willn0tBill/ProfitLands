@@ -45,3 +45,9 @@
 .lab-site-picker input[type=search]:focus-visible{outline:3px solid #bafb8a;outline-offset:2px}
 .lab-site-picker small{font-size:11px;color:#b4cdbc;line-height:1.45}
 @media(max-width:600px){.empire-lab-content .lab-site-picker label{grid-template-columns:1fr;gap:5px}.lab-site-picker{padding:10px}}
+
+/* Supply health: compact, scannable feedback for automated warehouses and stores. */
+.lab-supply-health{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+.lab-supply-health span{display:inline-flex;align-items:center;min-height:31px;border:1px solid #477255;border-radius:9px;background:#183627;color:#cfebd4;font-size:11px;font-weight:700;padding:6px 10px}
+.lab-supply-health .lab-supply-alert{color:#f8d795;border-color:#977646;background:#362d19}
+@media(max-width:600px){.lab-supply-health{gap:6px}.lab-supply-health span{font-size:10px;min-height:34px}}
