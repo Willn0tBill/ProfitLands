@@ -31,6 +31,7 @@ const RESEARCH=[
  {id:'customers',label:'Customer analytics',cost:4300,info:'Raises store demand 8%.'},
  {id:'automation',label:'Corporate automation',cost:6500,info:'Allows managed branches to auto-adjust prices.'}
 ];
+const MAX_STORE_STOCK=1000000,MAX_COMPANY_SITES=50000,MAX_EMPIRE_SITES=100000,MAX_COMPANIES=100;
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 const fmt=v=>window.ProfitLandsMoney?.format?.(v)||window.money?.(v)||'$'+Number(v).toLocaleString('en-US');
 const clean=t=>String(t??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -141,6 +142,7 @@ function act(action,opt={}){
    lab.enabled=true;ok=true;message='Store operations activated for '+site.l.name+'.';
  }else if(action==='buyStock'){
    if(!requireSite())return false;
+   if(lab.stock+qty>MAX_STORE_STOCK)return false;
    const discount=window.ProfitLandsAdvancements?.modifiers?.(site.l)?.stock||1;
    const cost=Math.round(qty*8*(p.research.includes('inventory')?.85:1)*discount);
    if(!charge(cost))return false;
@@ -167,13 +169,14 @@ function act(action,opt={}){
    p.trucks++;ok=true;message='Delivery vehicle #'+p.trucks+' added to your fleet.';
  }else if(action==='warehouseStock'){
    if(!p.warehouse)return false;
+   if(!p.warehouse||p.warehouseStock+qty>p.warehouse*1200)return false;
    const cost=Math.round(qty*7*(p.research.includes('inventory')?.85:1));if(!charge(cost))return false;
    p.warehouseStock=clamp(p.warehouseStock+qty,0,p.warehouse*1200);ok=true;message='Warehouse received '+qty+' units.';
  }else if(action==='route'){
    if(!requireSite()||!p.warehouse||!p.trucks)return false;
    p.route={siteId:site.id,auto:false};ok=true;message='Supply route linked to '+site.l.name+'.';
  }else if(action==='dispatch'){
-   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||!p.trucks||p.warehouseStock<qty)return false;
+   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||!p.trucks||p.warehouseStock<qty||target.l.lab.stock+qty>MAX_STORE_STOCK)return false;
    const fee=Math.max(1,Math.round((9+qty*.5)*(p.research.includes('routes')?.6:1)));
    if(!charge(fee))return false;
    p.warehouseStock-=qty;target.l.lab.stock+=qty;ok=true;
@@ -193,6 +196,7 @@ function act(action,opt={}){
    p.regions.push(r.id);ok=true;message=r.label+' expansion market unlocked.';
  }else if(action==='openRegion'){
    if(!requireSite()||!p.regions.includes(opt.region))return false;
+   if(site.b.locations.length>=MAX_COMPANY_SITES||allSites().length>=MAX_EMPIRE_SITES)return false;
    const r=region(opt.region),base=companyType(site.b)?.cost||500;
    const cost=Math.round(base*3*r.demand*(1+(site.b.locations.length-1)*.5));
    if(!charge(cost,true))return false;
@@ -216,7 +220,9 @@ function act(action,opt={}){
    p.publicCompanies.push({companyId:site.b.labCompanyId,companyName:site.b.name,equitySold:.2});
    ok=true;message=site.b.name+' IPO raised '+fmt(proceeds)+'; investors receive 20% of future site operating revenue.';
  }else if(action==='acquire'){
-   const rival=p.rivals.find(x=>x.id===opt.rival);if(!rival||!charge(rival.value,true))return false;
+   const rival=p.rivals.find(x=>x.id===opt.rival);
+   if(!rival||s.businesses.length>=MAX_COMPANIES||allSites().length>=MAX_EMPIRE_SITES)return false;
+   if(!charge(rival.value,true))return false;
    const btype=companyType({type:rival.type});if(!btype)return false;
    const count=s.businesses.filter(b=>b.type===rival.type).length+1;
    const acquired={type:rival.type,name:rival.name+' (Acquired)',level:1,marketing:0,efficiency:0,
@@ -230,10 +236,11 @@ function act(action,opt={}){
    const second=s.businesses[idx];
    if(!Number.isInteger(idx)||!second||second===site.b||second.type!==site.b.type)return false;
    if((p.publicCompanies||[]).some(x=>x.companyId===second.labCompanyId||x.companyId===site.b.labCompanyId))return false;
+   if(site.b.locations.length+(second.locations||[]).length>MAX_COMPANY_SITES)return false;
    const value=window.ProfitLandsEconomy?.businessValue?.(second)||companyType(second)?.cost||500;
    const fee=Math.max(100,Math.round(value*.05));
    if(!charge(fee,true))return false;
-   site.b.locations.push(...(second.locations||[]));
+   for(const location of second.locations||[])site.b.locations.push(location);
    site.b.chainCount=site.b.locations.length-1;
    site.b.financialBalance=(site.b.financialBalance||0)+(second.financialBalance||0);
    s.businesses.splice(idx,1);
@@ -328,7 +335,7 @@ function render(){
    else content+='<div class="lab-metrics"><span>Business <b>'+clean(b.name)+'</b></span><span>Stock <b>'+lab.stock.toFixed(1)+' units</b></span><span>Price <b>'+lab.price.toFixed(2)+'×</b></span><span>Staff assigned <b>'+assigned+'/'+workers+'</b></span></div>'+
      '<p>Products: '+products(b).map(clean).join(' · ')+'</p>'+
      (!lab.enabled?button('enable','Activate store simulation (free)'):'<p class="lab-status">Store simulation active · Inventory shortages will reduce local revenue.</p>')+
-     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),false,'data-qty="20"')+
+     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),lab.stock+20>MAX_STORE_STOCK,'data-qty="20"')+
      button('priceDown','Lower prices 5%')+button('priceUp','Raise prices 5%')+'</div>'+
      '<h4>Employee roles</h4><p>Assign your existing employees. Hire more through the location-management window. Assignments are free.</p>'+
      '<div class="lab-role-grid">'+['sales','production','logistics'].map(role=>'<div><b>'+role+'</b><span>'+amount(roles[role])+' employees</span>'+
@@ -341,7 +348,7 @@ function render(){
    content='<h3>Warehouses & Supply Lines</h3><p>Buy stock centrally and ship it to your locations. Delivery fees consume cash; researched logistics lowers the cost.</p>'+
      '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Delivery vehicles <b>'+p.trucks+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
      '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+button('buyTruck','Purchase delivery vehicle · '+fmt(900*1.7**p.trucks),!p.warehouse||!have(900*1.7**p.trucks))+
-     button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse,'data-qty="50"')+'</div>'+
+     button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse||p.warehouseStock+50>p.warehouse*1200,'data-qty="50"')+'</div>'+
      siteSelector('Delivery destination')+
      '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!p.trucks||!has)+
      button('dispatch','Send 10 units · pay delivery fee',!p.route||!p.trucks||p.warehouseStock<10,'data-qty="10"')+
