@@ -53,10 +53,17 @@
     document.getElementById('qtyPlus').onclick=()=>{qtyInput.value=(Number(qtyInput.value)||1)+1;refresh()};
     qtyInput.oninput=refresh;
     submit.onclick=()=>{
-      refresh(); // Re-check available cash, shares, and actions at the moment of purchase.
-      const q=Math.floor(Number(qtyInput.value));
-      if(!Number.isFinite(q)||q<1)return;
-      if(state.actions<=0){toast('No actions left.');return}
+      const q=Number(qtyInput.value);
+      if(!Number.isSafeInteger(q)||q<1||q>999999){refresh();toast('Choose a valid share quantity.');return}
+      if(state.actions<=0){refresh();toast('No actions left.');return}
+      const available=side==='buy'?getMaxBuy():h.shares;
+      if(q>available){refresh();toast('Your available cash or shares changed. Review the updated order.');return}
+      // A market cycle may have changed the price while the modal was open.
+      // Never silently execute a different quantity or total than was quoted.
+      if(total.textContent!==money(q*s.price)){
+        refresh();toast('The stock price changed. Review the new order total.');return;
+      }
+      refresh();
       if(side==='buy'){
         const cost=q*s.price;if(q>maxBuy||(window.ProfitLandsMoney?!window.ProfitLandsMoney.spend(cost):state.cash<cost)){toast('Not enough cash for that trade.');return}
         if(!window.ProfitLandsMoney)state.cash-=cost;(state.stocks[id]||(state.stocks[id]={shares:0})).shares+=q;state.actions--;state.news.push(`You bought ${q} share${q===1?'':'s'} of ${s.ticker}.`);toast(`Bought ${q} ${s.ticker} share${q===1?'':'s'}.`);
