@@ -18,7 +18,7 @@ function harness(){
  };
  const document={getElementById:elements};
  let allowSell=true;const prompts=[];
- const window={confirm:msg=>{prompts.push(msg);return allowSell},ProfitLandsGrowth:{workforceTier:()=>({cap:150}),render(){}},ProfitLandsRealtime:{period:60},businessDailyProfit:()=>0};
+ const window={confirm:msg=>{prompts.push(msg);return allowSell},ProfitLandsGrowth:{workforceTier:()=>({cap:150}),render(){}},ProfitLandsRealtime:{period:60,formatRate:n=>'$'+Number(n).toFixed(2)},businessDailyProfit:()=>0};
  let saved=0,rendered=0;
  const context={state,window,document,BUSINESS_TYPES:[type],money:n=>'$'+Math.round(n),spendAction:cost=>{
    if(state.cash<cost||state.actions<1)return false;
@@ -223,7 +223,7 @@ test('location profit forecasts are read-only and reflect actual cloned upgrades
  assert.equal(h.saved(),0,'forecasts do not trigger autosaving');
  h.ops.open(0);
  const markup=h.dom.get('manageContent').innerHTML;
- assert.ok(markup.includes('Est. +$100/60s'),'upgrade card shows readable cash-flow projection');
+ assert.ok(markup.includes('Est. +$1.67/sec'),'upgrade card shows readable cash-flow projection');
  assert.ok(markup.includes('current market conditions'),'projection is clearly an estimate');
 });
 test('profit forecast gracefully hides estimates when no economy calculator is available',()=>{
@@ -231,4 +231,18 @@ test('profit forecast gracefully hides estimates when no economy calculator is a
  assert.equal(ops.estimateChange(h.b,h.b.locations[0],0,'upgrade'),null);
  h.ops.open(0);
  assert.ok(!h.dom.get('manageContent').innerHTML.includes('Est. +'));
+});
+
+test('location cards display cents in per-second profit instead of rounded dollars',()=>{
+ const h=harness();
+ h.window.ProfitLandsEconomy={locationProfit:()=>90};
+ h.ops.open(0);
+ assert.ok(h.dom.get('manageContent').innerHTML.includes('+$1.50/sec'));
+});
+test('unsupported operation cannot charge an action',()=>{
+ const h=harness(),cash=h.state.cash,actions=h.state.actions;
+ assert.equal(h.ops.doAction(0,0,'unsupported'),false);
+ assert.equal(h.state.cash,cash);
+ assert.equal(h.state.actions,actions);
+ assert.equal(h.saved(),0);
 });
