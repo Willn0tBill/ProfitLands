@@ -46,7 +46,7 @@ function setup({platform='web',signedIn=false,active=true,confirm=true,autoBacku
   restoreProfitLandsMarket(){},
   render(){rendered++},
   startTimer(){timers++},
-  save(){state.savedAt=Date.now();memory.set('profitlands-v2',JSON.stringify(state));saved++},
+  save(){state.savedAt=Date.now();localStorage.setItem('profitlands-v2',JSON.stringify(state));saved++},
   confirm(msg){confirmed++;return confirm},
  };
  const ctx=vm.createContext({window,document,localStorage,console,Date,JSON,Number,Math,Set,Object,

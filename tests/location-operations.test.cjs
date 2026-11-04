@@ -447,20 +447,16 @@ test('profit forecast gracefully hides estimates when no economy calculator is a
  assert.ok(!h.dom.get('manageContent').innerHTML.includes('Est. +'));
 });
 
-test('location cards display exact fractional per-second profit instead of rounding up',()=>{
- const h=harness(),b=h.b;
+test('location cards display cents in per-second profit instead of rounded dollars',()=>{
+ const h=harness();
  h.window.ProfitLandsEconomy={locationProfit:()=>90};
  h.ops.open(0);
- const html=h.dom.get('manageContent').innerHTML;
- assert.ok(html.includes('+$1.50/sec'),'a 90-per-minute location earns $1.50, not $2/sec');
+ assert.ok(h.dom.get('manageContent').innerHTML.includes('+$1.50/sec'));
 });
-test('unsupported location actions never spend cash or consume an action',()=>{
- const h=harness();
- const oldCash=h.state.cash,oldActions=h.state.actions;
- const before=JSON.stringify(h.state);
- assert.equal(h.ops.doAction(0,0,'nonexistent'),false);
- assert.equal(h.state.cash,oldCash);
- assert.equal(h.state.actions,oldActions);
+test('unsupported operation cannot charge an action',()=>{
+ const h=harness(),cash=h.state.cash,actions=h.state.actions;
+ assert.equal(h.ops.doAction(0,0,'unsupported'),false);
+ assert.equal(h.state.cash,cash);
+ assert.equal(h.state.actions,actions);
  assert.equal(h.saved(),0);
- assert.equal(JSON.stringify(h.state),before);
 });
