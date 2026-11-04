@@ -35,7 +35,7 @@ function makeHarness(n=10000){
   ProfitLandsGrowth:{workforceTier:()=>({cap:50000}),render(){}},
   ProfitLandsRealtime:{period:60},
   ProfitLandsEconomy:{
-   profitFactors:()=>{contextCount++;return{serial:contextCount}},
+   companyFactors:()=>{contextCount++;return{serial:contextCount}},
    locationProfit:(company,site,i,factors)=>{
     contexts.push(factors);
     profitCalls++;
