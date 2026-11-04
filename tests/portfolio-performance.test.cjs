@@ -154,3 +154,21 @@ test('performance cadence keeps half-second income ticks but skips hidden worksp
  assert.match(workspace,/if\(id==='finance'\)window\.renderFinance\?\.\(\)/);
  assert.match(html,/portfolio-performance\.css/);
 });
+
+test('visible company cards share one economic snapshot instead of recomputing empire-wide factors',()=>{
+ const h=harness({businessCount:100});
+ let contextCalls=0;const used=[];
+ h.window.ProfitLandsEconomy.profitFactors=()=>({snapshot:++contextCalls});
+ h.window.businessDailyProfit=(business,factors)=>{
+   used.push(factors?.snapshot);
+   return 100;
+ };
+ h.window.renderBusinesses();
+ assert.equal(contextCalls,1);
+ assert.equal(used.length,36);
+ assert.ok(used.every(x=>x===1));
+ h.trigger(h.getControls()._more,'click');
+ assert.equal(contextCalls,2);
+ assert.equal(used.length,108);
+ assert.ok(used.slice(36).every(x=>x===2));
+});
