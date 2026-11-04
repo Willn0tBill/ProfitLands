@@ -12,6 +12,16 @@
   // Controls live OUTSIDE businessList, so periodic updates cannot steal input focus.
   const PAGE_SIZE=36;
   let portfolioQuery='',portfolioLimit=PAGE_SIZE,portfolioControls=null,portfolioInput=null;
+  let portfolioSort='original',attentionOnly=false;
+  const needsAttention=b=>Boolean(b.bankruptcyPending)||Number(b.financialBalance||0)<0;
+  const locationCount=b=>Array.isArray(b.locations)&&b.locations.length?b.locations.length:(Number(b.chainCount)||0)+1;
+  const sorting={
+    original:(a,b)=>a-b,
+    newest:(a,b)=>b-a,
+    name:(a,b)=>String(state.businesses[a].name||'').localeCompare(String(state.businesses[b].name||''))||a-b,
+    locations:(a,b)=>locationCount(state.businesses[b])-locationCount(state.businesses[a])||a-b,
+    balance:(a,b)=>(Number(state.businesses[a].financialBalance)||0)-(Number(state.businesses[b].financialBalance)||0)||a-b
+  };
   const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   function setupPortfolio(box){
     if(portfolioControls?.isConnected)return portfolioControls;
@@ -31,16 +41,45 @@
       renderBusinesses();
     });
     label.appendChild(input);
+    const sortLabel=document.createElement('label');
+    sortLabel.className='pl-portfolio-option-label';sortLabel.textContent='Sort by';
+    const sort=document.createElement('select');
+    sort.className='pl-portfolio-sort';sort.setAttribute('aria-label','Sort businesses');
+    for(const [id,title] of [['original','Original order'],['newest','Newest first'],['name','Company A–Z'],['locations','Most locations'],['balance','Lowest balance']]){
+      const option=document.createElement('option');option.value=id;option.textContent=title;sort.appendChild(option);
+    }
+    sort.value=portfolioSort;
+    sort.addEventListener('change',()=>{
+      portfolioSort=Object.hasOwn(sorting,sort.value)?sort.value:'original';
+      portfolioLimit=PAGE_SIZE;renderBusinesses();
+    });
+    sortLabel.appendChild(sort);
+    const attentionLabel=document.createElement('label');
+    attentionLabel.className='pl-portfolio-attention-label';
+    const attention=document.createElement('input');
+    attention.type='checkbox';attention.checked=attentionOnly;
+    attention.setAttribute('aria-label','Show companies with negative balances or bankruptcy warnings only');
+    attention.addEventListener('change',()=>{
+      attentionOnly=Boolean(attention.checked);portfolioLimit=PAGE_SIZE;renderBusinesses();
+    });
+    const attentionText=document.createElement('span');attentionText.textContent='Needs attention only';
+    attentionLabel.append(attention,attentionText);
+    const clear=document.createElement('button');
+    clear.type='button';clear.className='pl-portfolio-clear';clear.textContent='Clear filters';
+    clear.addEventListener('click',()=>{
+      portfolioQuery='';portfolioSort='original';attentionOnly=false;portfolioLimit=PAGE_SIZE;
+      input.value='';sort.value='original';attention.checked=false;renderBusinesses();input.focus?.();
+    });
     const count=document.createElement('span');
     count.className='pl-portfolio-count';count.setAttribute('aria-live','polite');
     const more=document.createElement('button');
     more.type='button';more.className='pl-portfolio-more';
     more.textContent='Show more companies';
     more.addEventListener('click',()=>{portfolioLimit+=PAGE_SIZE;renderBusinesses()});
-    controls.append(label,count,more);
+    controls.append(label,sortLabel,attentionLabel,clear,count,more);
     box.parentElement.insertBefore(controls,box);
     portfolioControls=controls;portfolioInput=input;
-    controls._count=count;controls._more=more;
+    controls._count=count;controls._more=more;controls._clear=clear;controls._sort=sort;controls._attention=attention;
     return controls;
   }
   function renderBusinesses(){
@@ -50,20 +89,25 @@
     const matched=[];
     for(let i=0;i<all.length;i++){
       const b=all[i];
+      if(attentionOnly&&!needsAttention(b))continue;
       if(!portfolioQuery||String(b.name||'').toLocaleLowerCase().includes(portfolioQuery)||
         String(BUSINESS_TYPES.find(t=>t.id===b.type)?.name||b.type||'').toLocaleLowerCase().includes(portfolioQuery))matched.push(i);
     }
+    if(controls)matched.sort(sorting[portfolioSort]||sorting.original);
     const visible=controls?matched.slice(0,portfolioLimit):matched;
     const profitContext=visible.length?window.ProfitLandsEconomy?.profitFactors?.():null;
     if(controls){
-      controls.hidden=all.length<=PAGE_SIZE&&!portfolioQuery;
-      controls._count.textContent=matched.length?'Showing '+visible.length+' of '+matched.length+' companies':'No matching companies';
+      controls.hidden=all.length<9&&!portfolioQuery&&!attentionOnly&&portfolioSort==='original';
+      const flagged=all.reduce((n,b)=>n+(needsAttention(b)?1:0),0);
+      controls._count.textContent=(matched.length?'Showing '+visible.length+' of '+matched.length+' companies':'No matching companies')+
+        (flagged?' · '+flagged+' need attention':'');
+      controls._clear.hidden=!portfolioQuery&&!attentionOnly&&portfolioSort==='original';
       controls._more.hidden=visible.length>=matched.length;
       controls._more.disabled=visible.length>=matched.length;
     }
     const html=!all.length?
       '<div class="empty">No businesses yet. Buy one to start building your empire.</div>':
-      !matched.length?'<div class="empty">No companies match that search.</div>':
+      !matched.length?'<div class="empty">No companies match those filters. Clear filters to see your full portfolio.</div>':
       visible.map(i=>{
         const b=all[i],t=BUSINESS_TYPES.find(x=>x.id===b.type);
         if(!t)return '';
