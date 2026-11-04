@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="../quick-switch.css?v=wtvi01" />
   <link rel="stylesheet" href="../save-center.css?v=save01" />
   <link rel="stylesheet" href="../clans.css?v=clans01" />
+  <link rel="stylesheet" href="../multiplayer-world.css?v=world01" />
   <link rel="stylesheet" href="../game-experience.css?v=tycoon01" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
@@ -92,7 +93,7 @@
       <p class="country-tax-note">Tax, inflation, GDP and price-level inputs use published economic data. APR, demand and sector advantages are simulation values derived from those inputs.</p>
     </details>
   </section>
-  <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer selection currently uses the local game economy.</span></div>
+  <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer Preview currently uses a local economy; shared World 1, leaderboards, PvP and chat stay locked until a secure online server is connected.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
 </section>
@@ -141,6 +142,10 @@
   </div>
   <p class="pl-arcade-subtitle">Take a break from spreadsheets and run your business yourself. Serve coffees, route deliveries, or make decisions. Rounds are short and rewards are intentionally capped to preserve game balance.</p>
   <div id="arcadeContent" aria-label="Business Arcade games" aria-live="polite"></div>
+</section>
+<section id="worldPanel" class="panel pl-world-panel" aria-label="Multiplayer world">
+ <div class="panel-head"><div><span class="eyebrow">MULTIPLAYER WORLD</span><h3>World 1 · Tycoon Arena</h3></div><span class="live-tag">SERVER STATUS</span></div>
+ <div id="worldContent" aria-live="polite"><p class="pl-online-note">The world server is not connected.</p></div>
 </section>
 <section id="clanPanel" class="panel pl-clan-panel" aria-label="Player clans">
   <div class="panel-head"><div><span class="eyebrow">PLAY TOGETHER</span><h3>Clans Hall</h3></div><span class="live-tag">ONLINE ACCOUNT</span></div>
@@ -302,6 +307,15 @@
   <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal" aria-label="Close game settings">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game settings and local progress.</p><div class="settings-list"><p>Loading local save controls…</p></div></div></div>
   <div id="economyModal" class="modal hidden"><div class="modal-card wide economy-modal-content" role="dialog" aria-modal="true" aria-label="Financial recovery"></div></div>
   <div id="toast" class="toast"></div>
+  <aside id="worldChatDock" class="pl-world-chat-dock" hidden aria-label="Multiplayer world chat">
+    <button type="button" id="worldChatToggle" class="pl-world-chat-toggle" aria-controls="worldChatPanel" aria-expanded="false">💬 World Chat</button>
+    <section id="worldChatPanel" class="pl-world-chat-panel" hidden aria-label="World chat messages">
+      <header><strong>🌎 World 1 Chat</strong><button type="button" id="worldChatClose" aria-label="Close chat">×</button></header>
+      <p id="worldChatStatus" role="status">Offline preview</p>
+      <div id="worldChatMessages" class="pl-world-chat-messages" role="log" aria-live="polite">Chat requires the online server.</div>
+      <form id="worldChatForm"><label for="worldChatInput">World message</label><input id="worldChatInput" maxlength="220" autocomplete="off" placeholder="World chat unavailable" disabled/><button type="submit" id="worldChatSend" disabled>Send</button></form>
+    </section>
+  </aside>
 
   <!-- Firebase Web SDK. Firebase Auth + Firestore are used for accounts and private cloud saves. -->
   <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
@@ -346,6 +360,8 @@
   <script src="../quick-switch.js?v=wtvi01"></script>
   <script src="../save-center.js?v=save01"></script>
   <script src="../clans.js?v=clans01"></script>
+  <script src="../multiplayer-pvp-rules.js?v=pvp01"></script>
+  <script src="../multiplayer-world.js?v=world01"></script>
   <script src="../game-experience.js?v=tycoon01"></script>
 </body>
 </html>
