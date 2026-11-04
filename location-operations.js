@@ -142,8 +142,9 @@ function view(b,l,index){
   const projection=kind=>{
     const delta=estimateChange(b,l,index,kind);
     if(delta===null)return '';
-    const abs=Math.abs(delta);
-    const display=abs<1?'
+    const sign=delta>=0?'+':'−';
+    return ' · Est. '+sign+moneyText(Math.abs(delta))+'/'+rate+'s';
+  };
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
     '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
