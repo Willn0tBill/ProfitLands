@@ -6,6 +6,14 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Large-empire portfolio performance (v1.9)
+
+Company portfolios now render in windows of **36 companies** instead of rebuilding every company card at once. A search field filters by company or industry, with an accessible **Show more companies** control for larger portfolios. The original company indexes are preserved when filtering or expanding, so selecting a result opens the correct business. Search controls remain mounted during periodic updates to preserve keyboard focus; Enter and Space also open the selected company card.
+
+The live income and market-cycle timer still settle at **500 ms** intervals. The expensive HUD/net-worth visual summary redraws approximately once per second, and the business and finance panels are no longer rebuilt every five seconds while their workspaces are hidden. Each panel refreshes when opened. These are display-only optimizations: **game earnings, economy formulas, actions, local saves, account trophies, and achievements have not changed**.
+
+The rollout was validated using a clean-profile Chrome test with 100 sample companies, testing windowed rendering, search for a late-index company, controls at 390-pixel mobile width, and hidden-panel refresh behavior.
+
 ## Save & Recovery and safer management (v1.8)
 
 The in-game **Settings** button now opens a functional Save & Recovery panel instead of redirecting away from gameplay. It offers:
