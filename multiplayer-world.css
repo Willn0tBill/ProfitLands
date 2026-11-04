@@ -58,3 +58,6 @@
 @media(max-width:560px){.pl-pvp-options{grid-template-columns:1fr}.pl-world-chat-dock{right:8px;bottom:8px}.pl-world-chat-panel{max-height:min(390px,calc(100dvh - 100px))}.pl-world-chat-toggle{padding:9px 13px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.pl-pvp-options button:hover:not(:disabled){transform:none}}
 html.pl-reduced-motion .pl-pvp-options button:hover:not(:disabled){transform:none}
+
+/* Game menus and confirmation dialogs always take priority over chat. */
+body:has(.modal:not(.hidden)) .pl-world-chat-dock{visibility:hidden;pointer-events:none}
