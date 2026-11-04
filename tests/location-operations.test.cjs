@@ -203,3 +203,31 @@ test('selling fails closed when confirmations are unavailable or a sale price is
  assert.equal(JSON.stringify(h.state),before,'corrupted sale costs do not mutate the empire');
  assert.equal(h.state.businesses.length,1);
 });
+
+test('location profit forecasts are read-only and reflect actual cloned upgrades',()=>{
+ const h=harness(),b=h.b,l=b.locations[0],ops=h.ops;
+ h.window.ProfitLandsEconomy={
+   locationProfit:(business,location)=>(location.level||1)*100+
+     (location.marketing||0)*30+(location.basePopularity||0)*2+
+     (location.efficiency||0)*15
+ };
+ const snapshot=JSON.stringify(h.state),cash=h.state.cash,actions=h.state.actions;
+ assert.equal(ops.estimateChange(b,l,0,'upgrade'),100);
+ assert.equal(ops.estimateChange(b,l,0,'marketing'),46);
+ assert.equal(ops.estimateChange(b,l,0,'efficiency'),15);
+ assert.equal(ops.estimateChange(b,l,0,'sell'),null);
+ assert.equal(JSON.stringify(h.state),snapshot,'forecasting cannot apply an upgrade');
+ assert.equal(h.state.cash,cash);
+ assert.equal(h.state.actions,actions);
+ assert.equal(h.saved(),0,'forecasts do not trigger autosaving');
+ h.ops.open(0);
+ const markup=h.dom.get('manageContent').innerHTML;
+ assert.ok(markup.includes('Est. +$100/60s'),'upgrade card shows readable cash-flow projection');
+ assert.ok(markup.includes('current market conditions'),'projection is clearly an estimate');
+});
+test('profit forecast gracefully hides estimates when no economy calculator is available',()=>{
+ const h=harness(),ops=h.ops;
+ assert.equal(ops.estimateChange(h.b,h.b.locations[0],0,'upgrade'),null);
+ h.ops.open(0);
+ assert.ok(!h.dom.get('manageContent').innerHTML.includes('Est. +'));
+});
