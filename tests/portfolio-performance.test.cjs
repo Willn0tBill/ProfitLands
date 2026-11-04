@@ -63,6 +63,8 @@ function harness({businessCount=100,withHost=true}={}){
   setTimeout(){return 1}
  });
  new vm.Script(source,{filename:'economy-render.js'}).runInContext(ctx);
+ // Verify portfolio event routing without opening the actual management modal.
+ window.openManage=i=>opened.push(i);
  const getControls=()=>rootEl.children.find(x=>x.className==='pl-portfolio-controls');
  const trigger=(node,event,arg={})=>(node.handlers.get(event)||[]).forEach(fn=>fn(arg));
  return{box,state,window,rootEl,getControls,trigger,opened,profitCalls:()=>profitCalls,
