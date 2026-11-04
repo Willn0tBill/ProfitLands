@@ -8,13 +8,13 @@ const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js
 
 function setup(failOnce=false){
  const sent=[],events=[],callbacks={};
- let current={uid:'alpha'},failure=failOnce;
+ let current={uid:'alpha'},failure=typeof failOnce==='number'?failOnce:Number(Boolean(failOnce));
  const callable=async payload=>{
   sent.push(payload);
   if(payload.action==='health')return {data:{ok:true,worldId:'world1',chatEnabled:false,catalog:[{id:'coffee',cost:500}]}};
   if(payload.action==='register')return {data:{player:{uid:current.uid}}};
-  if(payload.action==='requestAttack'&&failure){
-   failure=false;
+  if((payload.action==='requestAttack'||payload.action==='buyBusiness')&&failure>0){
+   failure--;
    throw {code:'functions/unavailable',message:'Temporary outage'};
   }
   return {data:{ok:true,replayed:payload.action==='requestAttack'&&sent.filter(p=>p.action==='requestAttack').length>1}};
@@ -81,4 +81,26 @@ test('chat remains disabled without backend moderation',async()=>{
  await assert.rejects(h.api.sendChat('hello'),/disabled/);
  await assert.rejects(h.api.reportMessage('one'),/disabled/);
  assert.equal(h.sent.filter(x=>x.action==='sendChat'||x.action==='reportMessage').length,0);
+});
+
+test('business purchase reuses a stable request ID after a temporary network loss',async()=>{
+ const h=setup(1);await h.api.connect();
+ await h.api.buyBusiness('coffee');
+ const buys=h.sent.filter(x=>x.action==='buyBusiness');
+ assert.equal(buys.length,2);
+ assert.equal(buys[0].requestId,buys[1].requestId);
+ assert.equal(buys[0].businessId,'coffee');
+});
+test('double transport failures preserve the ID for the next deliberate retry',async()=>{
+ const h=setup(2);await h.api.connect();
+ await assert.rejects(h.api.buyBusiness('coffee'),/Temporary outage/);
+ const attempts=h.sent.filter(x=>x.action==='buyBusiness');
+ assert.equal(attempts.length,2);
+ const old=attempts[0].requestId;
+ await h.api.buyBusiness('coffee');
+ const final=h.sent.filter(x=>x.action==='buyBusiness');
+ assert.equal(final[2].requestId,old);
+ await h.api.buyBusiness('coffee');
+ const future=h.sent.filter(x=>x.action==='buyBusiness');
+ assert.notEqual(future[3].requestId,old,'A confirmed new purchase needs a new transaction ID');
 });
