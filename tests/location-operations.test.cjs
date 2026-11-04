@@ -26,7 +26,7 @@ function harness(){
   },save:()=>saved++,render:()=>rendered++,toast(){},console};
  vm.createContext(context);
  new vm.Script(fs.readFileSync(path.join(root,'location-operations.js'),'utf8')).runInContext(context);
- return {ops:window.ProfitLandsLocationOps,b,state,window,dom,saved:()=>saved,rendered:()=>rendered, prompts,
+ return {ops:window.ProfitLandsLocationOps,b,type,state,window,dom,saved:()=>saved,rendered:()=>rendered, prompts,
   allowSell:value=>{allowSell=value}};
 }
 test('migrates company-wide settings into independent location state once',()=>{
@@ -197,12 +197,9 @@ test('selling fails closed when confirmations are unavailable or a sale price is
  assert.equal(ops.doAction(0,1,'sell'),false);
  assert.equal(JSON.stringify(h.state),before);
  h.window.confirm=()=>true;
- const original=h.b.type;
- h.b.type='coffee';
- const originalCost=500;
- // This branch uses a normal valid price; accidentally passing non-finite
- // values must never credit Infinity or remove the location.
- h.b.locations[1].demand=Infinity;
- assert.equal(ops.price(h.b,h.b.locations[1],'sell')<Infinity,true,'rent and demand clamps maintain bounded prices');
+ h.type.cost=Infinity;
+ assert.equal(ops.price(h.b,h.b.locations[1],'sell'),Infinity);
+ assert.equal(ops.doAction(0,1,'sell'),false,'invalid price cannot credit an infinite payout');
+ assert.equal(JSON.stringify(h.state),before,'corrupted sale costs do not mutate the empire');
  assert.equal(h.state.businesses.length,1);
 });
