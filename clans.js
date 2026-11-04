@@ -64,6 +64,10 @@ function renderMembership(clan,memberDocs){
 async function refresh(){
  const el=root();if(!el)return;
  const token=++nonce;
+ if(window.profitLandsPlatform?.externalAuthDisabled){
+   el.innerHTML='<div class="pl-clan-box"><h3>Clans unavailable on this platform</h3><p>Online account features are disabled by this platform. You can keep playing locally.</p></div>';
+   return false;
+ }
  if(!auth||!db){guestOrLoading();return false}
  user=auth.currentUser;
  if(!user){noLogin();return false}
