@@ -6,6 +6,15 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Save, stock trade, and mobile UI fixes (v2.0.2)
+
+- **Save & Recovery:** accepts version 4 saves with up to 50,000 locations in one business (100,000 total, subject to the 16 MB file limit) and supports legitimate negative balances from debt/recovery. Malformed and unsafe files remain rejected.
+- **Save verification:** manual saves and restore operations now verify the actual current empire was written to browser storage instead of showing a false success when the browser refuses a write. A failed restore rolls back the in-memory empire and leaves its previous local save intact.
+- **Stock trading:** Buy/Sell are visibly disabled with zero remaining actions. Affordability is rechecked against the canonical huge-number cash ledger; the UI refuses to silently change share quantity or execute an outdated price quote during a market update. Old saves without an initialized stock holding can buy safely.
+- **Management and accessibility:** location income and upgrade previews show fractional per-second money accurately (e.g. $1.50/sec instead of rounding to $2/sec). Unknown operation commands cannot spend actions. Trading dialogs reserve space for the Close button above the stock price; modal close controls have screen-reader labels.
+
+Automated regressions cover large saves, storage failures, fractional income, share trading and the mobile trade layout. Browser QA tested 320px, 390px, 768px and desktop page widths, a 10,000-location debt save, and stock-price updates in a clean profile. CrazyGames remains a separate draft until real platform APS checks succeed.
+
 ## Large-company management scaling (v2.0.1)
 
 The company management modal now renders **24 locations at a time** with Previous/Next buttons and a location search field. Filtering by district, name, site number, or location ID preserves the original index for upgrades, hires, marketing, staffing and resale. When an action changes a late-index location, the same location remains visible.
