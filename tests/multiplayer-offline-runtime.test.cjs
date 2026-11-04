@@ -25,6 +25,7 @@ function harness(playType='single'){
  nodes.gameScreen=element({classList:{contains:tag=>tag==='active'}});
  const document={
   readyState:'loading',
+  addEventListener:(event,fn)=>{listeners[event]=fn},
   getElementById:id=>nodes[id]||null,
   querySelectorAll:()=>[]
  };
