@@ -6,6 +6,16 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Large-company management scaling (v2.0.1)
+
+The company management modal now renders **24 locations at a time** with Previous/Next buttons and a location search field. Filtering by district, name, site number, or location ID preserves the original index for upgrades, hires, marketing, staffing and resale. When an action changes a late-index location, the same location remains visible.
+
+Opening an enormous company no longer creates thousands of management cards simultaneously. It calculates the empire's available staffing capacity once for the visible page and uses a single fresh **company-specific** economic context for all visible location profit previews (including current risk and industry modifiers). Small companies continue to show all locations, without unnecessary pagination.
+
+Company and location names are HTML-escaped in management controls. These changes are presentation optimizations only: no cash, prices, earnings coefficients, save schemas or achievements were changed.
+
+Local automated regression tests and a clean-profile Chrome stress test used a 10,000-location company, confirmed paging, location 8766 search/upgrade, accurately calculated profits, cancelled sales, and a 390-pixel mobile layout.
+
 ## Large-empire income computation (v2.0)
 
 Real-time earnings now share a **fresh per-calculation economic context** across companies and locations. Before this change, a 100-company / 10,000-location portfolio could request the empire-wide wealth-tier calculation **20,000 times** during one profit evaluation (twice per location). It now requests it **once** per full portfolio evaluation; country configuration and world-event multipliers are also shared, while industry factors remain company-specific.
