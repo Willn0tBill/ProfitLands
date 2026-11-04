@@ -117,6 +117,20 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   if(b.locations.length&&state.businesses.includes(b))open(state.businesses.indexOf(b),Math.min(lIndex,b.locations.length-1));
   return true;
 }
+function estimateChange(b,l,index,kind){
+  const calculate=window.ProfitLandsEconomy?.locationProfit;
+  if(typeof calculate!=='function'||!['upgrade','marketing','efficiency'].includes(kind))return null;
+  const future={...l};
+  if(kind==='upgrade')future.level=Math.max(1,safe(l.level))+1;
+  else if(kind==='marketing'){
+    future.marketing=safe(l.marketing)+1;
+    future.basePopularity=clamp(num(l.basePopularity)+8,5,100);
+  }else if(kind==='efficiency')future.efficiency=safe(l.efficiency)+1;
+  try{
+    const before=calculate(b,l,index),after=calculate(b,future,index);
+    return Number.isFinite(before)&&Number.isFinite(after)?after-before:null;
+  }catch(e){return null}
+}
 function view(b,l,index){
   const actual=window.ProfitLandsEconomy?.locationProfit?.(b,l,index)??0;
   const rate=window.ProfitLandsRealtime?.period||60;
@@ -125,6 +139,12 @@ function view(b,l,index){
   const level=safe(l.level)||1;
   const actions=state.actions>0;
   const minimized=minimizedLocations.has(siteKey(b,l,index));
+  const rate=(window.ProfitLandsRealtime?.period||60);
+  const projection=kind=>{
+    const delta=estimateChange(b,l,index,kind);
+    if(delta===null)return '';
+    return ' · Est. '+(delta>=0?'+':'−')+moneyText(Math.abs(delta/rate))+'/sec';
+  };
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
     '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
@@ -132,10 +152,11 @@ function view(b,l,index){
     '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
     '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
     '<div class="site-lab-link"><button type="button" data-site-lab="'+index+'">Products & Operations →</button> <button type="button" data-site-advances="'+index+'">Advancements & Milestones →</button></div>'+  
+    '<p class="site-help">Cash-flow estimates use current market conditions and may change during future cycles.</p>'+
     '<div class="site-operation-actions">'+
-    button('upgrade','⬆ Upgrade location','Level '+(level+1)+' · '+moneyText(price(b,l,'upgrade')),!actions||!canPay(price(b,l,'upgrade')))+
-    button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing')),!actions||!canPay(price(b,l,'marketing')))+
-    button('efficiency','⚙ Improve efficiency','Lower local operating costs · '+moneyText(price(b,l,'efficiency')),!actions||!canPay(price(b,l,'efficiency')))+
+    button('upgrade','⬆ Upgrade location','Level '+(level+1)+' · '+moneyText(price(b,l,'upgrade'))+projection('upgrade'),!actions||!canPay(price(b,l,'upgrade')))+
+    button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing'))+projection('marketing'),!actions||!canPay(price(b,l,'marketing')))+
+    button('efficiency','⚙ Improve efficiency','Lower local operating costs · '+moneyText(price(b,l,'efficiency'))+projection('efficiency'),!actions||!canPay(price(b,l,'efficiency')))+
     button('sell','💰 Sell this location','Receive '+moneyText(price(b,l,'sell')))+
     '</div><div class="site-staff-box"><div><b>👥 Staff & management</b><small>Payroll affects this location only. '+safe(l.workers)+' employed · '+room(l)+' openings available · manager: '+(l.manager?'hired':'none')+'</small></div>'+
     '<label>Hire <select data-site-qty="'+index+'" aria-label="Staff to hire at '+l.name+'"><option value="1">1 employee</option><option value="5">5 employees</option><option value="10">10 employees</option><option value="25">25 employees</option></select></label>'+
@@ -230,6 +251,6 @@ function open(index,focused=0){
   // A small opt-in focus can make the selected location easy to find.
   if(focused>0&&locs[focused])e.querySelector('[data-site-section="'+focused+'"]')?.scrollIntoView?.({block:'nearest'});
 }
-function init(){normalizeAll();window.openManage=open;window.ProfitLandsLocationOps={normalize,normalizeAll,price,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};}
+function init(){normalizeAll();window.openManage=open;window.ProfitLandsLocationOps={normalize,normalizeAll,price,estimateChange,cap,allWorkers,empireCap,room,staffingAdjustment,doAction,open,locations};}
 init();
 })();
