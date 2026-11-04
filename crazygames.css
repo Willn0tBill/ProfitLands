@@ -1,0 +1,20 @@
+/* Only activated by the dedicated CrazyGames build / host. */
+body.pl-crazygames .type-card[data-type="multi"],
+body.pl-crazygames #multiNotice,
+body.pl-crazygames a[href^="https://willn0tbill.github.io/"],
+body.pl-crazygames .pl-control-link {
+  display:none!important;
+}
+body.pl-crazygames .pl-cg-player{
+  display:flex;align-items:center;gap:7px;
+  margin-left:auto;padding:5px 10px;border-radius:999px;
+  background:rgba(128,144,170,.12);font-size:12px;font-weight:600;
+  max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.pl-crazygames .pl-cg-player img{
+  width:24px;height:24px;border-radius:50%;object-fit:cover;
+}
+@media (max-width:920px){
+  body.pl-crazygames .app-shell{width:100%;max-width:100%}
+  body.pl-crazygames .pl-cg-player{font-size:11px;max-width:125px}
+}

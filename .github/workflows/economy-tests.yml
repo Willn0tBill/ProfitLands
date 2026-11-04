@@ -30,6 +30,11 @@ on:
       - 'firebase-auth.js'
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
+      - 'crazygames.js'
+      - 'crazygames-coach.js'
+      - 'crazygames-coach.css'
+      - 'crazygames.css'
+      - 'scripts/build-crazygames.cjs'
       - 'quick-switch.css'
       - 'save-center.js'
       - 'save-center.css'
@@ -72,6 +77,11 @@ on:
       - 'firebase-auth.js'
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
+      - 'crazygames.js'
+      - 'crazygames-coach.js'
+      - 'crazygames-coach.css'
+      - 'crazygames.css'
+      - 'scripts/build-crazygames.cjs'
       - 'quick-switch.css'
       - 'save-center.js'
       - 'save-center.css'
@@ -127,6 +137,9 @@ jobs:
           node --check quick-switch.js
           node --check save-center.js
           node --check trade-ui.js
+          node --check crazygames.js
+          node --check crazygames-coach.js
+          node --check scripts/build-crazygames.cjs
       - name: Run economy regression suite
         id: regression
         shell: bash
