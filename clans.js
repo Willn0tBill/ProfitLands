@@ -11,6 +11,7 @@ const validTag=value=>/^[A-Z0-9]{2,5}$/.test(value);
 const validId=value=>/^[a-zA-Z0-9]{12,30}$/.test(value);
 let db=null,auth=null,user=null,busy=false,nonce=0,lastNotice='',lastError=false;
 const root=()=> $('clanContent');
+const multiplayer=()=>window.state?.playType==='multi';
 const memberRef=()=>db.collection('users').doc(user.uid).collection('clanMembership').doc('current');
 const nameFor=()=>clean(window.profitlandsProfile?.playerName||user?.displayName||'Player').slice(0,24)||'Player';
 function notice(message,error=false){lastNotice=message;lastError=error}
@@ -64,6 +65,10 @@ function renderMembership(clan,memberDocs){
 async function refresh(){
  const el=root();if(!el)return;
  const token=++nonce;
+ if(!multiplayer()){
+   el.innerHTML='<div class="pl-clan-intro"><span class="pl-clan-emblem">🛡️</span><div><h3>Clans are multiplayer-only</h3><p>Switch to Multiplayer to manage your clan. Singleplayer saves and progress are separate.</p></div></div>';
+   return false;
+ }
  if(window.profitLandsPlatform?.externalAuthDisabled){
    el.innerHTML='<div class="pl-clan-box"><h3>Clans unavailable on this platform</h3><p>Online account features are disabled by this platform. You can keep playing locally.</p></div>';
    return false;
@@ -103,7 +108,7 @@ async function refresh(){
  }
 }
 async function perform(work){
- if(busy||!user||!db)return false;
+ if(busy||!user||!db||!multiplayer())return false;
  busy=true;
  try{await work();notice('Clan updated successfully.');return true}
  catch(e){notice(explain(e),true);return false}
