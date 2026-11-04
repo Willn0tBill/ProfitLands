@@ -15,6 +15,22 @@
   }
   const values=read();
   apply(values);
+  function syncControls(){
+    for(const name of Object.keys(defaults)){
+      const input=document.querySelector('[data-preference="'+name+'"]');
+      if(input)input.checked=values[name];
+    }
+  }
+  // Settings can be open in a second tab. Follow that tab without
+  // overwriting game progress or persisting a redundant update.
+  window.addEventListener?.('storage',event=>{
+    if(event.key!==KEY && event.key!==null)return;
+    Object.assign(values,read());
+    apply(values);
+    syncControls();
+    const saved=document.getElementById('preferencesSaved');
+    if(saved)saved.textContent='Display preferences updated from another tab.';
+  });
   const init=()=>{
     for(const name of Object.keys(defaults)){
       const input=document.querySelector('[data-preference="'+name+'"]');
@@ -31,9 +47,7 @@
     reset?.addEventListener('click',()=>{
       Object.assign(values,defaults);apply(values);
       try{localStorage.removeItem(KEY)}catch(e){}
-      for(const name of Object.keys(defaults)){
-        const input=document.querySelector('[data-preference="'+name+'"]');if(input)input.checked=false;
-      }
+      syncControls();
       const saved=document.getElementById('preferencesSaved');if(saved)saved.textContent='Display preferences reset. Your game progress was not changed.';
     });
   };

@@ -76,3 +76,34 @@ test('Quick Switch opens Save & Recovery without touching cash, actions or saves
  assert.equal(h.state.cash,50000);
  assert.equal(h.state.actions,60);
 });
+
+test('default shortcuts keep recovery, studio and companies discoverable as the empire expands',()=>{
+ const h=harness();
+ h.state.businesses=Array.from({length:40},(_,i)=>({type:'coffee',name:'Branch '+(i+1)}));
+ const defaultItems=h.api.items();
+ for(const key of ['businesses','trophies','settings','wtvi','nation']){
+  assert.ok(defaultItems.some(item=>item.key===key),key+' must be visible without typing');
+ }
+ assert.ok(defaultItems.some(item=>item.kind==='business'));
+ assert.ok(defaultItems.length<=12);
+ assert.equal(h.api.items('Branch 39')[0].index,38,'the full portfolio remains searchable');
+});
+
+test('search supports words in either order, including mixed label and descriptive terms',()=>{
+ const h=harness();
+ assert.equal(h.api.items('coffee downtown')[0].index,0);
+ assert.equal(h.api.items('Downtown Coffee')[0].index,0);
+ assert.equal(h.api.items('restore save')[0].key,'settings');
+ assert.equal(h.api.items('unknown portfolio banana').length,0);
+});
+
+test('recently opened destinations rise to the top without touching save data',()=>{
+ const h=harness();
+ const before=JSON.stringify(h.state);
+ const destination=h.api.items('Atlas Software')[0];
+ assert.equal(h.api.execute(destination),true);
+ assert.equal(h.api.items()[0].label,'Atlas Software');
+ assert.equal(h.api.execute(h.api.items('Trophies')[0]),true);
+ assert.equal(h.api.items()[0].label,'Trophies');
+ assert.equal(JSON.stringify(h.state),before);
+});

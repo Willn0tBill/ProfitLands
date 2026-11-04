@@ -6,6 +6,26 @@ const $=id=>document.getElementById(id);
 let modal,input,results,selected=0,lastFocus=null,ready=false;
 const studio='https://willn0tbill.github.io/WtvStudios/';
 const sortTitle=(a,b)=>a.label.localeCompare(b.label);
+const recentKeys=[];
+const defaultKeys=['overview','businesses','operations','markets','analytics','trophies','buy','settings','wtvi','nation'];
+const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const identity=item=>item.kind+':'+item.key+(item.kind==='business'?':'+item.label:'');
+function remember(item){
+ const key=identity(item),index=recentKeys.indexOf(key);
+ if(index!==-1)recentKeys.splice(index,1);
+ recentKeys.unshift(key);
+ if(recentKeys.length>5)recentKeys.length=5;
+}
+function rank(item,query){
+ const name=normalize(item.label),detail=normalize(item.detail);
+ if(name===query)return 0;
+ if(name.startsWith(query))return 1;
+ if(name.includes(query))return 2;
+ const words=query.split(/\s+/).filter(Boolean);
+ if(words.every(word=>name.includes(word)))return 3;
+ if(words.every(word=>(name+' '+detail).includes(word)))return 4;
+ return 99;
+}
 function isPlaying(){return Boolean($('gameScreen')?.classList.contains('active'))}
 function items(query=''){
  const ws=window.ProfitLandsWorkspace;
@@ -19,12 +39,23 @@ function items(query=''){
  entries.push({kind:'action',key:'settings',label:'Save & Recovery',detail:'Manual save, backup export, restore and display settings',order:51});
  entries.push({kind:'site',key:'wtvi',label:'Wtv Innovations',detail:'Visit studio portfolio',url:studio,order:60});
  entries.push({kind:'site',key:'nation',label:'Nation Wars',detail:'Open WtvI strategy game',url:'https://willn0tbill.github.io/NationWars/',order:61});
- const q=String(query||'').trim().toLowerCase().slice(0,120);
- if(!q)return entries.sort((a,b)=>a.order-b.order).slice(0,12);
- const scored=entries.map(x=>{const name=x.label.toLowerCase(),detail=x.detail.toLowerCase();
-  const score=name===q?0:name.startsWith(q)?1:name.includes(q)?2:detail.includes(q)?3:99;
-  return{...x,score}
- }).filter(x=>x.score<99).sort((a,b)=>a.score-b.score||a.order-b.order||sortTitle(a,b));
+ const q=normalize(String(query||'').slice(0,120));
+ if(!q){
+  // Reserve visible slots for the market, backup and studio shortcuts even
+  // when the player owns many businesses. Everything stays searchable.
+  const priority=item=>{
+   const recent=recentKeys.indexOf(identity(item));
+   if(recent!==-1)return recent;
+   const pinned=defaultKeys.indexOf(item.key);
+   if(pinned!==-1)return 10+pinned;
+   if(item.kind==='business')return 30+item.index;
+   return 100+item.order;
+  };
+  return entries.sort((a,b)=>priority(a)-priority(b)||a.order-b.order).slice(0,12);
+ }
+ const scored=entries.map(x=>({...x,score:rank(x,q)}))
+  .filter(x=>x.score<99)
+  .sort((a,b)=>a.score-b.score||a.order-b.order||sortTitle(a,b));
  return scored.slice(0,12);
 }
 function open(){
@@ -39,26 +70,30 @@ function close(){
  modal.hidden=true;document.body.classList.remove('pl-command-open');
  if(lastFocus?.focus)lastFocus.focus();return true;
 }
+function success(entry,result){
+ if(result)remember(entry);
+ return Boolean(result);
+}
 function execute(entry){
  if(!entry)return false;
  close();
- if(entry.kind==='view')return Boolean(window.ProfitLandsWorkspace?.show?.(entry.view));
+ if(entry.kind==='view')return success(entry,window.ProfitLandsWorkspace?.show?.(entry.view));
  if(entry.kind==='business'){
   window.ProfitLandsWorkspace?.show?.('businesses');
-  if(typeof window.openManage==='function'){window.openManage(entry.index);return true}
+  if(typeof window.openManage==='function'){window.openManage(entry.index);return success(entry,true)}
   return false;
  }
  if(entry.key==='buy'){
-  window.ProfitLandsWorkspace?.show?.('businesses');$('openBusinessShop')?.click();return true;
+  window.ProfitLandsWorkspace?.show?.('businesses');const button=$('openBusinessShop');button?.click();return success(entry,Boolean(button));
  }
  if(entry.key==='settings'){
   const settings=$('openSettings');
   if(!settings)return false;
-  settings.click();return true;
+  settings.click();return success(entry,true);
  }
  if(entry.kind==='site'&&entry.url){
   const a=document.createElement('a');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';
-  document.body.appendChild(a);a.click();a.remove();return true;
+  document.body.appendChild(a);a.click();a.remove();return success(entry,true);
  }
  return false;
 }
@@ -66,14 +101,19 @@ function draw(){
  if(!ready)return;
  const options=items(input.value);
  results.replaceChildren();
+ results.setAttribute?.('aria-label',options.length+' matching destinations');
  if(!options.length){
-  const p=document.createElement('p');p.className='pl-switch-empty';p.textContent='No matching screens or companies.';results.appendChild(p);return;
+  input.removeAttribute?.('aria-activedescendant');
+  const p=document.createElement('p');p.className='pl-switch-empty';p.textContent='No matching screens or companies. Try a screen name or business type.';results.appendChild(p);return;
  }
  selected=Math.max(0,Math.min(selected,options.length-1));
  options.forEach((item,index)=>{
   const b=document.createElement('button');b.type='button';b.className='pl-switch-result';
   if(index===selected)b.classList.add('selected');
   b.dataset.option=String(index);
+  b.id='plSwitchOption-'+index;
+  b.setAttribute?.('role','option');
+  b.setAttribute?.('aria-selected',String(index===selected));
   const copy=document.createElement('span'),name=document.createElement('strong'),hint=document.createElement('small');
   name.textContent=item.label;hint.textContent=item.detail;
   copy.append(name,hint);
@@ -82,6 +122,7 @@ function draw(){
   b.addEventListener('click',()=>execute(item));
   results.appendChild(b);
  });
+ input.setAttribute?.('aria-activedescendant','plSwitchOption-'+selected);
 }
 function initialize(){
  const ws=window.ProfitLandsWorkspace;if(ready||!ws?.ready?.())return;
@@ -93,6 +134,11 @@ function initialize(){
   '<footer><span>↑ ↓ Navigate</span><span>Enter Select</span><span>Ctrl K / ⌘ K Open</span></footer></div>';
  document.body.appendChild(overlay);
  modal=overlay;input=$('plSwitchInput');results=$('plSwitchResults');ready=true;
+ input.setAttribute?.('role','combobox');
+ input.setAttribute?.('aria-autocomplete','list');
+ input.setAttribute?.('aria-expanded','true');
+ input.setAttribute?.('aria-controls','plSwitchResults');
+ results.setAttribute?.('role','listbox');
  overlay.addEventListener('mousedown',e=>{if(e.target===overlay)close()});
  overlay.querySelector('.pl-switch-close').addEventListener('click',close);
  input.addEventListener('input',()=>{selected=0;draw()});
