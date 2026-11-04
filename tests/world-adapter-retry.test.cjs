@@ -6,6 +6,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 
+let globalNonce=0;
 function setup(failOnce=false,storage=null){
  const store=storage||new Map();
  const sent=[],events=[],callbacks={};
@@ -25,10 +26,9 @@ function setup(failOnce=false,storage=null){
   apps:[{}],auth:()=>userAuth,functions:()=>{},
   app:()=>({functions:()=>({httpsCallable:()=>callable})})
  };
- let seq=0;
  const sessionStorage={getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,String(value)),removeItem:key=>store.delete(key)};
  const window={state:{playType:'multi'},sessionStorage,
-  crypto:{getRandomValues:buffer=>{buffer.fill(++seq)}},
+  crypto:{getRandomValues:buffer=>{buffer.fill(++globalNonce)}},
   dispatchEvent:e=>events.push(e.type),
   addEventListener:(event,fn)=>{callbacks[event]=fn}
  };
