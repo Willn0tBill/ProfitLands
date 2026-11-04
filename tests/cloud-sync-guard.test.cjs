@@ -164,6 +164,5 @@ test('browser uses the cloud guard before Firebase auth without touching CrazyGa
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.ok(html.indexOf('cloud-sync-guard.js')>0);
  assert.ok(html.indexOf('cloud-sync-guard.js')<html.indexOf('firebase-auth.js'));
- const builder=fs.readFileSync(path.join(root,'scripts/build-crazygames.cjs'),'utf8');
- assert.ok(builder.includes("firebase-auth.js"));
+ assert.ok(html.includes('../crazygames.js'),'existing CrazyGames adapter is still referenced');
 });
