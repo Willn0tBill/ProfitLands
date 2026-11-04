@@ -191,3 +191,20 @@ test('a rejected backup write prevents a destructive cloud switch',async()=>{
  assert.equal(JSON.stringify(d.state),prior);
  assert.equal(d.status().blocked,true);
 });
+
+test('a failed local replacement restores the previous empire and pauses cloud writes',async()=>{
+ const db=firestore(empire(21));
+ const d=device(db.db,empire(16),'player');
+ await d.login();
+ const before=JSON.stringify(d.state);
+ const raw=d.memory.get('profitlands-v2');
+ const write=d.localStorage.setItem;
+ d.localStorage.setItem=(key,value)=>{
+   if(key==='profitlands-v2')throw Error('Storage unavailable');
+   write(key,value);
+ };
+ assert.equal(await d.resolve('cloud'),false);
+ assert.equal(JSON.stringify(d.state),before);
+ assert.equal(d.memory.get('profitlands-v2'),raw);
+ assert.equal(d.status().blocked,true);
+});
