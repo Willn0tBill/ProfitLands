@@ -9,7 +9,7 @@ const sortTitle=(a,b)=>a.label.localeCompare(b.label);
 const recentKeys=[];
 const defaultKeys=['overview','businesses','operations','markets','analytics','trophies','buy','settings','wtvi','nation'];
 const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-const identity=item=>item.kind+':'+item.key;
+const identity=item=>item.kind+':'+item.key+(item.kind==='business'?':'+item.label:'');
 function remember(item){
  const key=identity(item),index=recentKeys.indexOf(key);
  if(index!==-1)recentKeys.splice(index,1);
@@ -101,14 +101,19 @@ function draw(){
  if(!ready)return;
  const options=items(input.value);
  results.replaceChildren();
+ results.setAttribute?.('aria-label',options.length+' matching destinations');
  if(!options.length){
-  const p=document.createElement('p');p.className='pl-switch-empty';p.textContent='No matching screens or companies.';results.appendChild(p);return;
+  input.removeAttribute?.('aria-activedescendant');
+  const p=document.createElement('p');p.className='pl-switch-empty';p.textContent='No matching screens or companies. Try a screen name or business type.';results.appendChild(p);return;
  }
  selected=Math.max(0,Math.min(selected,options.length-1));
  options.forEach((item,index)=>{
   const b=document.createElement('button');b.type='button';b.className='pl-switch-result';
   if(index===selected)b.classList.add('selected');
   b.dataset.option=String(index);
+  b.id='plSwitchOption-'+index;
+  b.setAttribute?.('role','option');
+  b.setAttribute?.('aria-selected',String(index===selected));
   const copy=document.createElement('span'),name=document.createElement('strong'),hint=document.createElement('small');
   name.textContent=item.label;hint.textContent=item.detail;
   copy.append(name,hint);
@@ -117,6 +122,7 @@ function draw(){
   b.addEventListener('click',()=>execute(item));
   results.appendChild(b);
  });
+ input.setAttribute?.('aria-activedescendant','plSwitchOption-'+selected);
 }
 function initialize(){
  const ws=window.ProfitLandsWorkspace;if(ready||!ws?.ready?.())return;
@@ -128,6 +134,11 @@ function initialize(){
   '<footer><span>↑ ↓ Navigate</span><span>Enter Select</span><span>Ctrl K / ⌘ K Open</span></footer></div>';
  document.body.appendChild(overlay);
  modal=overlay;input=$('plSwitchInput');results=$('plSwitchResults');ready=true;
+ input.setAttribute?.('role','combobox');
+ input.setAttribute?.('aria-autocomplete','list');
+ input.setAttribute?.('aria-expanded','true');
+ input.setAttribute?.('aria-controls','plSwitchResults');
+ results.setAttribute?.('role','listbox');
  overlay.addEventListener('mousedown',e=>{if(e.target===overlay)close()});
  overlay.querySelector('.pl-switch-close').addEventListener('click',close);
  input.addEventListener('input',()=>{selected=0;draw()});
