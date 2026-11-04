@@ -59,7 +59,7 @@
       <section id="homeScreen" class="screen active">
   <div class="hero play-entry-hero"><div><span class="eyebrow">PROFITLANDS GAME</span><h2>Build your empire.</h2><p>Continue your saved game or choose a world mode to start fresh. Your businesses now earn cash every second during active play.</p></div><div class="hero-coin">$</div></div>
   <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
-  <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Multiplayer Preview</strong><small>Prototype setup; real online multiplayer is not yet available.</small></button></div>
+  <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>World 1 Multiplayer</strong><small>Server-verified economy and rival competition. Requires online connection.</small></button></div>
   <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
   <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min auto cycle · 40 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min auto cycle · 60 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr auto cycle · 100 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr auto cycle · 120 actions</small></button></div>
   <div class="section-title"><span class="eyebrow">DIFFICULTY</span><h3>Choose your business pressure</h3></div>
@@ -93,7 +93,7 @@
       <p class="country-tax-note">Tax, inflation, GDP and price-level inputs use published economic data. APR, demand and sector advantages are simulation values derived from those inputs.</p>
     </details>
   </section>
-  <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>The shared-world server is still in development. Multiplayer Preview currently uses a local economy; shared World 1, leaderboards, PvP and chat stay locked until a secure online server is connected.</span></div>
+  <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>World 1 uses a separate server-owned balance. Joining requires a signed-in account and a deployed Firebase backend. Your singleplayer save is untouched; World chat stays disabled pending moderation.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
 </section>
@@ -322,6 +322,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
   <script src="../firebase-config.js"></script>
   <script src="../platform.js?v=steambridge01"></script>
   <script src="../huge-money.js?v=huge01"></script>
@@ -345,12 +346,13 @@
   <script src="../hud-sticky.js?v=autocycle10"></script>
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js?v=sync03"></script>
+  <script src="../firebase-world-adapter.js?v=worldserver01"></script>
   <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
   <script src="../location-operations.js?v=trophies01"></script>
   <script src="../empire-lab.js?v=trophies01"></script>
   <script src="../play-route.js?v=pages01"></script>
-  <script src="../workspace.js?v=trophies01"></script>
+  <script src="../workspace.js?v=worldserver01"></script>
   <script src="../business-advancements.js?v=advances01"></script>
   <script src="../business-arcade.js?v=arcade01"></script>
   <script src="../achievement-engine.js?v=sync03"></script>
@@ -361,7 +363,7 @@
   <script src="../save-center.js?v=save01"></script>
   <script src="../clans.js?v=clans01"></script>
   <script src="../multiplayer-pvp-rules.js?v=pvp01"></script>
-  <script src="../multiplayer-world.js?v=world01"></script>
+  <script src="../multiplayer-world.js?v=worldserver01"></script>
   <script src="../game-experience.js?v=tycoon01"></script>
 </body>
 </html>
