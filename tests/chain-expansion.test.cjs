@@ -62,6 +62,8 @@ function harness(count=7){
  };
  vm.createContext(context);
  new vm.Script(source,{filename:'enhancements.js'}).runInContext(context);
+ // The production location-operations module loads later and replaces this legacy renderer.
+ window.openManage=(i,j)=>selected.push([i,j]);
  return{state,b,window,document,get,selected,siteEstimates,factorCalls,notices,
   options:()=>choices,saved:()=>saved,rendered:()=>rendered};
 }
