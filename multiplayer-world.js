@@ -16,7 +16,7 @@ const cash=value=>{
  if(number<0)return '-'+cash(-number);
  return '$'+(number>=1e12?(number/1e12).toFixed(2)+'T':number>=1e9?(number/1e9).toFixed(2)+'B':number>=1e6?(number/1e6).toFixed(2)+'M':Math.round(number).toLocaleString('en-US'));
 };
-let period='day',targetUid='',players=[],busy=false,latest=0,lastChatAt=0,mounted=false;
+let period='day',targetUid='',players=[],busy=false,latest=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
 const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
@@ -49,7 +49,7 @@ function updateButtons(){
 }
 function renderOnline(){
  const root=page();if(!root)return;
- root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. Online activity and scores come from the game server.</p></div></div>'+
+ root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. Online activity and scores come from the game server. Use Refresh World to check the latest totals.</p><button type="button" id="worldRefresh" class="pl-online-connect">Refresh World</button></div></div>'+
  '<div class="pl-online-box" id="worldStore"><p role="status">Loading your server-owned empire…</p></div>'+ 
  '<div class="pl-online-layout"><section class="pl-online-box"><div class="pl-online-title"><h3>🏆 Money Leaderboard</h3><span>Server verified</span></div>'+
  '<div class="pl-online-tabs" role="group" aria-label="Leaderboard period"><button data-lb="day" type="button">Today</button><button data-lb="week" type="button">This week</button><button data-lb="all" type="button">All time</button></div>'+
@@ -64,9 +64,24 @@ function renderOnline(){
   period=btn.dataset.lb;updatePeriod();loadLeaderboard();
  }));
  root.querySelectorAll('[data-pvp-attack]').forEach(btn=>btn.addEventListener('click',()=>attack(btn.dataset.pvpAttack)));
+ $('worldRefresh').onclick=()=>refreshWorld();
  $('worldShield').onclick=()=>defend();
  $('worldPvpToggle').onclick=()=>togglePvP();
  updatePeriod();updateButtons();
+}
+async function refreshWorld(){
+ if(!connected()||worldRefreshing)return false;
+ const now=Date.now(),button=$('worldRefresh');
+ if(now-lastWorldRefreshAt<10000){message('Refresh is available every 10 seconds.');return false}
+ lastWorldRefreshAt=now;
+ worldRefreshing=true;
+ if(button){button.disabled=true;button.textContent='Refreshing…'}
+ try{
+  await Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]);
+  message('World balances and standings updated from the server.');
+  return true;
+ }catch(e){message('Unable to refresh right now.');return false}
+ finally{worldRefreshing=false;if(button){button.disabled=false;button.textContent='Refresh World'}}
 }
 function updatePeriod(){
  document.querySelectorAll('[data-lb]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.lb===period)));
