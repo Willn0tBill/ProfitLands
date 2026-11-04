@@ -137,4 +137,4 @@ function score(player,period,now){
  return period==='day'?p.dayGain:period==='week'?p.weekGain:p.netWorth;
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,
- byId,dayKey,weekKey,cleanName,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
+ byId,dayKey,weekKey,cleanName,valueOf,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
