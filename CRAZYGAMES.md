@@ -140,3 +140,9 @@ Operations & Supply now assigns collision-free site IDs after legacy saves, merg
 Active store profits no longer repeatedly normalize the entire empire for every location. Warehouse purchases, store stock and delivery operations reject capacity overflow before payment. Acquisitions, regional expansions and mergers respect Save Center's existing business and location count limits, and the UI disables options that are predictably unavailable.
 
 The normal website passed real Chrome testing using 10,000 locations, intentionally duplicated site IDs, Branch 8766 selection and inventory, and a 390px mobile layout. CrazyGames SDK and authenticated APS persistence still require a **real Developer Portal preview test** before publication. This draft remains unpublished.
+
+## v2.0.5 — Supply automation and store status
+
+The CrazyGames draft includes the verified v2.0.5 Operations & Supply changes: automated branch replenishment is summarized into bounded logs (18 entries maximum), the supply tick avoids full-portfolio renormalization and reuses one location scan, and automatic deliveries require an available truck. The Store & Staff panel now shows stock health, automation states, precise discounted order prices, and disabled controls for unaffordable or unavailable transactions. A compact last-tick summary shows restocked branches, in-game cost and deliveries.
+
+Main-game automated and clean-profile Chrome testing confirmed 2,000-branch restocking, no hidden-tab purchases, precise automatic spending without charging an action, and a fully styled 390px mobile status display. This remains a **draft CrazyGames build**, with authenticated Developer Portal SDK/APS testing still required before publication.
