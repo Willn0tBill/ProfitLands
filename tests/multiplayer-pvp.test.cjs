@@ -59,7 +59,7 @@ test('multiplayer UI shows offline state rather than inventing players or scores
  assert.match(html,/id="worldChatMessages"/);
  assert.match(html,/multiplayer-world\.css/);
  assert.match(html,/multiplayer-world\.js/);
- assert.match(source,/Shared world is not connected yet/);
+ assert.match(source,/Join the online tycoon world/);
  assert.match(source,/No verified scores/);
 });
 

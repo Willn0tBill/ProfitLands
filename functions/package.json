@@ -1,0 +1,17 @@
+{
+  "name": "profitlands-world-server",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Trusted ProfitLands World 1 game economy",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test ../tests/world-core-server.test.cjs"
+  },
+  "dependencies": {
+    "firebase-admin": "13.4.0",
+    "firebase-functions": "6.4.0"
+  }
+}

@@ -61,3 +61,33 @@ html.pl-reduced-motion .pl-pvp-options button:hover:not(:disabled){transform:non
 
 /* Game menus and confirmation dialogs always take priority over chat. */
 body:has(.modal:not(.hidden)) .pl-world-chat-dock{visibility:hidden;pointer-events:none}
+
+/* Keep the online economy visibly separate from the local tycoon HUD. */
+body.pl-online-world #gameScreen .pl-workspace-hud,
+body.pl-online-world #gameScreen .pl-workspace-sidebar-actions,
+body.pl-online-world #gameScreen .pl-workspace-advanced-nav{display:none!important}
+#gameScreen .pl-workspace-nav-item[hidden],#gameScreen [data-workspace-group][hidden]{display:none!important}
+#worldPanel .pl-online-connect{
+ appearance:none;margin:10px 0 0;min-height:43px;border:1px solid #fff0bd;
+ background:linear-gradient(120deg,#ffe8a1,#aef2c3);border-radius:11px;
+ color:#173c38;font:inherit;font-size:13px;font-weight:850;cursor:pointer;padding:10px 19px;
+ box-shadow:0 4px 0 #7e7756,0 9px 21px #0004
+}
+#worldPanel .pl-online-connect:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-2px)}
+#worldPanel .pl-online-connect:disabled{opacity:.6;cursor:progress}
+#worldConnectError{font-size:12px;margin-top:10px;line-height:1.5;color:#ffbfc5}
+#worldStore h4{margin:13px 0 9px;font-size:13px;color:#ffdfae}
+#worldStore .pl-online-wallet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0}
+#worldStore .pl-online-wallet>div{background:linear-gradient(120deg,#304960,#193e50);border:1px solid #6590b0;border-radius:11px;padding:14px}
+#worldStore .pl-online-wallet small{display:block;font-size:11px;color:#bedbec;margin-bottom:6px}
+#worldStore .pl-online-wallet strong{font-size:clamp(16px,2.4vw,23px);color:#ffe8a4}
+#worldStore .pl-online-market{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#worldStore button{appearance:none;cursor:pointer;min-height:39px;padding:10px;border:1px solid #789bc2;background:#263d57;color:#fff;border-radius:9px;font-size:11px;font-weight:750}
+#worldStore button:hover:not(:disabled){border-color:#ffdda2;background:#355071;transform:translateY(-1px)}
+#worldStore button:disabled{opacity:.5;cursor:not-allowed}
+#worldStore .pl-online-market button{display:flex;align-items:center;justify-content:space-between;gap:7px;text-align:left}
+#worldStore .pl-online-market button strong{color:#aaf3c0;white-space:nowrap}
+@media(max-width:600px){
+ #worldStore .pl-online-market{grid-template-columns:minmax(0,1fr)}
+ #worldStore .pl-online-wallet{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

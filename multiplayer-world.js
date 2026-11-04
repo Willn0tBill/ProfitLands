@@ -12,7 +12,8 @@ const connected=()=>active()&&online()?.isConnected?.()===true;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const cash=value=>{
  const number=Number(value);
- if(!Number.isFinite(number)||number<0)return '—';
+ if(!Number.isFinite(number))return '—';
+ if(number<0)return '-'+cash(-number);
  return '$'+(number>=1e12?(number/1e12).toFixed(2)+'T':number>=1e9?(number/1e9).toFixed(2)+'B':number>=1e6?(number/1e6).toFixed(2)+'M':Math.round(number).toLocaleString('en-US'));
 };
 let period='day',targetUid='',players=[],busy=false,latest=0,lastChatAt=0,mounted=false;
@@ -20,7 +21,13 @@ const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
  const root=page();if(!root)return;
- root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>Shared world is not connected yet</h3><p>Multiplayer Preview still runs a local economy. Real leaderboards, rival attacks, and chat need the server-authoritative online engine before they can be used. Your singleplayer empire remains safe.</p></div></div>'+renderRules();
+ root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>Join the online tycoon world</h3><p>World 1 requires a live, authenticated server connection. Your local singleplayer save is separate.</p><button type="button" id="worldConnect" class="pl-online-connect">Connect to World 1</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
+ const button=$('worldConnect');if(button)button.onclick=async()=>{
+  button.disabled=true;button.textContent='Connecting…';
+  try{await online()?.connect?.();if(connected()){render();return}throw Error('Online server is unreachable. Please verify deployment.')}
+  catch(e){$('worldConnectError').textContent=String(e?.message||'Cannot join World 1.').slice(0,220);button.disabled=false;button.textContent='Try connecting again';
+   if(/sign in/i.test(String(e?.message||'')))window.profitlandsFirebase?.signIn?.()}
+ };
 }
 function renderRules(){
  return '<div class="pl-online-info"><h4>How the shared world will work</h4><p>All players enter one persistent world. Rankings use verified in-game money: daily and weekly net-worth growth, plus all-time current net worth. No clan win points.</p><p>PvP is opt-in, costs in-game cash, has cooldowns and shields, and temporarily lowers a rival company\'s income. No one-click permanent empire deletion.</p><p>Chat will be shared across this world, with reporting, blocking, server rate limits and moderation before public launch.</p></div>';
@@ -43,6 +50,7 @@ function updateButtons(){
 function renderOnline(){
  const root=page();if(!root)return;
  root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. Online activity and scores come from the game server.</p></div></div>'+
+ '<div class="pl-online-box" id="worldStore"><p role="status">Loading your server-owned empire…</p></div>'+ 
  '<div class="pl-online-layout"><section class="pl-online-box"><div class="pl-online-title"><h3>🏆 Money Leaderboard</h3><span>Server verified</span></div>'+
  '<div class="pl-online-tabs" role="group" aria-label="Leaderboard period"><button data-lb="day" type="button">Today</button><button data-lb="week" type="button">This week</button><button data-lb="all" type="button">All time</button></div>'+
  '<div id="worldLeaderboard" aria-live="polite" class="pl-online-scores">Loading verified scores…</div></section>'+
@@ -62,6 +70,44 @@ function renderOnline(){
 }
 function updatePeriod(){
  document.querySelectorAll('[data-lb]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.lb===period)));
+}
+const fmt=amount=>cash(amount);
+async function loadEmpire(){
+ if(!connected())return;
+ const root=$('worldStore');if(!root)return;
+ try{
+  const res=await online().getMyEmpire();
+  const player=res?.player;
+  if(!player||!Array.isArray(player.businesses))throw Error('Invalid empire response');
+  const catalog=online().getCatalog?.()||[];
+  const owned=player.businesses.map((business,index)=>{
+   const def=catalog.find(x=>x.id===business.type);
+   const name=def?.name||'Business';
+   const upgradeCost=def?Math.ceil(def.cost*(1+business.level*.75)):null;
+   return '<div class="pl-lb-row"><span class="pl-lb-player">'+esc(name)+' · Lv '+business.level+'</span>'+
+    '<button type="button" data-world-upgrade="'+index+'" '+(upgradeCost===null||business.level>=30?'disabled':'')+'>Upgrade '+(upgradeCost===null?'':fmt(upgradeCost))+'</button></div>';
+  }).join('');
+  const market=catalog.map(b=>'<button type="button" data-world-buy="'+esc(b.id)+'">'+esc(b.name)+' <strong>'+fmt(b.cost)+'</strong></button>').join('');
+  root.innerHTML='<div class="pl-online-title"><h3>🏪 My Online Empire</h3><span>World 1 · Server balance</span></div>'+
+   '<div class="pl-online-wallet"><div><small>Cash</small><strong>'+fmt(player.cash)+'</strong></div><div><small>Net worth</small><strong>'+fmt(player.netWorth)+'</strong></div></div>'+
+   '<h4>My shops</h4><div class="pl-online-scores">'+(owned||'<p class="pl-online-empty">Buy your first online shop to earn cash.</p>')+'</div>'+
+   '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are completely separate from your local singleplayer save. Earnings settle on the server.</p>';
+  root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));
+  root.querySelectorAll('[data-world-upgrade]').forEach(button=>button.onclick=()=>changeEmpire('upgrade',Number(button.dataset.worldUpgrade)));
+ }catch(e){root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150)}
+}
+async function changeEmpire(action,value){
+ if(!connected()||busy)return false;
+ busy=true;
+ try{
+  if(action==='buy')await online().buyBusiness(value);
+  else if(action==='upgrade')await online().upgradeBusiness(value);
+  else return false;
+  message('Online empire updated. Your in-game cash was verified by the server.');
+  await Promise.all([loadEmpire(),loadLeaderboard()]);
+  return true;
+ }catch(e){message('Purchase rejected: '+String(e?.message||'Please retry.').slice(0,140));return false}
+ finally{busy=false}
 }
 async function loadLeaderboard(){
  if(!connected())return;
@@ -90,7 +136,7 @@ async function attack(id){
  try{
   await online().requestAttack({targetUid,attackId:id});
   message('Attack submitted and validated by the world server.');
-  await Promise.all([loadLeaderboard(),loadPlayers()]);
+  await Promise.all([loadLeaderboard(),loadPlayers(),loadEmpire()]);
   return true;
  }catch(e){message('Attack rejected by the server: '+(e?.message||'Please retry.'));return false}
  finally{busy=false;updateButtons()}
@@ -99,7 +145,7 @@ async function defend(){
  if(!connected()||busy)return false;
  if(!window.confirm?.('Buy a temporary PvP shield using in-game cash? The server will calculate the final price.'))return false;
  busy=true;
- try{await online().requestDefense();message('Protection request sent to the world server.');return true}
+ try{await online().requestDefense();message('Protection activated by the world server.');await loadEmpire();return true}
  catch(e){message('Protection unavailable: '+(e?.message||'Please retry.'));return false}
  finally{busy=false}
 }
@@ -114,11 +160,11 @@ function updateChat(){
  const dock=$('worldChatDock');if(!dock)return;
  dock.hidden=!active();
  if(!active())return;
- const ready=connected(),input=$('worldChatInput'),send=$('worldChatSend');
+ const ready=connected()&&online()?.chatEnabled?.()===true,input=$('worldChatInput'),send=$('worldChatSend');
  if(input){input.disabled=!ready;input.placeholder=ready?'Message World 1…':'World chat unavailable until the online server is ready'}
  if(send)send.disabled=!ready;
- const status=$('worldChatStatus');if(status)status.textContent=ready?'Online World 1 chat':'Not connected · Preview only';
- const list=$('worldChatMessages');if(list&&!ready)list.textContent='No live chat connection. Messages are not simulated or stored locally.';
+ const status=$('worldChatStatus');if(status)status.textContent=ready?'Online World 1 chat':connected()?'World chat disabled pending moderation':'Not connected · Preview only';
+ const list=$('worldChatMessages');if(list&&!ready)list.textContent=connected()?'World chat is unavailable while reporting, blocking and moderation are prepared.':'No live chat connection. Messages are not simulated or stored locally.';
 }
 function renderChatMessages(entries){
  const list=$('worldChatMessages');
@@ -151,14 +197,14 @@ async function submitChat(){
  finally{input.disabled=false}
 }
 async function refreshChat(){
- if(!connected()||typeof online().getChat!=='function')return;
+ if(!connected()||online()?.chatEnabled?.()!==true||typeof online().getChat!=='function')return;
  try{renderChatMessages(await online().getChat())}catch(e){}
 }
 function render(){
  if(!page())return false;
  if(!active()){page().innerHTML='<p class="pl-online-note">Multiplayer features appear only in multiplayer mode.</p>';updateChat();return false}
  if(!connected())showUnavailable();
- else{renderOnline();loadLeaderboard();loadPlayers();refreshChat()}
+ else{renderOnline();loadEmpire();loadLeaderboard();loadPlayers();refreshChat()}
  updateChat();return true;
 }
 function init(){
