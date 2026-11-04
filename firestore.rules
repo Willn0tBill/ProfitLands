@@ -4,9 +4,44 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
+    }
+    function memberIndex(userId) {
+      return /databases/$(database)/documents/users/$(userId)/clanMembership/current;
+    }
+    function clanDoc(clanId) {
+      return /databases/$(database)/documents/clans/$(clanId);
+    }
+    function clanMember(clanId, userId) {
+      return /databases/$(database)/documents/clans/$(clanId)/members/$(userId);
+    }
+    function validClan() {
+      return request.resource.data.keys().hasOnly(['name','tag','description','leaderUid','createdAt'])
+        && request.resource.data.keys().hasAll(['name','tag','description','leaderUid','createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.matches('^[^<>]{3,32}$')
+        && request.resource.data.tag is string
+        && request.resource.data.tag.matches('^[A-Z0-9]{2,5}$')
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 180
+        && request.resource.data.leaderUid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+    }
+    function validMember(clanId, userId) {
+      return request.resource.data.keys().hasOnly(['displayName','role','joinedAt'])
+        && request.resource.data.keys().hasAll(['displayName','role','joinedAt'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 24
+        && request.resource.data.role in ['leader','member']
+        && request.resource.data.joinedAt == request.time
+        && existsAfter(clanDoc(clanId))
+        && request.resource.data.role ==
+          (getAfter(clanDoc(clanId)).data.leaderUid == userId ? 'leader' : 'member')
+        && existsAfter(memberIndex(userId))
+        && getAfter(memberIndex(userId)).data.clanId == clanId
+        && getAfter(memberIndex(userId)).data.role == request.resource.data.role;
     }
 
     match /users/{userId} {
@@ -15,6 +50,49 @@ service cloud.firestore {
 
       match /saves/{saveId} {
         allow read, write, delete: if isOwner(userId);
+      }
+
+      // One membership record per account. Must be created atomically
+      // alongside the corresponding clan member record.
+      match /clanMembership/{membershipId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && membershipId == 'current'
+          && request.resource.data.keys().hasOnly(['clanId','role','joinedAt'])
+          && request.resource.data.keys().hasAll(['clanId','role','joinedAt'])
+          && request.resource.data.clanId is string
+          && request.resource.data.clanId.matches('^[a-zA-Z0-9]{12,30}$')
+          && request.resource.data.role in ['leader','member']
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(clanDoc(request.resource.data.clanId))
+          && existsAfter(clanMember(request.resource.data.clanId,userId))
+          && getAfter(clanMember(request.resource.data.clanId,userId)).data.role == request.resource.data.role;
+        allow delete: if isOwner(userId)
+          && (!existsAfter(clanMember(resource.data.clanId,userId)));
+        allow update: if false;
+      }
+    }
+
+    match /clans/{clanId} {
+      // Signed-in players may browse names and rosters; no email information
+      // is exposed. No chat or public user profiles are stored here.
+      allow read: if signedIn();
+      allow create: if signedIn() && validClan()
+        && existsAfter(memberIndex(request.auth.uid))
+        && getAfter(memberIndex(request.auth.uid)).data.clanId == clanId
+        && getAfter(memberIndex(request.auth.uid)).data.role == 'leader';
+      allow update: if false;
+      allow delete: if signedIn()
+        && resource.data.leaderUid == request.auth.uid
+        && !existsAfter(memberIndex(request.auth.uid))
+        && !existsAfter(clanMember(clanId,request.auth.uid));
+
+      match /members/{memberId} {
+        allow read: if signedIn();
+        allow create: if isOwner(memberId)
+          && validMember(clanId, memberId);
+        allow update: if false;
+        allow delete: if isOwner(memberId)
+          && !existsAfter(memberIndex(memberId));
       }
     }
 

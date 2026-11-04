@@ -1,0 +1,363 @@
+/* ProfitLands: playful tycoon theme. Visual only; never touches economy/save data. */
+:root{
+  --pl-game-gold:#ffd96a;
+  --pl-game-cyan:#70e7e5;
+  --pl-game-lime:#b6f474;
+  --pl-game-purple:#b29aff;
+  --pl-game-ink:#0b101e;
+}
+body.pl-play-page{
+  background:
+    radial-gradient(ellipse 60% 30% at 52% -10%,#39306766,transparent 80%),
+    radial-gradient(ellipse 50% 70% at 100% 38%,#184c5366,transparent 85%),
+    #090e1b;
+}
+body.pl-play-page .brand-mark{
+  background:linear-gradient(140deg,#fff1a2 0%,#ffce57 48%,#fb984c 100%);
+  color:#493000;box-shadow:0 5px 0 #ad6d31,0 10px 28px #ffbd4f3c;
+  border:1px solid #ffedb7;
+  animation:plCoinTilt 5s ease-in-out infinite;
+}
+body.pl-play-page .brand h1{
+  background:linear-gradient(90deg,#fff,#d1d9ff 60%,#9ff9ce);
+  background-clip:text;-webkit-background-clip:text;color:transparent;
+}
+body.pl-play-page .play-entry-hero{
+  background:
+    radial-gradient(circle at 78% 42%,#9865ff65,transparent 38%),
+    radial-gradient(circle at 17% 0%,#4fd6b02a,transparent 43%),
+    linear-gradient(135deg,#202348,#131c35 60%,#132831);
+  border:1px solid #8a79c85c;
+  box-shadow:0 25px 65px #0005,inset 0 1px #ffffff24;
+}
+body.pl-play-page .play-entry-hero:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 55px,#ffffff05 56px 57px),
+    repeating-linear-gradient(0deg,transparent 0 55px,#ffffff05 56px 57px);
+  mask-image:linear-gradient(90deg,transparent,black);
+}
+body.pl-play-page .play-entry-hero h2{
+  color:#fff;text-shadow:0 5px 34px #ffd96a26;
+}
+body.pl-play-page .play-entry-hero .eyebrow{color:#f6d888}
+body.pl-play-page .play-entry-hero .hero-coin{
+  color:var(--pl-game-gold);text-shadow:0 6px #a9622e,0 16px 42px #f6ca70a0;
+  animation:plArcadeFloat 4s ease-in-out infinite;
+}
+body.pl-play-page .mode-card,body.pl-play-page .type-card,body.pl-play-page .difficulty-card{
+  background:linear-gradient(145deg,#202640,#151b31);
+  border-color:#53628b;
+  box-shadow:inset 0 1px #ffffff0b,0 4px 0 #0c1021;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
+}
+body.pl-play-page .mode-card.selected,body.pl-play-page .type-card.selected,body.pl-play-page .difficulty-card.selected{
+  border-color:#ffd972;box-shadow:0 0 0 1px #ffde794b,0 7px 26px #ffd25b28,0 4px 0 #86632b;
+}
+body.pl-play-page .mode-card:hover,body.pl-play-page .type-card:hover,body.pl-play-page .difficulty-card:hover{
+  transform:translateY(-3px);border-color:#adf4d6;box-shadow:0 8px 25px #0005;
+}
+body.pl-play-page .primary-button,body.pl-play-page .chain-button{
+  background:linear-gradient(145deg,#e5fb95,#88eaa9);color:#092921;
+  box-shadow:0 4px 0 #3e8b62,0 10px 24px #4beaa52c;
+}
+body.pl-play-page .primary-button:hover:not(:disabled),body.pl-play-page .chain-button:hover:not(:disabled){
+  filter:brightness(1.06);transform:translateY(-2px);
+  box-shadow:0 6px 0 #3e8b62,0 14px 32px #6bf7bd36;
+}
+body.pl-play-page .primary-button:active:not(:disabled),body.pl-play-page .chain-button:active:not(:disabled){
+  transform:translateY(2px);box-shadow:0 1px 0 #3e8b62;
+}
+body.pl-workspace-enabled:has(#gameScreen.active),
+body.pl-workspace-enabled:has(#gameScreen.active) .pl-workspace-shell{
+  background:#0a1020!important;
+}
+body.pl-workspace-enabled:has(#gameScreen.active) .app-shell>.topbar{
+  background:linear-gradient(90deg,#19213b,#151c34 48%,#13292e)!important;
+  border-bottom:1px solid #8196e749!important;
+  box-shadow:0 8px 24px #0004;
+}
+#gameScreen .pl-workspace-sidebar{
+  background:linear-gradient(165deg,#1b2140 0%,#141f31 54%,#102b30 100%)!important;
+  border-right:1px solid #7392d04c!important;
+}
+#gameScreen .pl-workspace-sidebar .pl-workspace-nav-title{
+  color:#ffe9aa;letter-spacing:.17em;
+}
+#gameScreen .pl-workspace-nav-group{color:#a2b7d6!important}
+#gameScreen .pl-workspace-nav-item{
+  border-radius:11px!important;color:#d3e0f7!important;
+  transition:transform .2s cubic-bezier(.18,.85,.2,1.25),background .2s,border-color .2s,box-shadow .2s!important;
+}
+#gameScreen .pl-workspace-nav-item:hover:not(.active){
+  background:#333965!important;border-color:#7e98cf77!important;
+  transform:translateX(4px);
+}
+#gameScreen .pl-workspace-nav-item.active{
+  color:#112326!important;border-color:#ffe09f!important;
+  background:linear-gradient(110deg,#ffe59b,#acf4c2)!important;
+  box-shadow:0 3px 0 #a2764a,0 8px 21px #ffc5753b!important;
+}
+#gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-index,
+#gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-indicator{color:#245b4b!important}
+#gameScreen .pl-workspace-main{
+  position:relative;
+  background:
+    radial-gradient(ellipse 75% 40% at 95% 0%,#554ea340,transparent 80%),
+    radial-gradient(ellipse 70% 65% at -15% 70%,#1269612b,transparent 80%),
+    linear-gradient(180deg,#111b31,#0e1729 68%,#0c1d26)!important;
+}
+#gameScreen .pl-workspace-main:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(#abcbff08 1px,transparent 1px),linear-gradient(90deg,#abcbff08 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(180deg,#0008,transparent 82%);
+}
+#gameScreen .pl-workspace-main>*{position:relative;z-index:1}
+#gameScreen .pl-workspace-hud .game-hud{
+  position:relative!important;overflow:visible;
+  background:linear-gradient(120deg,#222952,#192b3f 62%,#173b3b)!important;
+  border:1px solid #6b88c977!important;
+  border-radius:16px!important;
+  box-shadow:inset 0 1px #e3f3ff21,0 10px 30px #0005!important;
+}
+#gameScreen .pl-workspace-hud .game-head h2{
+  color:#fff7dd!important;text-shadow:0 3px 21px #ffd76a3d;
+}
+#gameScreen .pl-workspace-hud .timer-box strong{color:#ffe38a!important}
+#gameScreen .pl-workspace-hud .game-hud .stat{
+  position:relative;overflow:hidden;
+  background:linear-gradient(125deg,#1b3143,#1b2642)!important;
+  border:1px solid #608bad71!important;
+  box-shadow:inset 0 1px #ffffff15,0 3px 10px #0710225e;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease!important;
+}
+#gameScreen .pl-workspace-hud .game-hud .stat:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:3px;
+  background:linear-gradient(#e2f4ff,#65dcd7);
+}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="cash"]{border-color:#f3c96b88!important}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="cash"]:before{background:#ffd974}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="cash"] strong{color:#ffe49c}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="profit"]:before{background:#a7f49b}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="actions"]:before{background:#c0a6ff}
+#gameScreen .pl-workspace-hud .game-hud .stat[data-stat="actions"] strong{color:#deceff}
+#gameScreen .pl-workspace-hud .game-hud .stat:hover{border-color:#d7e4ff!important;transform:translateY(-2px)}
+#gameScreen .pl-workspace-hud .game-hud .stat small{color:#b6c8da!important}
+#gameScreen .pl-workspace-hud .game-hud .stat.pl-gain-flash{
+  animation:plGameResource 750ms ease-out both;
+}
+#gameScreen .pl-workspace-section-head{
+  background:linear-gradient(100deg,#2b2c60,#202e53 62%,#173e4c)!important;
+  border:1px solid #7886da88!important;
+  box-shadow:0 7px 18px #0004,inset 0 1px #e0e6ff18;
+}
+#gameScreen .pl-workspace-section-head:before{
+  background:linear-gradient(180deg,#ffe29e,#c8a7ff)!important;width:5px;
+}
+#gameScreen .pl-workspace-section-title{
+  color:#fff2d2!important;text-shadow:0 2px 14px #ffdca533;
+}
+#gameScreen .pl-workspace-context{
+  color:#fff0c4!important;border-color:#ffdd9877!important;background:#433e61!important;
+}
+#gameScreen .pl-workspace-view.active:not([hidden]) .pl-workspace-panels>.panel{
+  animation:plGamePanelEnter .4s cubic-bezier(.14,.79,.25,1) both;
+}
+#gameScreen .pl-workspace-view.active:not([hidden]) .pl-workspace-panels>.panel:nth-child(2){animation-delay:65ms}
+#gameScreen .pl-workspace-view.active:not([hidden]) .pl-workspace-panels>.panel:nth-child(3){animation-delay:110ms}
+#gameScreen .pl-workspace-panels>.panel{
+  background:linear-gradient(145deg,#18263a,#152837)!important;
+  border:1px solid #6086ae6b!important;box-shadow:inset 0 1px #ffffff12,0 8px 20px #0003;
+}
+#gameScreen .pl-workspace-panels>.panel:hover{border-color:#92c6e6!important}
+#gameScreen .pl-workspace-panels .panel-head .eyebrow,
+#gameScreen .pl-workspace-panels .eyebrow{color:#95d9f3!important}
+#gameScreen .pl-workspace-panels .panel-head h3{color:#f7e8ff!important}
+#gameScreen .pl-workspace-panels .business-card,
+#gameScreen .pl-workspace-panels .stock,
+#gameScreen .pl-workspace-panels .action-button{
+  background:linear-gradient(145deg,#25304f,#172e3d)!important;
+  border:1px solid #7185b263!important;
+  box-shadow:0 4px 0 #0a1426,0 10px 18px #0002!important;
+  transition:transform .22s cubic-bezier(.2,.8,.2,1.2),border-color .22s,box-shadow .22s!important;
+}
+#gameScreen .pl-workspace-panels .business-card:before{
+  width:4px;background:linear-gradient(#ffe59c,#a2eff6)!important;
+}
+#gameScreen .pl-workspace-panels .business-card:hover,
+#gameScreen .pl-workspace-panels .stock:hover,
+#gameScreen .pl-workspace-panels .action-button:hover{
+  transform:translateY(-3px);border-color:#ffe4a0!important;
+  box-shadow:0 7px 0 #0a1426,0 15px 25px #0005,0 0 24px #ffe1a512!important;
+}
+#gameScreen .pl-workspace-panels .business-card:active,
+#gameScreen .pl-workspace-panels .stock:active,
+#gameScreen .pl-workspace-panels .action-button:active{
+  transform:translateY(1px);box-shadow:0 1px 0 #0a1426!important;
+}
+#gameScreen .pl-workspace-panels .business-profit{color:#a8ffb8!important}
+#gameScreen .pl-workspace-panels .mini-stat{
+  background:#151f37!important;border:1px solid #455e8c!important;
+}
+#gameScreen .pl-workspace-panels .mini-stat small{color:#b0c5da!important}
+#gameScreen .pl-workspace-panels .popbar i,
+#gameScreen .goal-progress i{
+  background:linear-gradient(90deg,#70ecde,#b6f474,#ffd970)!important;
+  box-shadow:0 0 15px #b6f47466;
+  transition:width .55s cubic-bezier(.22,.8,.26,1);
+}
+#gameScreen .pl-workspace-panels button:active:not(:disabled),
+#gameScreen .pl-workspace-sidebar-actions button:active:not(:disabled){
+  transform:scale(.96);
+}
+#gameScreen .pl-workspace-panels .live-tag{
+  background:#3d3572;color:#ffe6ab;border:1px solid #a99cff55;
+}
+body.pl-play-page .modal:not(.hidden) .modal-card{
+  background:linear-gradient(145deg,#1f2647,#152e39);
+  border:1px solid #8095d67c;box-shadow:0 28px 90px #000b,inset 0 1px #ffffff1d;
+}
+body.pl-play-page .modal:not(.hidden) .modal-card h2{color:#fff0c9}
+body.pl-play-page .modal:not(.hidden) .modal-card .upgrade-button,
+body.pl-play-page .modal:not(.hidden) .modal-card .business-choice{
+  background:linear-gradient(130deg,#263453,#1d3545);
+  border-color:#667ca0;
+}
+body.pl-play-page .modal:not(.hidden) .modal-card .upgrade-button:hover,
+body.pl-play-page .modal:not(.hidden) .modal-card .business-choice:hover{
+  border-color:#ffe28a;transform:translateY(-2px);
+}
+body.pl-play-page .toast.show{
+  background:linear-gradient(110deg,#fff4c9,#a6ffda);
+  color:#163330;border:1px solid #fff4a3;
+  box-shadow:0 10px 40px #0009,0 0 26px #f9dc8c54;
+}
+.pl-game-burst{position:fixed;z-index:30010;pointer-events:none;width:0;height:0;contain:layout style}
+.pl-game-shard{
+  position:absolute;left:0;top:0;width:8px;height:11px;border-radius:3px;
+  background:var(--shard-color,#ffe49c);
+  box-shadow:0 0 9px var(--shard-color,#ffe49c);
+  animation:plGameShard .74s cubic-bezier(.1,.7,.25,1) forwards;
+}
+.pl-game-reward{
+  position:absolute;left:0;top:-16px;white-space:nowrap;
+  color:#fff2b9;background:#263657f5;border:1px solid #ffe29e8c;
+  font-weight:950;font-size:12px;letter-spacing:.07em;
+  padding:7px 13px;border-radius:999px;box-shadow:0 8px 24px #0008;
+  transform:translateX(-50%);
+  animation:plGameReward .95s cubic-bezier(.15,.7,.25,1) forwards;
+}
+@keyframes plCoinTilt{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(8deg)}}
+@keyframes plArcadeFloat{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-12px) rotate(7deg)}}
+@keyframes plGamePanelEnter{from{opacity:0;transform:translateY(12px) scale(.988)}to{opacity:1;transform:none}}
+@keyframes plGameResource{0%{filter:brightness(1);transform:scale(1)}30%{filter:brightness(1.5);transform:scale(1.015)}100%{filter:brightness(1);transform:scale(1)}}
+@keyframes plGameShard{0%{opacity:1;transform:rotate(var(--angle)) translateX(0) scale(1)}100%{opacity:0;transform:rotate(var(--angle)) translateX(var(--range)) scale(.4)}}
+@keyframes plGameReward{0%{opacity:0;transform:translate(-50%,6px) scale(.8)}20%{opacity:1;transform:translate(-50%,-11px) scale(1.08)}70%{opacity:1;transform:translate(-50%,-30px) scale(1)}100%{opacity:0;transform:translate(-50%,-44px) scale(.96)}}
+@media(max-width:760px){
+ #gameScreen .pl-workspace-nav-item:hover:not(.active){transform:none}
+ #gameScreen .pl-workspace-view.active:not([hidden]) .pl-workspace-panels>.panel{animation-duration:.26s}
+ #gameScreen .pl-workspace-panels .business-card:hover,#gameScreen .pl-workspace-panels .stock:hover{transform:none}
+}
+@media(prefers-reduced-motion:reduce){
+ body.pl-play-page *,body.pl-play-page *:before,body.pl-play-page *:after{
+   animation:none!important;transition-duration:0ms!important;scroll-behavior:auto!important;
+ }
+}
+html.pl-reduced-motion body.pl-play-page *,
+html.pl-reduced-motion body.pl-play-page *:before,
+html.pl-reduced-motion body.pl-play-page *:after{
+ animation:none!important;transition-duration:0ms!important;scroll-behavior:auto!important;
+}
+html.pl-contrast #gameScreen .pl-workspace-panels>.panel,
+html.pl-contrast #gameScreen .pl-workspace-hud .game-hud .stat{border-color:#c5e7ff!important}
+
+/* A first-time player sees the path to gameplay, not a table of reports. */
+#gameScreen .pl-quest-card{
+  background:linear-gradient(118deg,#493764,#263e5e 52%,#195653)!important;
+  border:1px solid #ffdf9d88!important;
+  box-shadow:0 8px 28px #0004,inset 0 1px #ffefc51c;
+}
+#gameScreen .pl-quest-card h3{font-size:clamp(18px,2vw,24px)!important;color:#fff0bc!important}
+#gameScreen .pl-quest-card p{color:#d5e7f4!important;font-size:13px!important;max-width:660px}
+#gameScreen .pl-quest-card .pl-workspace-eyebrow{color:#ffe3a7!important}
+#gameScreen .pl-quest-card .pl-workspace-intro-button{
+  background:linear-gradient(130deg,#ffe39a,#b6f4a7)!important;
+  color:#182d26!important;border:1px solid #fff0ba!important;
+  font-size:12px!important;box-shadow:0 4px 0 #9e8256,0 8px 21px #0003;
+}
+#gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:translateY(-2px);filter:brightness(1.05)}
+#gameScreen .pl-game-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;
+}
+#gameScreen .pl-game-step{
+  display:flex;align-items:flex-start;gap:11px;min-height:96px;text-align:left;
+  border:1px solid #8b92dc77;border-radius:14px;padding:16px 13px;
+  color:#edf3ff;background:linear-gradient(125deg,#2b2d54,#1b3149);
+  box-shadow:0 4px 0 #0b1427,0 9px 19px #0003;
+  cursor:pointer;transition:transform .2s ease,box-shadow .2s,border-color .2s;
+}
+#gameScreen .pl-game-step-icon{font-size:25px;line-height:1.1;flex:0 0 auto}
+#gameScreen .pl-game-step-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+#gameScreen .pl-game-step strong{color:#ffefb8;font-size:14px}
+#gameScreen .pl-game-step small{color:#ccddef;font-size:11px;line-height:1.5}
+#gameScreen .pl-game-step:hover{
+ transform:translateY(-3px);border-color:#ffe29e;
+ box-shadow:0 7px 0 #0b1427,0 13px 30px #0005;
+}
+#gameScreen .pl-game-step:active{transform:translateY(1px);box-shadow:0 1px 0 #0b1427}
+#gameScreen .pl-game-advanced{
+  border:1px solid #586fa283;border-radius:13px;
+  background:#182a3c88;padding:12px;margin-top:2px;
+}
+#gameScreen .pl-game-advanced summary{
+  cursor:pointer;list-style-position:inside;font-weight:800;
+  padding:9px 11px;font-size:13px;color:#d4e9ff;
+}
+#gameScreen .pl-game-advanced[open] summary{margin-bottom:12px;color:#ffe3a5}
+#gameScreen .pl-game-advanced>.panel{
+  padding:15px!important;margin:0 0 11px!important;
+  border:1px solid #617aa37d!important;border-radius:12px;
+  background:linear-gradient(140deg,#1b2b42,#15283a)!important;
+}
+#gameScreen .pl-workspace-advanced-nav{
+  display:flex;flex-direction:column;border-radius:9px;
+  background:#101b3180;border:1px solid #6f7ea855;margin:7px 0 0;
+}
+#gameScreen .pl-workspace-advanced-nav summary{
+  cursor:pointer;color:#b9d1e8;padding:12px 11px;
+  font-size:11px;letter-spacing:.08em;font-weight:850;list-style-position:inside;
+}
+#gameScreen .pl-workspace-advanced-nav[open] summary{color:#ffe0a3;border-bottom:1px solid #51668f55}
+#gameScreen .pl-workspace-advanced-nav .pl-workspace-nav-item{width:calc(100% - 10px);margin:3px 5px}
+#gameScreen .pl-game-advanced summary:focus-visible,
+#gameScreen .pl-game-step:focus-visible,
+#gameScreen .pl-workspace-advanced-nav summary:focus-visible{
+ outline:3px solid #ffe39c;outline-offset:2px;
+}
+@media(max-width:780px){
+ #gameScreen .pl-game-steps{grid-template-columns:1fr;gap:9px}
+ #gameScreen .pl-game-step{min-height:65px;align-items:center;padding:11px}
+ #gameScreen .pl-quest-card{flex-direction:column;align-items:flex-start}
+ #gameScreen .pl-quest-card .pl-workspace-intro-button{width:100%}
+ #gameScreen .pl-workspace-advanced-nav{min-width:max-content;flex:0 0 auto;margin:0}
+ #gameScreen .pl-workspace-advanced-nav .pl-workspace-nav-item{min-width:135px}
+}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-game-step:hover,#gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:none}
+}
+html.pl-reduced-motion #gameScreen .pl-game-step:hover,
+html.pl-reduced-motion #gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:none}
+
+/* One simple wealth milestone stays visible: a game progress bar, not a report. */
+#gameScreen .pl-workspace-hud .game-hud .goal-progress{
+ display:block!important;height:6px;max-width:340px;
+ background:#0a1932;border-radius:999px;overflow:hidden;
+ border:1px solid #637d9d7c;margin:7px 0 5px!important;
+}
+#gameScreen .pl-workspace-hud .game-hud .goal-status{
+ display:block!important;max-width:340px;
+ color:#c8dcf3;font-size:10px!important;line-height:1.4;
+}
+
+/* Details elements must stay genuinely collapsed, even with flex layout overrides. */
+#gameScreen .pl-workspace-advanced-nav:not([open])>.pl-workspace-nav-item{display:none!important}
