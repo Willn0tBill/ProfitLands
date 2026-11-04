@@ -21,7 +21,7 @@ const VIEWS=[
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
-let guideTitle=null,guideText=null,guideButton=null;
+let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null;
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -58,6 +58,7 @@ function show(id,{focus=false,remember=true}={}){
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
+ if(view.group==='ADVANCED'&&advancedDisclosure)advancedDisclosure.open=true;
  for(const [key,section]of viewMap){
   const active=key===id;
   section.hidden=!active;
@@ -98,11 +99,19 @@ function show(id,{focus=false,remember=true}={}){
 function makeNav(){
  nav=element('nav','pl-workspace-nav');nav.setAttribute('aria-label','Tycoon game menu');
  const title=element('div','pl-workspace-nav-title','🎮 GAME MENU');nav.appendChild(title);
- let lastGroup='';
+ let lastGroup='',groupTarget=nav;
  for(const view of VIEWS){
   if(view.group!==lastGroup){
-   lastGroup=view.group;
-   nav.appendChild(element('div','pl-workspace-nav-group',lastGroup));
+   lastGroup=view.group;groupTarget=nav;
+   if(view.group==='ADVANCED'){
+     advancedDisclosure=element('details','pl-workspace-advanced-nav');
+     advancedDisclosure.open=VIEWS.find(v=>v.id===current)?.group==='ADVANCED';
+     advancedDisclosure.appendChild(element('summary','','⚙ MORE TOOLS'));
+     nav.appendChild(advancedDisclosure);
+     groupTarget=advancedDisclosure;
+   }else{
+     nav.appendChild(element('div','pl-workspace-nav-group',lastGroup));
+   }
   }
   const btn=element('button','pl-workspace-nav-item');
   btn.type='button';btn.dataset.workspaceView=view.id;
@@ -113,7 +122,7 @@ function makeNav(){
   const indicator=element('span','pl-workspace-nav-indicator','›');
   btn.append(index,name,indicator);
   btn.addEventListener('click',()=>show(view.id,{focus:false}));
-  nav.appendChild(btn);
+  groupTarget.appendChild(btn);
   buttonMap.set(view.id,btn);
  }
  const actions=element('div','pl-workspace-sidebar-actions');
