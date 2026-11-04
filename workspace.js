@@ -21,7 +21,9 @@ const VIEWS=[
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
-let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null;
+let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null,socialHeading=null;
+const isMultiplayer=()=>window.state?.playType==='multi';
+const available=id=>id!=='clans'||isMultiplayer();
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -54,7 +56,7 @@ function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
 }
 function show(id,{focus=false,remember=true}={}){
- if(!initialized)return false;
+ if(!initialized||!available(id))return false;
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
@@ -110,11 +112,14 @@ function makeNav(){
      nav.appendChild(advancedDisclosure);
      groupTarget=advancedDisclosure;
    }else{
-     nav.appendChild(element('div','pl-workspace-nav-group',lastGroup));
+     const groupHeading=element('div','pl-workspace-nav-group',lastGroup);
+     if(view.group==='SOCIAL')socialHeading=groupHeading;
+     nav.appendChild(groupHeading);
    }
   }
   const btn=element('button','pl-workspace-nav-item');
   btn.type='button';btn.dataset.workspaceView=view.id;
+   if(view.id==='clans')btn.hidden=!isMultiplayer();
   btn.setAttribute('aria-label','Open '+view.name);
   const icons={overview:'🏠',businesses:'🏪',operations:'🚚',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️'};
   const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
@@ -196,6 +201,14 @@ function makeViews(game){
  }
  return body;
 }
+function syncMode(){
+ const active=isMultiplayer();
+ const clanButton=buttonMap.get('clans');
+ if(clanButton)clanButton.hidden=!active;
+ if(socialHeading)socialHeading.hidden=!active;
+ if(initialized&&current==='clans'&&!active)show('overview',{remember:false});
+ return active;
+}
 function build(){
  if(initialized)return;
  const game=$('gameScreen');
@@ -227,7 +240,9 @@ function build(){
  if(oldSectionLinks)oldSectionLinks.hidden=true;
  initialized=true;
  const fromHash=viewFromHash(location.hash);
- show(fromHash||current,{remember:false});
+ syncMode();
+ const requested=fromHash||current;
+ show(available(requested)?requested:'overview',{remember:false});
  const oldLinks=document.querySelectorAll('#gameScreen .growth-quicknav a[href^="#"]');
  for(const a of oldLinks)a.addEventListener('click',()=>{
   const v=viewFromHash(a.getAttribute('href'));
@@ -248,7 +263,7 @@ function build(){
  });
 }
 window.ProfitLandsWorkspace={
- show,active:()=>current,viewForPanel,
+ show,active:()=>current,viewForPanel,available,syncMode,
  views:VIEWS.map(v=>({id:v.id,name:v.name,panels:v.panels.slice()})),
  ready:()=>initialized
 };
