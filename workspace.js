@@ -16,14 +16,15 @@ const VIEWS=[
  {id:'arcade',number:'08',name:'Arcade',title:'Mini-Game Arcade',description:'Play short challenges to earn rewards.',group:'GROW',panels:['arcadePanel']},
  {id:'advances',number:'09',name:'Advances',title:'Power-Ups',description:'Unlock upgrades and reach milestones.',group:'GROW',panels:['advancesPanel']},
  {id:'trophies',number:'10',name:'Trophies',title:'Trophy Room',description:'Collect badges for your achievements.',group:'GROW',panels:['trophyPanel']},
- {id:'clans',number:'11',name:'Clans',title:'Clans & Friends',description:'Create or join an online tycoon clan with an account.',group:'SOCIAL',panels:['clanPanel']}
+ {id:'world',number:'11',name:'World',title:'World 1 · Multiplayer',description:'Compete for money, challenge rivals and meet other players.',group:'SOCIAL',panels:['worldPanel']},
+ {id:'clans',number:'12',name:'Clans',title:'Clans & Friends',description:'Form a multiplayer tycoon clan with an account.',group:'SOCIAL',panels:['clanPanel']}
 ];
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
 let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null,socialHeading=null;
 const isMultiplayer=()=>window.state?.playType==='multi';
-const available=id=>id!=='clans'||isMultiplayer();
+const available=id=>!['world','clans'].includes(id)||isMultiplayer();
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -95,6 +96,7 @@ function show(id,{focus=false,remember=true}={}){
  if(id==='advances')window.ProfitLandsAdvancements?.render?.();
  if(id==='trophies'){window.ProfitLandsBadges?.scan?.(Date.now(),true);window.ProfitLandsBadges?.render?.()}
  if(id==='clans')window.ProfitLandsClans?.render?.();
+ if(id==='world')window.ProfitLandsWorld?.render?.();
  if(typeof CustomEvent==='function'&&typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('profitlands:viewchange',{detail:{view:id}}));
  return true;
 }
@@ -119,9 +121,9 @@ function makeNav(){
   }
   const btn=element('button','pl-workspace-nav-item');
   btn.type='button';btn.dataset.workspaceView=view.id;
-   if(view.id==='clans')btn.hidden=!isMultiplayer();
+   if(view.id==='clans'||view.id==='world')btn.hidden=!isMultiplayer();
   btn.setAttribute('aria-label','Open '+view.name);
-  const icons={overview:'🏠',businesses:'🏪',operations:'🚚',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️'};
+  const icons={overview:'🏠',businesses:'🏪',operations:'🚚',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️',world:'🌎'};
   const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
   const name=element('span','pl-workspace-nav-label',view.name);
   const indicator=element('span','pl-workspace-nav-indicator','›');
@@ -205,8 +207,11 @@ function syncMode(){
  const active=isMultiplayer();
  const clanButton=buttonMap.get('clans');
  if(clanButton)clanButton.hidden=!active;
+ const worldButton=buttonMap.get('world');
+ if(worldButton)worldButton.hidden=!active;
  if(socialHeading)socialHeading.hidden=!active;
- if(initialized&&current==='clans'&&!active)show('overview',{remember:false});
+ if(initialized&&['clans','world'].includes(current)&&!active)show('overview',{remember:false});
+ window.ProfitLandsWorld?.updateChat?.();
  return active;
 }
 function build(){
@@ -256,9 +261,9 @@ function build(){
  // screen unchanged when the user returns to the main menu.
  window.addEventListener('keydown',e=>{
   if(!document.querySelector('#gameScreen.active'))return;
-  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&(/^[1-9]$/.test(e.key)||e.key==='0'||e.key.toLowerCase()==='c')){
+  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&(/^[1-9]$/.test(e.key)||e.key==='0'||['c','w'].includes(e.key.toLowerCase()))){
    if(e.target?.closest?.('input,textarea,select,[contenteditable]'))return;
-   e.preventDefault();show(e.key.toLowerCase()==='c'?'clans':VIEWS[e.key==='0'?9:Number(e.key)-1].id,{focus:true});
+   e.preventDefault();show(e.key.toLowerCase()==='c'?'clans':e.key.toLowerCase()==='w'?'world':VIEWS[e.key==='0'?9:Number(e.key)-1].id,{focus:true});
   }
  });
 }
