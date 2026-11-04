@@ -7,7 +7,7 @@
   const perSec=n=>window.ProfitLandsRealtime?.formatRate?.(n/(window.ProfitLandsRealtime.period||60))||money(n/60);
   const showFlow=n=>(n>=0?'+':'')+perSec(n)+'/sec';
   function riskLabel(b){const r=RISK[b.type]||{econ:1,cost:1,weather:.7,vol:.15};const score=(r.econ+r.cost+r.weather+r.vol*2)/4;return score<.85?'Low':score<1.1?'Moderate':score<1.35?'High':score<1.65?'Very High':'Extreme'}
-  function profit(b){return window.businessDailyProfit?window.businessDailyProfit(b):0}
+  function profit(b,factors){return window.businessDailyProfit?window.businessDailyProfit(b,factors):0}
   // Render only the visible portfolio window, not hundreds of hidden cards.
   // Controls live OUTSIDE businessList, so periodic updates cannot steal input focus.
   const PAGE_SIZE=36;
@@ -54,6 +54,7 @@
         String(BUSINESS_TYPES.find(t=>t.id===b.type)?.name||b.type||'').toLocaleLowerCase().includes(portfolioQuery))matched.push(i);
     }
     const visible=controls?matched.slice(0,portfolioLimit):matched;
+    const profitContext=visible.length?window.ProfitLandsEconomy?.profitFactors?.():null;
     if(controls){
       controls.hidden=all.length<=PAGE_SIZE&&!portfolioQuery;
       controls._count.textContent=matched.length?'Showing '+visible.length+' of '+matched.length+' companies':'No matching companies';
@@ -66,7 +67,7 @@
       visible.map(i=>{
         const b=all[i],t=BUSINESS_TYPES.find(x=>x.id===b.type);
         if(!t)return '';
-        const p=profit(b),r=riskLabel(b),bal=b.financialBalance||0;
+        const p=profit(b,profitContext),r=riskLabel(b),bal=b.financialBalance||0;
         const sites=b.locations||[];
         // Avoid spreading a growing location list into Math.max arguments.
         const highest=b.locationManagementVersion===1?
@@ -113,7 +114,9 @@
     box.innerHTML=items.length?items.join(''):'<div class="empty">Nothing here yet. Start building your empire.</div>';
   }
   function renderFinance(){
-    const box=document.getElementById('financeInfo');if(!box)return;const p=state.businesses.reduce((s,b)=>s+profit(b),0)+((state.majorCompanies||[]).reduce((s,c)=>s+(c.liveDayRate||c.lastProfit||0),0))+(state.property||0)*12;const debt=(state.loans||[]).reduce((s,l)=>s+(l.balance||0),0);
+    const box=document.getElementById('financeInfo');if(!box)return;
+    const profitContext=state.businesses.length?window.ProfitLandsEconomy?.profitFactors?.():null;
+    const p=state.businesses.reduce((s,b)=>s+profit(b,profitContext),0)+((state.majorCompanies||[]).reduce((s,c)=>s+(c.liveDayRate||c.lastProfit||0),0))+(state.property||0)*12;const debt=(state.loans||[]).reduce((s,l)=>s+(l.balance||0),0);
     box.innerHTML='<div class="finance-row"><span>Net cash flow /sec</span><b class="'+(p>=0?'good':'danger')+'">'+showFlow(p)+'</b></div><div class="finance-row"><span>Businesses</span><b>'+state.businesses.length+'</b></div><div class="finance-row"><span>Major corporations</span><b>'+((state.majorCompanies||[]).length)+'</b></div><div class="finance-row"><span>Total locations</span><b>'+state.businesses.reduce((n,b)=>n+(b.locations?.length||b.chainCount+1),0)+'</b></div><div class="finance-row"><span>Debt</span><b class="'+(debt?'danger':'good')+'">'+moneyF(debt)+'</b></div><div class="finance-row"><span>Financial status</span><b class="'+(state.penaltyDays?'danger':'good')+'">'+(state.penaltyDays?'LEGAL RECOVERY PERIOD':p<0?'UNDER PRESSURE':'HEALTHY')+'</b></div><div class="finance-row"><span>Next wealth milestone</span><b>'+(window.ProfitLandsProgression?.milestone(window.ProfitLandsMoney?.netWorth?.(window.netWorth()-state.cash)||window.netWorth())?.targetLabel||'Keep growing')+'</b></div>';
   }
   function openManage(index){
