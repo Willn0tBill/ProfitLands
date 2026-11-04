@@ -23,8 +23,9 @@ const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
 let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null,socialHeading=null;
+const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
-const available=id=>!['world','clans'].includes(id)||isMultiplayer();
+const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -116,6 +117,8 @@ function makeNav(){
    }else{
      const groupHeading=element('div','pl-workspace-nav-group',lastGroup);
      if(view.group==='SOCIAL')socialHeading=groupHeading;
+     groupHeading.dataset.workspaceGroup=view.group;
+     groupHeadings.set(view.group,groupHeading);
      nav.appendChild(groupHeading);
    }
   }
@@ -140,6 +143,7 @@ function makeNav(){
   show('businesses');$('openBusinessShop')?.click();
  });
  actions.appendChild(buy);
+ toolbar=actions;
  nav.appendChild(actions);
  return nav;
 }
@@ -205,12 +209,12 @@ function makeViews(game){
 }
 function syncMode(){
  const active=isMultiplayer();
- const clanButton=buttonMap.get('clans');
- if(clanButton)clanButton.hidden=!active;
- const worldButton=buttonMap.get('world');
- if(worldButton)worldButton.hidden=!active;
- if(socialHeading)socialHeading.hidden=!active;
- if(initialized&&['clans','world'].includes(current)&&!active)show('overview',{remember:false});
+ for(const [id,button] of buttonMap)button.hidden=!available(id);
+ for(const [group,heading] of groupHeadings)heading.hidden=active?group!=='SOCIAL':group==='SOCIAL';
+ if(advancedDisclosure)advancedDisclosure.hidden=active;
+ if(toolbar)toolbar.hidden=active;
+ document.body.classList.toggle('pl-online-world',active);
+ if(initialized&&!available(current))show(active?'world':'overview',{remember:false});
  window.ProfitLandsWorld?.updateChat?.();
  return active;
 }
@@ -247,7 +251,7 @@ function build(){
  const fromHash=viewFromHash(location.hash);
  syncMode();
  const requested=fromHash||current;
- show(available(requested)?requested:'overview',{remember:false});
+ show(available(requested)?requested:(isMultiplayer()?'world':'overview'),{remember:false});
  const oldLinks=document.querySelectorAll('#gameScreen .growth-quicknav a[href^="#"]');
  for(const a of oldLinks)a.addEventListener('click',()=>{
   const v=viewFromHash(a.getAttribute('href'));
