@@ -27,16 +27,19 @@ function rank(item,query){
  return 99;
 }
 function isPlaying(){return Boolean($('gameScreen')?.classList.contains('active'))}
+const isMultiplayer=()=>window.state?.playType==='multi';
 function items(query=''){
  const ws=window.ProfitLandsWorkspace;
  const entries=(ws?.views||[]).filter(x=>ws?.available?.(x.id)!==false).map((x,i)=>({kind:'view',key:x.id,label:x.name,detail:'Game screen',view:x.id,order:i}));
- const owned=window.state?.businesses||[];
+ const owned=isMultiplayer()?[]:(window.state?.businesses||[]);
  for(let i=0;i<owned.length;i++){
   const b=owned[i],name=String(b.name||'Business '+(i+1)).slice(0,90);
   entries.push({kind:'business',key:'business-'+i,label:name,detail:'Open company management',index:i,order:20+i});
  }
- entries.push({kind:'action',key:'buy',label:'Buy a new business',detail:'Open company marketplace',order:50});
- entries.push({kind:'action',key:'settings',label:'Save & Recovery',detail:'Manual save, backup export, restore and display settings',order:51});
+ if(!isMultiplayer()){
+  entries.push({kind:'action',key:'buy',label:'Buy a new business',detail:'Open company marketplace',order:50});
+  entries.push({kind:'action',key:'settings',label:'Save & Recovery',detail:'Manual save, backup export, restore and display settings',order:51});
+ }
  entries.push({kind:'site',key:'wtvi',label:'Wtv Innovations',detail:'Visit studio portfolio',url:studio,order:60});
  entries.push({kind:'site',key:'nation',label:'Nation Wars',detail:'Open WtvI strategy game',url:'https://willn0tbill.github.io/NationWars/',order:61});
  const q=normalize(String(query||'').slice(0,120));
@@ -77,7 +80,12 @@ function success(entry,result){
 function execute(entry){
  if(!entry)return false;
  close();
- if(entry.kind==='view')return success(entry,window.ProfitLandsWorkspace?.show?.(entry.view));
+ if(entry.kind==='view'){
+  if(window.ProfitLandsWorkspace?.available?.(entry.view)===false)return false;
+  return success(entry,window.ProfitLandsWorkspace?.show?.(entry.view));
+ }
+ // A search result from an earlier mode must never bypass World 1 isolation.
+ if(isMultiplayer()&&(entry.kind==='business'||entry.kind==='action'||entry.key==='buy'||entry.key==='settings'))return false;
  if(entry.kind==='business'){
   window.ProfitLandsWorkspace?.show?.('businesses');
   if(typeof window.openManage==='function'){window.openManage(entry.index);return success(entry,true)}
