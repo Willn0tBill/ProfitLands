@@ -76,8 +76,22 @@ async function submitIdempotent(action,data={}){
  // An ambiguous server result must keep its original request ID. This avoids
  // buying a second business when a mobile network loses two responses in a row.
  const fingerprint=JSON.stringify([caller,action,data]);
+ const storageKey='profitlands-world1-pending:'+fingerprint;
  let requestId=pendingMutations.get(fingerprint);
- if(!requestId){requestId=nonce();pendingMutations.set(fingerprint,requestId)}
+ if(!requestId){
+  try{
+   const saved=JSON.parse(window.sessionStorage?.getItem(storageKey)||'null');
+   if(saved&&Date.now()-saved.createdAt<86400000&&Date.now()>=saved.createdAt&&/^[0-9a-f]{32}$/.test(saved.requestId))
+    requestId=saved.requestId;
+  }catch(e){}
+ }
+ if(!requestId)requestId=nonce();
+ pendingMutations.set(fingerprint,requestId);
+ try{window.sessionStorage?.setItem(storageKey,JSON.stringify({requestId,createdAt:Date.now()}))}catch(e){}
+ const clear=()=>{
+  pendingMutations.delete(fingerprint);
+  try{window.sessionStorage?.removeItem(storageKey)}catch(e){}
+ };
  const payload={...data,requestId};
  try{
   let result;
@@ -88,12 +102,12 @@ async function submitIdempotent(action,data={}){
     throw Error('Session changed during request; please reconnect.');
    result=await call(action,payload);
   }
-  pendingMutations.delete(fingerprint);
+  clear();
   return result;
  }catch(error){
   // Keep the key only for uncertain transport failures. A definite rejected
   // transaction is safe to retry with a fresh request ID.
-  if(!/unavailable|deadline-exceeded/i.test(error.code||''))pendingMutations.delete(fingerprint);
+  if(!/unavailable|deadline-exceeded/i.test(error.code||''))clear();
   throw error;
  }
 }
