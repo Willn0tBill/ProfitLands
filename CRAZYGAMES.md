@@ -34,6 +34,7 @@ generated upload files.
   build. Cross-promotion links and unfinished multiplayer choices are hidden
   or omitted.
 - First-time players get a compact, dismissible four-goal guide (open a business, inspect it, improve it, explore stocks). It reads current game progress, stores only guide preferences under `profitlands-cg-guide-v1`, and cannot grant cash or change game-save data. Returning players can reopen it with **Getting started**.
+- The v1.8 in-game Settings panel offers a manual local save and displays recovery information. File import and export are intentionally disabled in CrazyGames mode because its own APS service manages progress.
 - No ads or in-game purchases are integrated. Ads are disabled for Basic Launch.
 
 ## Local testing
@@ -80,10 +81,10 @@ Official documentation:
 
 The unchanged `main` branch had nine stale regression expectations from
 older gameplay and UI designs (variable action regeneration, full market-cycle
-refills, and dashboard/workspace v1). This branch updates those tests to the
-current game behavior **without changing the economy formulas or workspace
-implementation**. The complete suite now passes (131/131 in GitHub Actions).
-Live CrazyGames iframe/mobile and account-save tests are still required.
+refills, and dashboard/workspace v1). The historical regression tests were corrected without changing the economy
+formulas or workspace implementation. This branch now also includes the
+verified v1.8 Save & Recovery update. The combined suite passes **145/145**
+automated tests in GitHub Actions. CrazyGames Preview account-save testing remains required.
 
 ## Local browser smoke test — November 3, 2026
 
