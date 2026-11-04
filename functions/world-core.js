@@ -111,8 +111,8 @@ function buyBusiness(player,businessId,now){
  if(!def)return {ok:false,error:'unknown_business'};
  if(p.businesses.length>=40)return {ok:false,error:'business_limit'};
  if(!debit(p,def.cost))return {ok:false,error:'insufficient_cash'};
+ const before=worth(p);
  p.businesses.push({type:def.id,level:1});
- const before=p.netWorth;
  p.netWorth=worth(p);
  const delta=p.netWorth-before;
  p.dayGain+=delta;p.weekGain+=delta;
@@ -125,7 +125,7 @@ function upgradeBusiness(player,index,now){
  if(!def||business.level>=30)return {ok:false,error:'max_upgrade'};
  const cost=Math.ceil(def.cost*(1+business.level*.75));
  if(!debit(p,cost))return {ok:false,error:'insufficient_cash'};
- const before=p.netWorth;
+ const before=worth(p);
  business.level++;
  p.netWorth=worth(p);
  const delta=p.netWorth-before;
