@@ -128,6 +128,18 @@ test('half-second income settlement shares factors and still updates every compa
  assert.ok(h.state.businesses.every(b=>b.financialBalance!==0));
  assert.equal(h.counts().saved,0,'new calculation does not add any game saves');
 });
+test('shared company factors retain exact location profits and nonzero values',()=>{
+ const h=harness({companies:8,locations:12});
+ for(const b of h.state.businesses){
+  const before=h.counts().netCalls;
+  const factors=h.new.companyFactors(b);
+  assert.ok(factors.type&&factors.risk&&Number.isFinite(factors.industryStrength),'complete company context');
+  assert.equal(h.counts().netCalls,before+1,'one empire tier computation for each management page');
+  for(let i=0;i<b.locations.length;i++){
+   assert.equal(h.new.locationProfit(b,b.locations[i],i,factors),Math.round(h.old.location(b,b.locations[i],i)));
+  }
+ }
+});
 test('standalone business and location forecasts use fresh shared factors',()=>{
  const h=harness({companies:8,locations:6}),b=h.state.businesses[0];
  h.reset();h.new.businessProfit(b);
