@@ -5,7 +5,7 @@
     const modal=document.createElement('div');
     modal.id='tradeModal';
     modal.className='modal hidden';
-    modal.innerHTML=`<div class="modal-card trade-card"><button class="modal-close" id="tradeClose">×</button><span class="eyebrow">STOCK MARKET</span><div id="tradeContent"></div></div>`;
+    modal.innerHTML=`<div class="modal-card trade-card"><button class="modal-close" id="tradeClose" aria-label="Close stock trading">×</button><span class="eyebrow">STOCK MARKET</span><div id="tradeContent"></div></div>`;
     document.body.appendChild(modal);
     document.getElementById('tradeClose').onclick=()=>modal.classList.add('hidden');
     modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.add('hidden')});
