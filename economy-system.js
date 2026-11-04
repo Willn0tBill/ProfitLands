@@ -329,9 +329,10 @@
   // Market and popularity are adjusted at a day boundary. Cash and company
   // balances are now settled in the real-time loop instead of here.
   function businessUpdate(){
+    const empireScale=1+tier()*.08;
     (state.businesses||[]).forEach(b=>{
       const r=riskFor(b);
-      const popMove=(Math.random()-.5)*(5+r.vol*8)*(1+tier()*.08);
+      const popMove=(Math.random()-.5)*(5+r.vol*8)*empireScale;
       b.popularity=Math.max(5,Math.min(100,(b.popularity||55)+popMove));
       if(b.locations)b.locations.forEach(l=>{l.basePopularity=Math.max(5,Math.min(100,(l.basePopularity||b.popularity)+popMove*.35))});
     });
@@ -617,7 +618,7 @@
   function bind(){
     window.__profitBaseRender=window.render;
     window.render=renderOverride;
-    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit,businessValue:businessValue2};
+    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit,businessValue:businessValue2,profitFactors};
     window.businessDailyProfit=businessProfit;
     window.businessValue=businessValue2;
     window.totalBusinessProfit=()=>{
