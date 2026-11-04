@@ -347,3 +347,14 @@ html.pl-contrast #gameScreen .pl-workspace-hud .game-hud .stat{border-color:#c5e
 }
 html.pl-reduced-motion #gameScreen .pl-game-step:hover,
 html.pl-reduced-motion #gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:none}
+
+/* One simple wealth milestone stays visible: a game progress bar, not a report. */
+#gameScreen .pl-workspace-hud .game-hud .goal-progress{
+ display:block!important;height:6px;max-width:340px;
+ background:#0a1932;border-radius:999px;overflow:hidden;
+ border:1px solid #637d9d7c;margin:7px 0 5px!important;
+}
+#gameScreen .pl-workspace-hud .game-hud .goal-status{
+ display:block!important;max-width:340px;
+ color:#c8dcf3;font-size:10px!important;line-height:1.4;
+}
