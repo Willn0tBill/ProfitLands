@@ -1,4 +1,4 @@
-/* ProfitLands Professional Workspace — one-window business management UI.
+/* ProfitLands Tycoon World — simplified game menu with all existing features.
    Moves the EXISTING panels: no duplicate IDs, game state or save migration.
    Page scrolling is locked only while the game screen is active.
 */
@@ -6,20 +6,22 @@
 'use strict';
 const KEY='profitlands-workspace-view-v2';
 const VIEWS=[
- {id:'overview',number:'01',name:'Overview',title:'Command Center',description:'Executive briefing, current economy, and market news.',group:'MANAGEMENT',panels:['executivePanel','economyPanel','newsPanel']},
- {id:'businesses',number:'02',name:'Businesses',title:'Business Portfolio',description:'Companies, branches, staffing and new acquisitions.',group:'MANAGEMENT',panels:['businessPanel']},
- {id:'operations',number:'03',name:'Operations',title:'Operations & Supply',description:'Inventory, staff roles, logistics and regional expansion.',group:'MANAGEMENT',panels:['empireLab']},
- {id:'markets',number:'04',name:'Markets',title:'Market & Portfolio',description:'Stock exchange, positions and holdings.',group:'FINANCE',panels:['stockPanel','holdingsPanel']},
- {id:'analytics',number:'05',name:'Analytics',title:'Business Intelligence',description:'Revenue charts, employees, decisions and achievements.',group:'FINANCE',panels:['growthPanel']},
- {id:'finance',number:'06',name:'Finances',title:'Financial Management',description:'Company performance, bank services and credit.',group:'FINANCE',panels:['financePanel','bankPanel']},
- {id:'corporate',number:'07',name:'Corporate',title:'Corporate Development',description:'Major companies, research and capital investments.',group:'EXPANSION',panels:['majorCompaniesPanel','actionsPanel']},
- {id:'arcade',number:'08',name:'Arcade',title:'Business Arcade',description:'Three playable management mini-games, with small rewards for your empire.',group:'EXPANSION',panels:['arcadePanel']},
- {id:'advances',number:'09',name:'Advances',title:'Advancements & Milestones',description:'Permanent technology upgrades and business level unlocks.',group:'EXPANSION',panels:['advancesPanel']},
- {id:'trophies',number:'10',name:'Trophies',title:'Trophy Room',description:'131,072 collectible in-game achievement badges.',group:'EXPANSION',panels:['trophyPanel']}
+ {id:'overview',number:'01',name:'Overview',title:'Your Tycoon World',description:'Pick your next move and build your empire.',group:'PLAY',panels:['executivePanel','economyPanel','newsPanel']},
+ {id:'businesses',number:'02',name:'Businesses',title:'Build & Upgrade',description:'Buy shops, improve locations and grow your chain.',group:'PLAY',panels:['businessPanel']},
+ {id:'operations',number:'03',name:'Operations',title:'Run Your Shops',description:'Staff, products, deliveries and new districts.',group:'PLAY',panels:['empireLab']},
+ {id:'markets',number:'04',name:'Markets',title:'Trading Market',description:'Trade stocks and follow your holdings.',group:'ADVANCED',panels:['stockPanel','holdingsPanel']},
+ {id:'analytics',number:'05',name:'Analytics',title:'Empire Stats',description:'Track your income, people and growth.',group:'ADVANCED',panels:['growthPanel']},
+ {id:'finance',number:'06',name:'Finances',title:'Money & Loans',description:'View profits, debts and recovery options.',group:'ADVANCED',panels:['financePanel','bankPanel']},
+ {id:'corporate',number:'07',name:'Corporate',title:'Big Business',description:'Unlock huge companies and new investments.',group:'GROW',panels:['majorCompaniesPanel','actionsPanel']},
+ {id:'arcade',number:'08',name:'Arcade',title:'Mini-Game Arcade',description:'Play short challenges to earn rewards.',group:'GROW',panels:['arcadePanel']},
+ {id:'advances',number:'09',name:'Advances',title:'Power-Ups',description:'Unlock upgrades and reach milestones.',group:'GROW',panels:['advancesPanel']},
+ {id:'trophies',number:'10',name:'Trophies',title:'Trophy Room',description:'Collect badges for your achievements.',group:'GROW',panels:['trophyPanel']},
+ {id:'clans',number:'11',name:'Clans',title:'Clans & Friends',description:'Create or join an online tycoon clan with an account.',group:'SOCIAL',panels:['clanPanel']}
 ];
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
+let guideTitle=null,guideText=null,guideButton=null;
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -40,6 +42,13 @@ function viewFromHash(hash){
  if(!target)return null;
  const panel=target.closest?.('#gameScreen .panel');
  return panel?.id?viewForPanel(panel.id):null;
+}
+function updateGuide(){
+ if(!guideTitle)return;
+ const count=window.state?.businesses?.length||0;
+ guideTitle.textContent=count?'Your empire is growing!':'Your first mission: open a business';
+ guideText.textContent=count?'You own '+count+' business'+(count===1?'':'es')+'. Upgrade your shops, explore districts, or play a mini-game.':'Start small. Open a shop, make your first earnings, then upgrade it. You can explore the other menus later.';
+ guideButton.textContent=count?'Manage my shops':'Open my first shop';
 }
 function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
@@ -76,18 +85,19 @@ function show(id,{focus=false,remember=true}={}){
  if(id==='businesses')window.renderBusinesses?.();
  if(id==='finance')window.renderFinance?.();
  if(id==='markets')window.renderHoldings?.();
- if(id==='overview')window.ProfitLandsExecutive?.render?.();
+ if(id==='overview'){updateGuide();window.ProfitLandsExecutive?.render?.()}
  if(id==='analytics')window.ProfitLandsGrowth?.render?.();
  if(id==='operations')window.ProfitLandsEmpire?.render?.();
  if(id==='arcade')window.ProfitLandsArcade?.render?.();
  if(id==='advances')window.ProfitLandsAdvancements?.render?.();
  if(id==='trophies'){window.ProfitLandsBadges?.scan?.(Date.now(),true);window.ProfitLandsBadges?.render?.()}
+ if(id==='clans')window.ProfitLandsClans?.render?.();
  if(typeof CustomEvent==='function'&&typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('profitlands:viewchange',{detail:{view:id}}));
  return true;
 }
 function makeNav(){
- nav=element('nav','pl-workspace-nav');nav.setAttribute('aria-label','Business management');
- const title=element('div','pl-workspace-nav-title','WORKSPACE');nav.appendChild(title);
+ nav=element('nav','pl-workspace-nav');nav.setAttribute('aria-label','Tycoon game menu');
+ const title=element('div','pl-workspace-nav-title','🎮 GAME MENU');nav.appendChild(title);
  let lastGroup='';
  for(const view of VIEWS){
   if(view.group!==lastGroup){
@@ -97,7 +107,8 @@ function makeNav(){
   const btn=element('button','pl-workspace-nav-item');
   btn.type='button';btn.dataset.workspaceView=view.id;
   btn.setAttribute('aria-label','Open '+view.name);
-  const index=element('span','pl-workspace-nav-index',view.number);
+  const icons={overview:'🏠',businesses:'🏪',operations:'🚚',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️'};
+  const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
   const name=element('span','pl-workspace-nav-label',view.name);
   const indicator=element('span','pl-workspace-nav-indicator','›');
   btn.append(index,name,indicator);
@@ -106,7 +117,7 @@ function makeNav(){
   buttonMap.set(view.id,btn);
  }
  const actions=element('div','pl-workspace-sidebar-actions');
- const toolsHeading=element('span','pl-workspace-nav-group','QUICK ACTIONS');
+ const toolsHeading=element('span','pl-workspace-nav-group','QUICK PLAY');
  actions.appendChild(toolsHeading);
  const buy=element('button','pl-workspace-quick-button','+ New business');
  buy.type='button';buy.addEventListener('click',()=>{
@@ -125,21 +136,50 @@ function makeViews(game){
   region.setAttribute('role','region');
   region.hidden=true;
   const grid=element('div','pl-workspace-panels');
-  grid.dataset.columns=String(view.panels.length);
+  grid.dataset.columns=String(view.id==='overview'?1:view.panels.length);
   if(view.id==='overview'){
-   const welcome=element('div','pl-workspace-intro');
+   const welcome=element('div','pl-workspace-intro pl-quest-card');
    const introCopy=element('div','pl-workspace-intro-copy');
-   introCopy.appendChild(element('span','pl-workspace-eyebrow','DAILY BRIEFING'));
-   introCopy.appendChild(element('h3','', 'Your empire, at a glance'));
-   introCopy.appendChild(element('p','', 'Track market conditions and keep up with business developments without leaving the workspace.'));
+   introCopy.appendChild(element('span','pl-workspace-eyebrow','🎯 YOUR NEXT QUEST'));
+   guideTitle=element('h3','','Your first mission: open a business');
+   guideText=element('p','','Start small. Open a shop, make your first earnings, then upgrade it.');
+   introCopy.append(guideTitle,guideText);
    welcome.appendChild(introCopy);
-   const go=element('button','pl-workspace-intro-button','View businesses');
-   go.type='button';go.addEventListener('click',()=>show('businesses'));
-   welcome.appendChild(go);region.appendChild(welcome);
+   guideButton=element('button','pl-workspace-intro-button','Open my first shop');
+   guideButton.type='button';
+   guideButton.addEventListener('click',()=>{
+     const hasShop=Boolean(window.state?.businesses?.length);
+     show('businesses');
+     if(!hasShop)$('openBusinessShop')?.click();
+   });
+   welcome.appendChild(guideButton);region.appendChild(welcome);
+   const steps=element('div','pl-game-steps');
+   for(const [icon,title,description,action] of [
+     ['🏪','1. Buy a shop','Your first business starts earning cash.','businesses'],
+     ['⬆️','2. Upgrade it','Add staff and improve locations.','businesses'],
+     ['🎮','3. Have fun','Try mini-games and unlock trophies.','arcade']
+   ]){
+     const button=element('button','pl-game-step');button.type='button';
+     button.append(element('span','pl-game-step-icon',icon));
+     const copy=element('span','pl-game-step-copy');
+     copy.append(element('strong','',title),element('small','',description));button.appendChild(copy);
+     button.addEventListener('click',()=>{show(action);if(action==='businesses'&&title.startsWith('1.'))$('openBusinessShop')?.click()});
+     steps.appendChild(button);
+   }
+   region.appendChild(steps);
   }
+  let advanced=null;
   for(const id of view.panels){
    const panel=$(id);
-   if(panel)grid.appendChild(panel);
+   if(!panel)continue;
+   if(view.id==='overview'){
+     if(!advanced){
+       advanced=element('details','pl-game-advanced');
+       const summary=element('summary','','World news, reports & market details');
+       advanced.appendChild(summary);grid.appendChild(advanced);
+     }
+     advanced.appendChild(panel);
+   }else grid.appendChild(panel);
   }
   region.appendChild(grid);
   body.appendChild(region);
@@ -160,7 +200,7 @@ function build(){
  if(existingHud)hudArea.appendChild(existingHud);
  const header=element('header','pl-workspace-section-head');
  const headText=element('div','pl-workspace-section-head-copy');
- headText.appendChild(element('span','pl-workspace-eyebrow','PROFITLANDS / MANAGEMENT'));
+ headText.appendChild(element('span','pl-workspace-eyebrow','PROFITLANDS / TYCOON WORLD'));
  heading=element('h2','pl-workspace-section-title','Business Portfolio');
  heading.tabIndex=-1;
  subtitle=element('p','pl-workspace-section-description','Manage your business empire.');
@@ -192,9 +232,9 @@ function build(){
  // screen unchanged when the user returns to the main menu.
  window.addEventListener('keydown',e=>{
   if(!document.querySelector('#gameScreen.active'))return;
-  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&(/^[1-9]$/.test(e.key)||e.key==='0')){
+  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&(/^[1-9]$/.test(e.key)||e.key==='0'||e.key.toLowerCase()==='c')){
    if(e.target?.closest?.('input,textarea,select,[contenteditable]'))return;
-   e.preventDefault();show(VIEWS[e.key==='0'?9:Number(e.key)-1].id,{focus:true});
+   e.preventDefault();show(e.key.toLowerCase()==='c'?'clans':VIEWS[e.key==='0'?9:Number(e.key)-1].id,{focus:true});
   }
  });
 }
