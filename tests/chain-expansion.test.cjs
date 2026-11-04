@@ -137,3 +137,12 @@ test('empire-wide location limit prevents unsaveable purchases in a smaller comp
  assert.equal(h.state.cash,before);
  assert.equal(h.saved(),0);
 });
+
+test('management header reserves close-button space and identifies focused branches',()=>{
+ const css=fs.readFileSync(path.join(root,'location-operations.css'),'utf8');
+ const ops=fs.readFileSync(path.join(root,'location-operations.js'),'utf8');
+ assert.match(css,/#manageModal\s+\.manage-head\{padding-top:34px/);
+ assert.match(css,/@media\(max-width:600px\)[\s\S]*#manageModal\s+\.manage-head\{padding-top:38px/);
+ assert.match(css,/site-operation-target/);
+ assert.match(ops,/selected\?\.classList\?\.add\('site-operation-target'\)/);
+});
