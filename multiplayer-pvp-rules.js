@@ -45,5 +45,38 @@
     if(Number(defender.activePenaltyUntil||0)>nowSeconds)return {ok:false,reason:'already_under_attack'};
     return {ok:true,reason:null};
   }
-  return Object.freeze({ATTACKS,DEFENSE,ATTACK_COOLDOWN_SECONDS,TARGET_GRACE_SECONDS,NEW_PLAYER_GRACE_SECONDS,MIN_TARGET_WORTH,MAX_INCOME_PENALTY,quote,defenseQuote,eligibility});
+  /* Server transaction helper: provides an immutable proposed ledger change.
+   * The caller MUST read both ledger records within the same authenticated,
+   * serializable transaction, validate world membership and write atomically.
+   */
+  function applyAttack({attacker,defender,attackId,targetCompanyValue,nowSeconds}){
+    const eligible=eligibility({attacker,defender,attackId,nowSeconds});
+    if(!eligible.ok)return {ok:false,reason:eligible.reason};
+    const price=quote(attackId,targetCompanyValue);
+    if(!price)return {ok:false,reason:'invalid_company_value'};
+    if(!money(attacker.cash)||attacker.cash<price.cost)return {ok:false,reason:'insufficient_cash'};
+    const affected=option(attackId);
+    return Object.freeze({
+      ok:true,cost:price.cost,attackId,
+      attacker:{...attacker,cash:attacker.cash-price.cost,nextAttackAt:nowSeconds+ATTACK_COOLDOWN_SECONDS},
+      defender:{...defender,activePenalty:affected.penalty,
+        activePenaltyUntil:nowSeconds+affected.durationSeconds,
+        nextVulnerableAt:nowSeconds+affected.durationSeconds+TARGET_GRACE_SECONDS},
+      event:{type:'pvp_attack',attackId,attackerUid:attacker.uid,defenderUid:defender.uid,
+        worldId:attacker.worldId,cost:price.cost,incomePenalty:affected.penalty,
+        startedAtSeconds:nowSeconds,expiresAtSeconds:nowSeconds+affected.durationSeconds}
+    });
+  }
+  function applyDefense({player,nowSeconds,ownEmpireWorth}){
+    if(!player||!player.uid||!player.worldId||!Number.isSafeInteger(nowSeconds))return {ok:false,reason:'invalid_request'};
+    const price=defenseQuote(ownEmpireWorth);
+    if(!price)return {ok:false,reason:'invalid_empire_value'};
+    if(!money(player.cash)||player.cash<price.cost)return {ok:false,reason:'insufficient_cash'};
+    if(Number(player.protectedUntil||0)>nowSeconds)return {ok:false,reason:'already_protected'};
+    return Object.freeze({ok:true,cost:price.cost,
+      player:{...player,cash:player.cash-price.cost,protectedUntil:nowSeconds+price.durationSeconds},
+      event:{type:'pvp_defense',userUid:player.uid,worldId:player.worldId,
+        cost:price.cost,startedAtSeconds:nowSeconds,expiresAtSeconds:nowSeconds+price.durationSeconds}});
+  }
+  return Object.freeze({ATTACKS,DEFENSE,ATTACK_COOLDOWN_SECONDS,TARGET_GRACE_SECONDS,NEW_PLAYER_GRACE_SECONDS,MIN_TARGET_WORTH,MAX_INCOME_PENALTY,quote,defenseQuote,eligibility,applyAttack,applyDefense});
 });
