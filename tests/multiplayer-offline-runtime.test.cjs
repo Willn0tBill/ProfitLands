@@ -82,5 +82,5 @@ test('Firebase server is isolated and client cannot locally award PvP cash',()=>
  assert.match(code,/window\.ProfitLandsOnline/);
  assert.match(code,/isConnected\?\.\(\)===true/);
  const pages=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- assert.match(pages,/Multiplayer Preview currently uses a local economy/);
+ assert.match(pages,/World 1 uses a separate server-owned balance/);
 });
