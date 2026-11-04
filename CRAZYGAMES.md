@@ -132,3 +132,11 @@ Businesses can now open more than one branch in each district, with unique branc
 Quick Switch now keeps Tab/Shift+Tab inside its dialog and prevents Escape from dismissing a lower game modal. The CrazyGames-specific external-link restrictions in Quick Switch remain intact.
 
 The combined branch passes **190/190** automated regression tests. Normal-site Chrome verified district reuse, new-branch management, Quick Switch keyboard behavior, and the compact 390px layout. **CrazyGames Developer Portal APS persistence and real platform SDK preview remain unverified.** This release remains unpublished.
+
+## v2.0.4 Operations reliability and large-empire UI
+
+Operations & Supply now assigns collision-free site IDs after legacy saves, mergers and stale counters. Store, logistics, IPO and simulated-market selectors share an accessible location search, displaying at most 80 matching options plus a pinned active site. Filtering retains keyboard focus and allows selecting late-index locations; the Manage shortcut opens that exact branch.
+
+Active store profits no longer repeatedly normalize the entire empire for every location. Warehouse purchases, store stock and delivery operations reject capacity overflow before payment. Acquisitions, regional expansions and mergers respect Save Center's existing business and location count limits, and the UI disables options that are predictably unavailable.
+
+The normal website passed real Chrome testing using 10,000 locations, intentionally duplicated site IDs, Branch 8766 selection and inventory, and a 390px mobile layout. CrazyGames SDK and authenticated APS persistence still require a **real Developer Portal preview test** before publication. This draft remains unpublished.
