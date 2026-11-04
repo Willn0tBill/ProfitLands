@@ -43,3 +43,12 @@ test('World 1 calls require Firebase Auth for all economic operations',()=>{
  assert.match(server,/CHAT_ENABLED=false/);
  assert.doesNotMatch(server,/request\.data\.cash/);
 });
+
+test('World 1 refresh is explicit, throttled and cannot update disconnected UI',()=>{
+ const source=read('multiplayer-world.js');
+ assert.match(source,/id="worldRefresh"/);
+ assert.match(source,/now-lastWorldRefreshAt<10000/);
+ assert.match(source,/const results=await Promise\.all\(\[loadEmpire\(\),loadLeaderboard\(\),loadPlayers\(\)\]\)/);
+ assert.match(source,/stamp!==empireStamp\|\|!connected\(\)/);
+ assert.match(source,/stamp!==playersStamp\|\|!connected\(\)/);
+});
