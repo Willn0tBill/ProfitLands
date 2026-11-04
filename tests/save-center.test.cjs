@@ -144,4 +144,7 @@ test('settings UI and save center run only in play, with existing display contro
  assert.ok(code.includes('profitlands-v2-before-import'));
  assert.ok(code.includes('../settings/'));
  assert.ok(code.includes('window.ProfitLandsSaveCenter'));
+ const route=fs.readFileSync(path.join(root,'play-route.js'),'utf8');
+ assert.doesNotMatch(route,/stopImmediatePropagation/,'route must not swallow the in-game settings click');
+ assert.ok(html.includes('href="../settings/"'),'dedicated display page remains accessible');
 });
