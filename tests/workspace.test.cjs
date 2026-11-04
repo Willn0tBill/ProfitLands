@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'workspace.js'),'utf8');
 const PANEL_IDS=['executivePanel','trophyPanel','advancesPanel','arcadePanel','businessPanel','economyPanel','newsPanel','empireLab','stockPanel',
-  'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel','clanPanel'];
+  'holdingsPanel','growthPanel','financePanel','bankPanel','majorCompaniesPanel','actionsPanel','clanPanel','worldPanel'];
 class Node{
  constructor(tag='div'){
   this.tag=tag;this.children=[];this.parent=null;this.attributes={};this.listeners={};
@@ -38,7 +38,7 @@ class Node{
  findAll(pred,out=[]){if(pred(this))out.push(this);for(const c of this.children)c.findAll(pred,out);return out}
  querySelector(sel){if(sel==='.game-hud')return this.find(x=>x.classList.contains('game-hud'));return null}
 }
-function setup(saved=null){
+function setup(saved=null,playType='single'){
  const ids=new Map(),game=new Node('section'),oldToolbar=new Node(),hud=new Node();
  oldToolbar.className='pl-view-toolbar';hud.className='game-hud';
  const allPanels={};
@@ -61,6 +61,7 @@ function setup(saved=null){
   querySelectorAll:()=>[]};
  const opened=[];const events={};
  const window={
+  state:{playType},
   addEventListener:(t,fn)=>events[t]=fn,
   ProfitLandsLayout:{open:id=>opened.push(id)},
   ProfitLandsGrowth:{render(){}},ProfitLandsEmpire:{render(){}}
@@ -78,7 +79,7 @@ test('workspace starts on overview and keeps the business portfolio one click aw
  const workspace=x.game.find(n=>n.classList.contains('pl-workspace-shell'));
  assert.ok(workspace);
  const contents=workspace.findAll(n=>n.dataset.workspaceContent);
- assert.equal(contents.length,11);
+ assert.equal(contents.length,12);
  assert.equal(contents.filter(v=>!v.hidden).length,1);
  assert.equal(contents.filter(v=>!v.hidden)[0].dataset.workspaceContent,'overview');
  assert.equal(x.window.ProfitLandsWorkspace.show('businesses'),true);
@@ -164,7 +165,7 @@ test('opening products from company management switches to the Operations worksp
 
 test('Business Arcade is a separate eighth workspace with an original panel',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
- assert.equal(api.views.length,11);
+ assert.equal(api.views.length,12);
  assert.equal(api.show('arcade'),true);
  assert.equal(api.active(),'arcade');
  assert.equal(x.opened.at(-1),'arcadePanel');
@@ -215,9 +216,9 @@ test('new-player overview uses a three-step quest hub and keeps market reports a
  assert.equal(quests[2].click(),undefined);
  assert.equal(x.window.ProfitLandsWorkspace.active(),'arcade');
 });
-test('Clans is a real eleventh workspace with a unique existing panel',()=>{
- const x=setup(),api=x.window.ProfitLandsWorkspace;
- assert.equal(api.views.length,11);
+test('Clans is a multiplayer-only workspace using its existing panel',()=>{
+ const x=setup(null,'multi'),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.views.length,12);
  assert.equal(api.show('clans'),true);
  assert.equal(api.active(),'clans');
  const content=x.game.find(n=>n.dataset.workspaceContent==='clans');
@@ -231,4 +232,39 @@ test('advanced game menus are collapsed unless opened or selected',()=>{
  assert.equal(Boolean(menu.open),false);
  x.window.ProfitLandsWorkspace.show('finance');
  assert.equal(menu.open,true);
+});
+
+test('Clans and World are hidden and inaccessible when playing solo',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.available('clans'),false);
+ assert.equal(api.available('world'),false);
+ assert.equal(api.show('clans'),false);
+ assert.equal(api.show('world'),false);
+ for(const id of ['clans','world']){
+  const entry=x.game.find(n=>n.dataset.workspaceView===id);
+  assert.equal(entry.hidden,true);
+ }
+ assert.equal(api.active(),'overview');
+ assert.equal(x.savedData.has('profitlands-v2'),false);
+});
+test('Multiplayer mode exposes World 1 and Clans without modifying solo empire data',()=>{
+ const x=setup(null,'multi'),api=x.window.ProfitLandsWorkspace;
+ assert.equal(api.available('world'),true);
+ assert.equal(api.available('clans'),true);
+ assert.equal(api.show('world'),true);
+ assert.equal(api.active(),'world');
+ assert.equal(x.game.findAll(n=>n.id==='worldPanel').length,1);
+ const worldButton=x.game.find(n=>n.dataset.workspaceView==='world');
+ assert.equal(worldButton.hidden,false);
+ x.window.state.playType='single';
+ assert.equal(api.syncMode(),false);
+ assert.equal(api.active(),'overview');
+ assert.equal(worldButton.hidden,true);
+ assert.equal(x.savedData.has('profitlands-v2'),false);
+});
+test('saved multiplayer-only screen does not reopen in singleplayer',()=>{
+ const x=setup('world','single');
+ assert.equal(x.window.ProfitLandsWorkspace.active(),'overview');
+ const m=setup('world','multi');
+ assert.equal(m.window.ProfitLandsWorkspace.active(),'world');
 });
