@@ -108,3 +108,17 @@ test('invalid fractional share amounts cannot be silently rounded and traded',()
  assert.equal(h.saved(),0);
  assert.match(h.notifications.at(-1),/valid share quantity/);
 });
+
+test('mobile trading header reserves close-button space and accessible dialog labels',()=>{
+ const css=fs.readFileSync(path.join(root,'trade-ui.css'),'utf8');
+ const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+ assert.match(css,/#tradeModal\s+\.trade-head\s*\{\s*padding-top:36px\s*\}/);
+ for(const [id,label] of [
+   ['tradeModal','Close stock trading'],
+   ['manageModal','Close company management'],
+   ['businessModal','Close business market'],
+   ['endGameModal','Close end-game confirmation']
+ ]){
+  assert.ok(html.includes('data-close="'+id+'" aria-label="'+label+'"'));
+ }
+});
