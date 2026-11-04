@@ -167,8 +167,9 @@ test('leaderboards read server-owned scores and world chat remains disabled',asy
  assert.ok(ranks.every(entry=>entry.score===1500));
  assert.equal((await h.call('alpha','getPlayers')).length,1);
  assert.deepEqual(Array.from(await h.call('alpha','getChat')),[]);
+ const recordsBefore=h.db.data.size;
  await assert.rejects(h.call('alpha','sendChat',{text:'hello'}),e=>e.code==='failed-precondition');
- assert.equal(h.db.data.size,3,'chat cannot create public messages');
+ assert.equal(h.db.data.size,recordsBefore,'chat cannot create public messages');
 });
 
 test('replayed business purchase charges once, even when repeated after success',async()=>{
