@@ -29,6 +29,8 @@ on:
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'quick-switch.css'
+      - 'save-center.js'
+      - 'save-center.css'
       - 'achievement-engine.css'
       - 'executive-briefing.js'
       - 'executive-briefing.css'
@@ -65,6 +67,8 @@ on:
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'quick-switch.css'
+      - 'save-center.js'
+      - 'save-center.css'
       - 'achievement-engine.css'
       - 'executive-briefing.js'
       - 'executive-briefing.css'
@@ -112,6 +116,7 @@ jobs:
           node --check desktop/preload.cjs
           node --check executive-briefing.js
           node --check quick-switch.js
+          node --check save-center.js
       - name: Run economy regression suite
         id: regression
         shell: bash
