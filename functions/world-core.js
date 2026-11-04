@@ -102,7 +102,11 @@ function settle(player,now){
    const penalty=Number(p.activePenaltyUntil||0)*1000>cursor
     ?Math.max(0,Math.min(30,Math.round(Number(p.activePenalty||0)*100))):0;
    // Thousandths of a dollar avoid round-down losses on repeated settlements.
-   const milliEarned=Math.floor(durationMs*rate*(100-penalty)/100);
+   // Avoid multiplying a six-hour accrual by a percentage before division:
+   // that intermediate can exceed Number.MAX_SAFE_INTEGER for large empires.
+   const grossMilli=durationMs*rate;
+   const quotient=Math.floor(grossMilli/100),remainder=grossMilli%100;
+   const milliEarned=quotient*(100-penalty)+Math.floor(remainder*(100-penalty)/100);
    const totalMilli=milliRemainder+milliEarned;
    const earned=Math.floor(totalMilli/1000);
    milliRemainder=totalMilli%1000;
