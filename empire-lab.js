@@ -295,8 +295,11 @@ function optionsSite(){
    ||String(x.li+1)===term):sites;
  const visible=matches.slice(0,SITE_LIMIT);
  if(selected&&!visible.some(x=>x.id===selected.id))visible.unshift(selected);
- siteResultText='Showing '+visible.length+' of '+matches.length+' matching locations'
-   +(selected&&!matches.some(x=>x.id===selected.id)?' · current selection pinned':'')
+ const pinned=Boolean(selected&&!matches.slice(0,SITE_LIMIT).some(x=>x.id===selected.id));
+ const shown=Math.min(matches.length,SITE_LIMIT);
+ siteResultText=matches.length+' matching '+(matches.length===1?'location':'locations')+
+   ' · '+shown+' result'+(shown===1?'':'s')+' shown'
+   +(pinned?' · current selection pinned':'')
    +(matches.length>SITE_LIMIT?' · refine the search to find more':'');
  return visible.length?visible.map(x=>'<option value="'+clean(x.id)+'" '+(selected?.id===x.id?'selected':'')+'>'+
    clean(x.b.name)+' · '+clean(x.l.name)+'</option>').join(''):'<option value="">No locations</option>';
