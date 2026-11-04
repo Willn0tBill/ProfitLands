@@ -316,12 +316,18 @@
   function perSecond(){return projectedProfit()/INCOME_UNIT_SECONDS}
   function showLiveCash(){
     const cash=document.getElementById('cash'),worth=document.getElementById('netWorth'),rate=document.getElementById('dailyIncome'),floatCash=document.getElementById('floatCash');
-    if(cash)cash.textContent=money(window.ProfitLandsMoney?.balance?.()||state.cash);
-    if(floatCash)floatCash.textContent=money(window.ProfitLandsMoney?.balance?.()||state.cash);
-    if(worth)worth.textContent=money(window.ProfitLandsMoney?.netWorth?.(calcNetWorth()-state.cash)||calcNetWorth());
+    // Large empires calculate value across many locations. Do so only once
+    // per HUD paint, then reuse it for the balance and milestone displays.
+    const balance=window.ProfitLandsMoney?.balance?.()??state.cash;
+    const currentWorth=calcNetWorth();
+    const worthAmount=window.ProfitLandsMoney?.netWorth?.(currentWorth-state.cash)??currentWorth;
+    const shownBalance=money(balance),shownWorth=money(worthAmount);
+    if(cash)cash.textContent=shownBalance;
+    if(floatCash)floatCash.textContent=shownBalance;
+    if(worth)worth.textContent=shownWorth;
     const flow=perSecond();
     if(rate)rate.textContent=(flow>=0?'+':'')+rateMoney(flow);
-    window.ProfitLandsProgression?.render(window.ProfitLandsMoney?.netWorth?.(calcNetWorth()-state.cash)||calcNetWorth());
+    window.ProfitLandsProgression?.render(worthAmount);
   }
   function settleIncome(now=Date.now()){
     if(!state.started||!document.getElementById('gameScreen')?.classList.contains('active')){
@@ -531,19 +537,28 @@
     lastIncomeTick=Date.now();
     lastLiveDetails=0;
     lastLiveSave=Date.now();
+    let lastHudPaint=0;
     let lastShown=-1;
     const tick=()=>{
       if(!state.started)return;
       const now=Date.now();
       settleIncome(now);
       window.ProfitLandsBalance?.tick?.(now);
-      showLiveCash();
+      // Keep 500 ms income settlement and action regeneration unchanged.
+      // Only the costly visual summary is painted once per second.
+      const visible=document.visibilityState!=='hidden';
+      if(visible&&now-lastHudPaint>=1000){
+        lastHudPaint=now;
+        showLiveCash();
+      }
       if(now-lastLiveDetails>=5000){
         lastLiveDetails=now;
-        // Refresh company balances and other detailed numbers only occasionally
-        // to avoid a full DOM rebuild, lost focus, or scroll jumps each second.
-        window.renderBusinesses?.();
-        window.renderFinance?.();
+        const workspace=window.ProfitLandsWorkspace;
+        const activeView=workspace?.ready?.()?workspace.active?.():null;
+        // Hidden workspaces stay mounted. Avoid rebuilding their cards until
+        // players navigate to them; workspace.show then refreshes on demand.
+        if(visible&&(!activeView||activeView==='businesses'))window.renderBusinesses?.();
+        if(visible&&(!activeView||activeView==='finance'))window.renderFinance?.();
         window.ProfitLandsGrowth?.sample?.();
         window.ProfitLandsBalance?.status?.();
       }
