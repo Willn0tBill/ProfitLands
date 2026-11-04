@@ -11,6 +11,11 @@ const canPay=amount=>window.ProfitLandsMoney?window.ProfitLandsMoney.canAfford(a
 const siteNames={downtown:'Downtown',suburbs:'Suburbs',tourist:'Tourist District',university:'University District',waterfront:'Waterfront',tech:'Tech District',industrial:'Industrial Park'};
 const icons={downtown:'🏙️',suburbs:'🏘️',tourist:'🌴',university:'🎓',waterfront:'🌊',tech:'💻',industrial:'🏭'};
 const minimizedLocations=new Set();
+const PAGE_SIZE=24;
+let activePortfolio=null;
+let pageOffset=0;
+let siteQuery='';
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const siteKey=(b,l,index)=>b.name+'|'+(l.labId||l.id||index)+'|'+index;
 
 function locations(b){return Array.isArray(b?.locations)?b.locations:[]}
@@ -117,7 +122,7 @@ function doAction(bIndex,lIndex,kind,quantity=1){
   if(b.locations.length&&state.businesses.includes(b))open(state.businesses.indexOf(b),Math.min(lIndex,b.locations.length-1));
   return true;
 }
-function estimateChange(b,l,index,kind){
+function estimateChange(b,l,index,kind,factors){
   const calculate=window.ProfitLandsEconomy?.locationProfit;
   if(typeof calculate!=='function'||!['upgrade','marketing','efficiency'].includes(kind))return null;
   const future={...l};
@@ -127,27 +132,28 @@ function estimateChange(b,l,index,kind){
     future.basePopularity=clamp(num(l.basePopularity)+8,5,100);
   }else if(kind==='efficiency')future.efficiency=safe(l.efficiency)+1;
   try{
-    const before=calculate(b,l,index),after=calculate(b,future,index);
+    const before=calculate(b,l,index,factors),after=calculate(b,future,index,factors);
     return Number.isFinite(before)&&Number.isFinite(after)?after-before:null;
   }catch(e){return null}
 }
-function view(b,l,index){
-  const actual=window.ProfitLandsEconomy?.locationProfit?.(b,l,index)??0;
+function view(b,l,index,factors,remainingStaff){
+  const actual=window.ProfitLandsEconomy?.locationProfit?.(b,l,index,factors)??0;
   const rate=window.ProfitLandsRealtime?.period||60;
   const sign=actual>=0?'+':'';
   const hireCost=price(b,l,'hire',1);
   const level=safe(l.level)||1;
   const actions=state.actions>0;
   const minimized=minimizedLocations.has(siteKey(b,l,index));
+  const capacity=remainingStaff===undefined?room(l):Math.max(0,Math.min(cap(l)-safe(l.workers),remainingStaff));
   const projection=kind=>{
-    const delta=estimateChange(b,l,index,kind);
+    const delta=estimateChange(b,l,index,kind,factors);
     if(delta===null)return '';
     const sign=delta>=0?'+':'−';
     return ' · Est. '+sign+moneyText(Math.abs(delta))+'/'+rate+'s';
   };
   const button=(kind,label,description,disabled=false)=>'<button type="button" class="upgrade-button" data-site-action="'+kind+'" data-site="'+index+'" '+(disabled?'disabled':'')+'><b>'+label+'</b><small>'+description+'</small></button>';
   return '<section class="site-operation" data-site-section="'+index+'">'+
-    '<div class="site-operation-head"><div><h3>'+l.icon+' '+l.name+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
+    '<div class="site-operation-head"><div><h3>'+escapeHtml(l.icon)+' '+escapeHtml(l.name)+'</h3><span>Location '+(index+1)+' · Level '+level+' · '+safe(l.workers)+'/'+cap(l)+' employees</span></div>'+
     '<strong class="'+(actual<0?'danger':'good')+'">'+sign+moneyText(actual/rate)+'/sec</strong>'+
     '<button type="button" class="site-section-toggle" data-site-toggle="'+index+'" aria-expanded="'+(!minimized)+'">'+(minimized?'+ Expand':'− Minimize')+'</button></div>'+
     '<div class="site-operation-body" '+(minimized?'hidden':'')+'>'+
@@ -158,10 +164,10 @@ function view(b,l,index){
     button('marketing','📢 Local marketing','+8 local popularity · '+moneyText(price(b,l,'marketing'))+projection('marketing'),!actions||!canPay(price(b,l,'marketing')))+
     button('efficiency','⚙ Improve efficiency','Lower local operating costs · '+moneyText(price(b,l,'efficiency'))+projection('efficiency'),!actions||!canPay(price(b,l,'efficiency')))+
     button('sell','💰 Sell this location','Receive '+moneyText(price(b,l,'sell')))+
-    '</div><div class="site-staff-box"><div><b>👥 Staff & management</b><small>Payroll affects this location only. '+safe(l.workers)+' employed · '+room(l)+' openings available · manager: '+(l.manager?'hired':'none')+'</small></div>'+
-    '<label>Hire <select data-site-qty="'+index+'" aria-label="Staff to hire at '+l.name+'"><option value="1">1 employee</option><option value="5">5 employees</option><option value="10">10 employees</option><option value="25">25 employees</option></select></label>'+
+    '</div><div class="site-staff-box"><div><b>👥 Staff & management</b><small>Payroll affects this location only. '+safe(l.workers)+' employed · '+capacity+' openings available · manager: '+(l.manager?'hired':'none')+'</small></div>'+
+    '<label>Hire <select data-site-qty="'+index+'" aria-label="Staff to hire at '+escapeHtml(l.name)+'"><option value="1">1 employee</option><option value="5">5 employees</option><option value="10">10 employees</option><option value="25">25 employees</option></select></label>'+
     '<div class="site-staff-actions">'+
-    button('hire','Hire employees',moneyText(hireCost)+' for 1 employee',!actions||room(l)<1||!canPay(hireCost))+
+    button('hire','Hire employees',moneyText(hireCost)+' for 1 employee',!actions||capacity<1||!canPay(hireCost))+
     button('manager',l.manager?'Manager employed':'Hire manager',l.manager?'Maintains local popularity':moneyText(price(b,l,'manager'))+' plus salary',l.manager||!actions||!canPay(price(b,l,'manager')))+
     '</div></div></div></section>';
 }
