@@ -18,7 +18,8 @@ test('server price quotes scale with rival business value and never overflow',()
  assert.ok(rules.quote('reputation',500000).cost>=15000);
  assert.equal(rules.quote('unknown',100000),null);
  assert.equal(rules.quote('supplier',Number.POSITIVE_INFINITY),null);
- assert.equal(rules.quote('supplier',Number.MAX_SAFE_INTEGER),null);
+ assert.ok(Number.isSafeInteger(rules.quote('supplier',Number.MAX_SAFE_INTEGER).cost));
+ assert.equal(rules.quote('supplier',Number.MAX_SAFE_INTEGER+1),null);
  assert.equal(rules.defenseQuote(20000).cost,10000);
 });
 function players(){
