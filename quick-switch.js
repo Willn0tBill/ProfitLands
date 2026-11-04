@@ -16,6 +16,7 @@ function items(query=''){
   entries.push({kind:'business',key:'business-'+i,label:name,detail:'Open company management',index:i,order:20+i});
  }
  entries.push({kind:'action',key:'buy',label:'Buy a new business',detail:'Open company marketplace',order:50});
+ entries.push({kind:'action',key:'settings',label:'Save & Recovery',detail:'Manual save, backup export, restore and display settings',order:51});
  entries.push({kind:'site',key:'wtvi',label:'Wtv Innovations',detail:'Visit studio portfolio',url:studio,order:60});
  entries.push({kind:'site',key:'nation',label:'Nation Wars',detail:'Open WtvI strategy game',url:'https://willn0tbill.github.io/NationWars/',order:61});
  const q=String(query||'').trim().toLowerCase().slice(0,120);
@@ -49,6 +50,11 @@ function execute(entry){
  }
  if(entry.key==='buy'){
   window.ProfitLandsWorkspace?.show?.('businesses');$('openBusinessShop')?.click();return true;
+ }
+ if(entry.key==='settings'){
+  const settings=$('openSettings');
+  if(!settings)return false;
+  settings.click();return true;
  }
  if(entry.kind==='site'&&entry.url){
   const a=document.createElement('a');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';
