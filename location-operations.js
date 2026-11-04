@@ -139,7 +139,6 @@ function view(b,l,index){
   const level=safe(l.level)||1;
   const actions=state.actions>0;
   const minimized=minimizedLocations.has(siteKey(b,l,index));
-  const rate=(window.ProfitLandsRealtime?.period||60);
   const projection=kind=>{
     const delta=estimateChange(b,l,index,kind);
     if(delta===null)return '';
