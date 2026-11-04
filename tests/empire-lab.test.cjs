@@ -28,7 +28,7 @@ function mock(){
  const context={window,document,Date,Math,Number,console};
  vm.createContext(context);
  new vm.Script(fs.readFileSync(path.join(root,'empire-lab.js'),'utf8'),{filename:'empire-lab.js'}).runInContext(context);
- return{lab:window.ProfitLandsEmpire,window,state,money,cash:()=>cash,saves:()=>saves,types};
+ return{lab:window.ProfitLandsEmpire,window,state,document,money,cash:()=>cash,saves:()=>saves,types};
 }
 test('inventory and per-store pricing alter actual business profit',()=>{
  const m=mock(),lab=m.lab;lab.ensure();const first=lab.allSites()[0];
@@ -139,4 +139,140 @@ test('interactive demo is isolated from real saves, with example companies and c
  assert.ok(!demo.includes('localStorage.setItem'));
  assert.ok(!demo.includes('firebase.firestore'));
  assert.ok(html.includes('No account login'));
+});
+
+test('stale saved ID counter and duplicate location IDs are repaired without losing independent store state',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const original=m.state.businesses[0].locations[0];
+ const second=m.state.businesses[1].locations[0];
+ const stockBefore=original.lab.stock;
+ const preserved=original.labId;
+ second.labId=preserved;
+ second.lab.stock=42;
+ m.state.businesses[1].locations.push({id:'waterfront',name:'Later Site',labId:'site_777',
+   workers:0,level:1,lab:{enabled:true,stock:19,price:1,roles:{sales:0,production:0,logistics:0}}});
+ m.state.businesses[0].locations.push({id:'suburbs',name:'Unnumbered Site',workers:0,level:1});
+ m.state.empireLab.nextId=1;
+ lab.ensure();
+ const list=lab.allSites(),ids=list.map(x=>x.id);
+ assert.equal(new Set(ids).size,ids.length,'all locations must have unique labIds');
+ assert.equal(original.labId,preserved,'first existing location ID is preserved');
+ assert.equal(m.state.businesses[1].locations[1].labId,'site_777','later valid ID remains reserved');
+ assert.ok(m.state.empireLab.nextId>777,'allocator is positioned beyond saved IDs');
+ assert.equal(second.lab.stock,42,'duplicate ID repair does not erase store inventory');
+ assert.equal(original.lab.stock,stockBefore);
+ const stockBeforeEdit=second.lab.stock;
+ lab.selectSite(second);
+ lab.act('buyStock',{qty:20});
+ assert.equal(second.lab.stock,stockBeforeEdit+20,'selected branch receives stock');
+ assert.equal(original.lab.stock,stockBefore,'other branch is untouched');
+});
+test('profit calculation for active stores does not renormalize the entire empire per location',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ assert.equal(lab.act('enable'),true);
+ const site=lab.allSites()[0];
+ let normalizations=0;
+ m.window.ProfitLandsLocationOps.normalizeAll=()=>{normalizations++};
+ for(let i=0;i<1000;i++)lab.delta(site.b,site.l,115,48);
+ assert.equal(normalizations,0,'no repeated full-empire normalize during income calculation');
+});
+test('Operations site picker limits options in a large empire, retaining selected site',()=>{
+ const m=mock(),lab=m.lab,base=m.state.businesses[0];
+ base.locations=Array.from({length:10000},(_,i)=>({
+   id:'downtown',name:'Branch '+(i+1),level:1,workers:0,manager:false,basePopularity:55
+ }));
+ let content='';
+ const panel={querySelector:()=>null,set innerHTML(v){content=v},get innerHTML(){return content}};
+ m.document.querySelectorAll=()=>[];
+ const oldGet=m.document.getElementById;
+ m.document.getElementById=id=>id==='empireLabContent'?panel:id==='empireLabStats'?{textContent:''}:oldGet(id);
+ lab.ensure();
+ const last=base.locations.at(-1);
+ lab.selectSite(last);
+ lab.render();
+ assert.match(content,/id="labSiteSearch"/);
+ assert.match(content,/id="labSiteCount"/);
+ const options=[...content.matchAll(/<option value="(site_\d+)"/g)].map(x=>x[1]);
+ assert.ok(options.length<=81,'only a bounded number of DOM options may be rendered');
+ assert.ok(options.includes(last.labId),'late selected site must remain in the list');
+ assert.ok(content.includes('refine the search'),'large portfolio prompts filtering');
+});
+test('manage current branch opens its exact location index, not the company first page',()=>{
+ const m=mock(),lab=m.lab;
+ const locations=m.state.businesses[0].locations;
+ locations.push({id:'waterfront',name:'Late Branch',level:1,workers:0,manager:false});
+ lab.ensure();
+ const focused=locations[1];
+ const calls=[];
+ m.window.openManage=(i,j)=>calls.push([i,j]);
+ lab.selectSite(focused);
+ assert.equal(lab.act('manage'),true);
+ assert.deepEqual(calls,[[0,1]]);
+});
+
+test('a full warehouse cannot charge cash for inventory it cannot store',()=>{
+ const m=mock(),lab=m.lab;
+ assert.equal(lab.act('buyWarehouse'),true);
+ const p=m.state.empireLab;
+ p.warehouseStock=p.warehouse*1200;
+ const cash=m.cash(),actions=m.state.actions,saves=m.saves();
+ assert.equal(lab.act('warehouseStock',{qty:50}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.saves(),saves);
+ assert.equal(p.warehouseStock,1200);
+});
+test('full store stock and full delivery destination reject payment with no inventory loss',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const location=lab.allSites()[0].l;
+ location.lab.stock=999990;
+ const cash=m.cash();
+ assert.equal(lab.act('buyStock',{qty:20}),false);
+ assert.equal(location.lab.stock,999990);
+ assert.equal(m.cash(),cash);
+ assert.equal(lab.act('buyWarehouse'),true);
+ assert.equal(lab.act('buyTruck'),true);
+ assert.equal(lab.act('route'),true);
+ assert.equal(lab.act('warehouseStock',{qty:50}),true);
+ const afterWarehouse=m.cash(),stored=m.state.empireLab.warehouseStock;
+ assert.equal(lab.act('dispatch',{qty:20}),false);
+ assert.equal(m.cash(),afterWarehouse);
+ assert.equal(m.state.empireLab.warehouseStock,stored);
+ assert.equal(location.lab.stock,999990);
+});
+test('acquisitions refuse a 101st business without spending an action or cash',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const template=m.state.businesses[0];
+ while(m.state.businesses.length<100)m.state.businesses.push({
+  ...template,name:'Other company '+m.state.businesses.length,locations:[{id:'downtown',name:'Site'}]
+ });
+ const cash=m.cash(),actions=m.state.actions,rivals=m.state.empireLab.rivals.length;
+ assert.equal(lab.act('acquire',{rival:'r1'}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.state.businesses.length,100);
+ assert.equal(m.state.empireLab.rivals.length,rivals);
+});
+test('mergers refuse to create companies that exceed the backup limit',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const source={type:'coffee',name:'Oversized Coffee',level:1,financialBalance:0,
+  locations:Array.from({length:50000},(_,i)=>({id:'downtown',name:'Site '+i,level:1,workers:0}))};
+ m.state.businesses.push(source);
+ const cash=m.cash(),actions=m.state.actions,original=m.state.businesses[0].locations.length;
+ assert.equal(lab.act('merge',{merge:2}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(m.state.businesses.length,3);
+ assert.equal(m.state.businesses[0].locations.length,original);
+});
+test('regional expansion rejects the backup location cap without charging',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ m.state.empireLab.regions.push('ny');
+ const main=m.state.businesses[0];
+ main.locations=Array.from({length:50000},(_,i)=>({id:'downtown',name:'Site '+i,level:1,workers:0}));
+ const cash=m.cash(),actions=m.state.actions;
+ assert.equal(lab.act('openRegion',{region:'ny'}),false);
+ assert.equal(m.cash(),cash);
+ assert.equal(m.state.actions,actions);
+ assert.equal(main.locations.length,50000);
 });
