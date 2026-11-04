@@ -52,7 +52,7 @@ function ensure(){
  p.rivals=Array.isArray(p.rivals)?p.rivals:RIVALS.map(x=>({...x}));
  p.trades=Array.isArray(p.trades)?p.trades:[];
  p.publicCompanies=Array.isArray(p.publicCompanies)?p.publicCompanies:[];
- p.log=Array.isArray(p.log)?p.log:[];
+ p.log=Array.isArray(p.log)?p.log.slice(-18):[];
  if(!Number.isSafeInteger(p.nextId)||p.nextId<1)p.nextId=1;
  window.ProfitLandsLocationOps?.normalizeAll?.();
  // Restores and mergers may retain stale counters or duplicate IDs.
@@ -258,11 +258,15 @@ function act(action,opt={}){
  return ok;
 }
 function tick(now=Date.now()){
- const p=ensure(),s=game();if(!p||!s.started||document.visibilityState==='hidden'||!$('gameScreen')?.classList.contains('active')){lastTick=now;return}
+ // State is normalized during render and actions, not every background tick.
+ const s=game(),p=s?.empireLab;
+ if(!p||p.version!==1||!s.started||document.visibilityState==='hidden'||!$('gameScreen')?.classList.contains('active')){lastTick=now;return}
  if(!lastTick){lastTick=now;return}
  const elapsed=clamp((now-lastTick)/1000,0,5);lastTick=now;
  if(!elapsed)return;
- for(const site of allSites()){
+ const sites=allSites();
+ let replenished=0,replenishmentCost=0;
+ for(const site of sites){
    const l=site.l,a=l.lab;if(!a?.enabled)continue;
    const roles=a.roles||{},units=elapsed*(.09+Math.min(1,(roles.sales||0)*.04));
    if(a.stock>0){const sold=Math.min(a.stock,units);a.stock=Math.max(0,a.stock-sold);a.sold+=sold;}
@@ -271,16 +275,20 @@ function tick(now=Date.now()){
    }
    if(a.autoRestock&&l.manager&&a.stock<8){
      const n=20,cost=Math.round(n*8*(p.research.includes('inventory')?.85:1));
-     if(have(cost)&&charge(cost)){a.stock+=n;p.log.push('Auto-replenished '+l.name+' for '+fmt(cost));}
+     if(a.stock+n<=MAX_STORE_STOCK&&have(cost)&&charge(cost)){
+       a.stock+=n;replenished++;replenishmentCost+=cost;
+     }
    }
  }
- if(p.route?.auto&&p.warehouseStock>=10){
-   const target=allSites().find(x=>x.id===p.route.siteId);
+ if(replenished)p.log.push('Auto-restock: '+replenished+' '+(replenished===1?'branch':'branches')+' supplied for '+fmt(replenishmentCost));
+ if(p.route?.auto&&p.trucks>0&&p.warehouseStock>=10){
+   const target=sites.find(x=>x.id===p.route.siteId);
    if(target&&target.l.lab.stock<15){
      const fee=Math.round(15*(p.research.includes('routes')?.6:1));
      if(charge(fee)){p.warehouseStock-=10;target.l.lab.stock+=10;p.log.push('Auto-route supplied '+target.l.name)}
    }
  }
+ if(p.log.length>18)p.log.splice(0,p.log.length-18);
  p.lastTick=now;
  if(now-(p.lastRivalTick||0)>30000){
    p.lastRivalTick=now;
