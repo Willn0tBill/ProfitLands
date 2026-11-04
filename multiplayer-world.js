@@ -16,7 +16,7 @@ const cash=value=>{
  if(number<0)return '-'+cash(-number);
  return '$'+(number>=1e12?(number/1e12).toFixed(2)+'T':number>=1e9?(number/1e9).toFixed(2)+'B':number>=1e6?(number/1e6).toFixed(2)+'M':Math.round(number).toLocaleString('en-US'));
 };
-let period='day',targetUid='',players=[],busy=false,latest=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
+let period='day',targetUid='',players=[],busy=false,latest=0,empireStamp=0,playersStamp=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
 const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
@@ -77,7 +77,8 @@ async function refreshWorld(){
  worldRefreshing=true;
  if(button){button.disabled=true;button.textContent='Refreshing…'}
  try{
-  await Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]);
+  const results=await Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]);
+  if(results.some(result=>result===false)){message('Some world information could not be refreshed. Try again.');return false}
   message('World balances and standings updated from the server.');
   return true;
  }catch(e){message('Unable to refresh right now.');return false}
@@ -88,12 +89,14 @@ function updatePeriod(){
 }
 const fmt=amount=>cash(amount);
 async function loadEmpire(){
- if(!connected())return;
- const root=$('worldStore');if(!root)return;
+ if(!connected())return false;
+ const stamp=++empireStamp;
+ const root=$('worldStore');if(!root)return false;
  try{
   const res=await online().getMyEmpire();
   const player=res?.player;
   if(!player||!Array.isArray(player.businesses))throw Error('Invalid empire response');
+  if(stamp!==empireStamp||!connected()||root!==$('worldStore'))return false;
   const catalog=online().getCatalog?.()||[];
   const owned=player.businesses.map((business,index)=>{
    const def=catalog.find(x=>x.id===business.type);
@@ -109,7 +112,8 @@ async function loadEmpire(){
    '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are completely separate from your local singleplayer save. Earnings settle on the server.</p>';
   root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));
   root.querySelectorAll('[data-world-upgrade]').forEach(button=>button.onclick=()=>changeEmpire('upgrade',Number(button.dataset.worldUpgrade)));
- }catch(e){root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150)}
+  return true;
+ }catch(e){if(stamp===empireStamp&&root===$('worldStore'))root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150);return false}
 }
 async function changeEmpire(action,value){
  if(!connected()||busy)return false;
@@ -125,21 +129,25 @@ async function changeEmpire(action,value){
  finally{busy=false}
 }
 async function loadLeaderboard(){
- if(!connected())return;
+ if(!connected())return false;
  const stamp=++latest,board=$('worldLeaderboard');
  if(board)board.textContent='Loading verified scores…';
  try{
   const entries=await online().getLeaderboard(period);
-  if(stamp===latest&&board)board.innerHTML=leaderboardRows(entries);
- }catch(e){if(stamp===latest&&board)board.textContent='Server rankings unavailable. Try refreshing.'}
+  if(stamp===latest&&board===$('worldLeaderboard'))board.innerHTML=leaderboardRows(entries);
+  return true;
+ }catch(e){if(stamp===latest&&board===$('worldLeaderboard'))board.textContent='Server rankings unavailable. Try refreshing.';return false}
 }
 async function loadPlayers(){
- if(!connected())return;
+ if(!connected())return false;
+ const stamp=++playersStamp;
  try{
-  players=await online().getPlayers();
-  if(!Array.isArray(players))players=[];
+  const next=await online().getPlayers();
+  if(stamp!==playersStamp||!connected())return false;
+  players=Array.isArray(next)?next:[];
   renderPlayers();
- }catch(e){message('Could not load players.');players=[];renderPlayers()}
+  return true;
+ }catch(e){if(stamp===playersStamp){message('Could not load players.');players=[];renderPlayers()}return false}
 }
 async function attack(id){
  if(!connected()||busy||!targetUid||!rules()?.ATTACKS.some(x=>x.id===id))return false;
