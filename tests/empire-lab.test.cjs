@@ -276,3 +276,84 @@ test('regional expansion rejects the backup location cap without charging',()=>{
  assert.equal(m.state.actions,actions);
  assert.equal(main.locations.length,50000);
 });
+
+test('automated replenishment supplies thousands of stores but retains a bounded audit log',()=>{
+ const m=mock(),lab=m.lab;
+ m.state.businesses[0].locations=Array.from({length:2000},(_,i)=>({
+  id:'downtown',name:'Branch '+i,workers:0,manager:true,level:1,
+  lab:{enabled:true,stock:0,price:1,roles:{sales:0,production:0,logistics:0},
+   sold:0,autoRestock:true,autoPrice:false,region:'local'}
+ }));
+ lab.ensure();
+ const p=m.state.empireLab,cash=m.cash();
+ let normalized=0;
+ m.window.ProfitLandsLocationOps.normalizeAll=()=>{normalized++};
+ lab.tick(1000);lab.tick(6000);
+ assert.equal(normalized,0,'background supply tick must not renormalize 2,000 locations');
+ assert.equal(p.log.length,1,'one summary log per tick, not 2,000 entries');
+ assert.match(p.log[0],/Auto-restock: 2000 branches supplied/);
+ assert.ok(m.state.businesses[0].locations.every(x=>x.lab.stock===20));
+ assert.equal(m.cash(),cash-2000*160,'each stock order still pays the normal price');
+ assert.equal(m.state.actions,100,'automated orders do not spend player actions');
+ for(let step=2;step<=25;step++){
+  for(const l of m.state.businesses[0].locations)l.lab.stock=0;
+  m.money.gain(2000*160);
+  lab.tick(1000+step*5000);
+ }
+ assert.ok(p.log.length<=18,'automation audit is bounded after many updates');
+ assert.ok(p.log.every(x=>x.length<130),'summaries remain compact without branch-level spam');
+});
+test('automatic delivery does not use absent trucks or move inventory while hidden',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ assert.equal(lab.act('buyWarehouse'),true);
+ assert.equal(lab.act('buyTruck'),true);
+ assert.equal(lab.act('route'),true);
+ assert.equal(lab.act('warehouseStock',{qty:50}),true);
+ assert.equal(lab.act('autoRoute'),true);
+ const p=m.state.empireLab,site=lab.allSites()[0],before=site.l.lab.stock;
+ p.trucks=0;
+ const cash=m.cash();
+ lab.tick(1000);lab.tick(6000);
+ assert.equal(site.l.lab.stock,before,'a supply route without a truck cannot deliver');
+ assert.equal(p.warehouseStock,50);
+ assert.equal(m.cash(),cash);
+ m.document.visibilityState='hidden';
+ site.l.lab.stock=0;site.l.lab.autoRestock=true;site.l.lab.enabled=true;
+ lab.tick(11000);
+ assert.equal(site.l.lab.stock,0,'hidden-tab ticks never automate purchasing');
+ assert.equal(m.cash(),cash);
+});
+test('Operations displays precise stock costs and low-stock automation status',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const l=lab.allSites()[0].l;
+ l.lab.enabled=true;l.lab.stock=3;l.lab.autoRestock=true;l.lab.autoPrice=false;
+ m.window.ProfitLandsAdvancements={modifiers:()=>({stock:.5})};
+ let html='';
+ const panel={querySelector:()=>null,set innerHTML(value){html=value},get innerHTML(){return html}};
+ m.document.querySelectorAll=()=>[];
+ const get=m.document.getElementById;
+ m.document.getElementById=id=>id==='empireLabContent'?panel:id==='empireLabStats'?{textContent:''}:get(id);
+ lab.render();
+ assert.match(html,/lab-supply-health/);
+ assert.match(html,/Low stock/);
+ assert.match(html,/Auto-restock: On/);
+ assert.match(html,/Auto-pricing: Off/);
+ assert.match(html,/Buy 20 units · \$80/,'shown cost respects stock-purchase discounts');
+ assert.match(fs.readFileSync(path.join(root,'empire-lab.css'),'utf8'),/lab-supply-alert/);
+});
+test('an unaffordable store order renders disabled and automation requires active simulation',()=>{
+ const m=mock(),lab=m.lab;lab.ensure();
+ const l=lab.allSites()[0].l;
+ l.lab.enabled=false;
+ m.window.ProfitLandsMoney.canAfford=()=>false;
+ let html='';
+ const panel={querySelector:()=>null,set innerHTML(v){html=v},get innerHTML(){return html}};
+ m.document.querySelectorAll=()=>[];
+ const get=m.document.getElementById;
+ m.document.getElementById=id=>id==='empireLabContent'?panel:id==='empireLabStats'?{textContent:''}:get(id);
+ lab.render();
+ assert.match(html,/Buy 20 units[^<]*<\/button>/);
+ assert.match(html,/data-lab-action="buyStock"[^>]*disabled/);
+ assert.match(html,/data-lab-action="autoRestock"[^>]*disabled/);
+ assert.match(html,/data-lab-action="autoPrice"[^>]*disabled/);
+});
