@@ -6,6 +6,8 @@ on:
     paths:
       - 'app.js'
       - 'economy-system.js'
+      - 'economy-render.js'
+      - 'portfolio-performance.css'
       - 'growth-system.js'
       - 'balance-system.js'
       - 'progression.js'
@@ -44,6 +46,8 @@ on:
     paths:
       - 'app.js'
       - 'economy-system.js'
+      - 'economy-render.js'
+      - 'portfolio-performance.css'
       - 'growth-system.js'
       - 'balance-system.js'
       - 'progression.js'
@@ -96,6 +100,7 @@ jobs:
         run: |
           node --check app.js
           node --check economy-system.js
+          node --check economy-render.js
           node --check growth-system.js
           node --check balance-system.js
           node --check progression.js
