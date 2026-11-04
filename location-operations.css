@@ -59,5 +59,6 @@
 #manageModal .site-operation.site-operation-target{border-color:#a5df8e;box-shadow:0 0 0 2px #a5df8e33}
 @media(max-width:600px){
  #manageModal .manage-head{padding-top:38px;flex-direction:column;align-items:flex-start;gap:8px}
- #manageModal .manage-head>strong{font-size:14px;line-height:1.4;align-self:flex-start;margin:0}
+ #manageModal .manage-head>div{flex:0 0 auto;width:100%}
+ #manageModal .manage-head>strong{flex:0 0 auto;font-size:14px;line-height:1.4;align-self:flex-start;margin:0}
 }
