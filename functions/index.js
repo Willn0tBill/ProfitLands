@@ -4,13 +4,13 @@ const {initializeApp,getApps}=require('firebase-admin/app');
 const {getFirestore,FieldValue}=require('firebase-admin/firestore');
 const core=require('./world-core');
 const pvp=require('./pvp-rules');
+const {createHash}=require('node:crypto');
 
 if(!getApps().length)initializeApp();
 const db=getFirestore();
 const world=db.collection('worlds').doc(core.WORLD_ID);
 const players=world.collection('players');
 const events=world.collection('events');
-const MINUTE=60_000;
 const CHAT_ENABLED=false; // Off until moderation and blocking controls are reviewed.
 const ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
  'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
@@ -18,10 +18,11 @@ const ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
 const err=(status,message)=>{throw new HttpsError(status,message)};
 const uidOf=request=>{
  const uid=request.auth?.uid;
- if(typeof uid!=='string'||!uid||uid.length>128)err('unauthenticated','Sign into a ProfitLands account first.');
+ if(typeof uid!=='string'||!uid||uid.length>128||uid.includes('/'))err('unauthenticated','Sign into a valid ProfitLands account first.');
  return uid;
 };
 const intId=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{10,72}$/.test(value);
+const validUid=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(value);
 const nowMs=()=>Date.now();
 function publicProfile(player){
  return {uid:player.uid,displayName:player.displayName,worldId:core.WORLD_ID,
@@ -44,7 +45,8 @@ async function register(request){
   if(snapshot.exists)return {worldId:core.WORLD_ID,player:publicProfile(core.settle(snapshot.data(),at)),created:false};
   const count=room.exists?Number(room.data().joined||0):0;
   if(count>=core.MAX_PLAYERS)err('resource-exhausted','World 1 alpha is full.');
-  const profile=core.fresh(uid,request.auth?.token?.name||'Tycoon',at);
+  const publicAlias='Tycoon-'+createHash('sha256').update(uid).digest('hex').slice(0,7).toUpperCase();
+  const profile=core.fresh(uid,publicAlias,at);
   tx.set(ref,profile);
   tx.set(world,{joined:count+1,createdAt:room.exists?room.data().createdAt:FieldValue.serverTimestamp(),
    worldId:core.WORLD_ID}, {merge:true});
@@ -99,7 +101,7 @@ async function togglePvP(uid){
 }
 async function attack(uid,body){
  const targetUid=body.targetUid,attackId=body.attackId,requestId=body.requestId;
- if(typeof targetUid!=='string'||!targetUid||targetUid===uid||!intId(requestId))
+ if(!validUid(targetUid)||targetUid===uid||!intId(requestId))
   err('invalid-argument','Invalid target or request identifier.');
  if(!pvp.ATTACKS.some(x=>x.id===attackId))err('invalid-argument','Unknown rival action.');
  const attackerRef=players.doc(uid),targetRef=players.doc(targetUid),eventRef=events.doc(uid+'_'+requestId);
@@ -109,7 +111,12 @@ async function attack(uid,body){
   // All document reads precede writes to avoid transaction invalidation.
   const [prior,attackerDoc,targetDoc,clanA,clanB]=await Promise.all([
    tx.get(eventRef),tx.get(attackerRef),tx.get(targetRef),tx.get(myClan),tx.get(theirClan)]);
-  if(prior.exists)return {ok:true,replayed:true,event:prior.data()};
+  if(prior.exists){
+   const event=prior.data();
+   if(event.type!=='pvp_attack'||event.attackerUid!==uid||event.defenderUid!==targetUid||event.attackId!==attackId)
+    err('invalid-argument','Request ID was already used for a different action.');
+   return {ok:true,replayed:true,event};
+  }
   if(!attackerDoc.exists||!targetDoc.exists)err('failed-precondition','Player not found in World 1.');
   const seconds=Math.floor(nowMs()/1000),at=seconds*1000;
   const attacker=core.settle(attackerDoc.data(),at),defender=core.settle(targetDoc.data(),at);
@@ -135,7 +142,12 @@ async function defend(uid,body){
  const ref=players.doc(uid),eventRef=events.doc(uid+'_'+requestId);
  return db.runTransaction(async tx=>{
   const [prior,existing]=await Promise.all([tx.get(eventRef),tx.get(ref)]);
-  if(prior.exists)return {ok:true,replayed:true,event:prior.data()};
+  if(prior.exists){
+   const event=prior.data();
+   if(event.type!=='pvp_defense'||event.userUid!==uid)
+    err('invalid-argument','Request ID was already used for a different action.');
+   return {ok:true,replayed:true,event};
+  }
   if(!existing.exists)err('failed-precondition','Join World 1 first.');
   const seconds=Math.floor(nowMs()/1000),p=core.settle(existing.data(),seconds*1000);
   const result=pvp.applyDefense({player:p,nowSeconds:seconds,ownEmpireWorth:core.worth(p)});

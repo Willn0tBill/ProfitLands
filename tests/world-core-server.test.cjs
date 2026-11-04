@@ -101,3 +101,44 @@ test('web app integration is authenticated and never sends client cash or scorin
  assert.doesNotMatch(adapter,/state\.cash\s*[+\-*/]?=/);
  assert.doesNotMatch(adapter,/getLeaderboard:.*localStorage/);
 });
+
+test('rapid sub-second world updates preserve all fractional earnings',()=>{
+ const start=core.buyBusiness(startup(),'coffee',now).player;
+ const a=core.settle(start,now+500);
+ assert.equal(a.cash,1000);
+ assert.equal(a.incomeMilliRemainder,500);
+ const b=core.settle(a,now+1000);
+ assert.equal(b.cash,1001);
+ assert.equal(b.incomeMilliRemainder,0);
+ let rapid=start;
+ for(let i=1;i<=20;i++)rapid=core.settle(rapid,now+i*50);
+ const continuous=core.settle(start,now+1000);
+ assert.equal(rapid.cash,continuous.cash);
+ assert.equal(rapid.dayGain,continuous.dayGain);
+ assert.equal(rapid.incomeMilliRemainder,continuous.incomeMilliRemainder);
+});
+test('PvP reductions less than one dollar per second still accrue fairly',()=>{
+ const start=core.buyBusiness(startup(),'coffee',now).player;
+ start.activePenalty=0.12;
+ start.activePenaltyUntil=Math.floor(now/1000)+10;
+ const one=core.settle(start,now+1000);
+ assert.equal(one.cash,1000);
+ assert.equal(one.incomeMilliRemainder,880);
+ const two=core.settle(one,now+2000);
+ assert.equal(two.cash,1001);
+ assert.equal(two.incomeMilliRemainder,760);
+ let repeated=start;
+ for(let step=1;step<=20;step++)repeated=core.settle(repeated,now+step*100);
+ const single=core.settle(start,now+2000);
+ assert.equal(repeated.cash,single.cash);
+ assert.equal(repeated.incomeMilliRemainder,single.incomeMilliRemainder);
+});
+test('fractional online earnings survive UTC scoring boundaries',()=>{
+ const midnight=Date.UTC(2026,10,5,0,0,0);
+ const start=core.buyBusiness(core.fresh('boundary','Boundary',midnight-500),'coffee',midnight-500).player;
+ const result=core.settle(start,midnight+500);
+ assert.equal(result.cash,1001);
+ assert.equal(result.dayKey,'2026-11-05');
+ assert.equal(result.dayGain,1);
+ assert.equal(result.incomeMilliRemainder,0);
+});

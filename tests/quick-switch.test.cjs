@@ -107,3 +107,24 @@ test('recently opened destinations rise to the top without touching save data',(
  assert.equal(h.api.items()[0].label,'Trophies');
  assert.equal(JSON.stringify(h.state),before);
 });
+
+test('Quick Switch in World 1 hides all local companies, purchases and save controls',()=>{
+ const h=harness();
+ h.state.playType='multi';
+ h.window.ProfitLandsWorkspace.views.push({id:'world',name:'World'},{id:'clans',name:'Clans'});
+ h.window.ProfitLandsWorkspace.available=id=>id==='world'||id==='clans';
+ const available=h.api.items('');
+ assert.ok(available.some(item=>item.key==='world'));
+ assert.ok(available.some(item=>item.key==='clans'));
+ assert.equal(h.api.items('Downtown Coffee').length,0);
+ assert.equal(h.api.items('Buy a new business').length,0);
+ assert.equal(h.api.items('Save & Recovery').length,0);
+ assert.equal(h.api.items('Businesses').length,0);
+ assert.equal(h.api.execute({kind:'business',key:'business-0',index:0,label:'Downtown Coffee Shop'}),false);
+ assert.equal(h.api.execute({kind:'action',key:'buy',label:'Buy a business'}),false);
+ assert.equal(h.api.execute({kind:'action',key:'settings',label:'Save & Recovery'}),false);
+ assert.equal(h.api.execute({kind:'view',key:'businesses',view:'businesses',label:'Businesses'}),false);
+ assert.equal(h.actions.length,0,'stale local shortcuts must not modify game state');
+ h.state.playType='single';
+ assert.ok(h.api.items('Downtown Coffee').some(item=>item.kind==='business'));
+});

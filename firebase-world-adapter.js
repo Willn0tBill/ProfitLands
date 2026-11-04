@@ -27,8 +27,10 @@ async function call(action,data={}){
   const result=await callable({action,...data});
   return result.data;
  }catch(error){
-  if(/unavailable|unauthenticated|not-found/i.test(String(error?.code||''))){connected=false;emit()}
-  throw Error(String(error?.message||'Online server unavailable.').slice(0,220));
+  if(/unauthenticated|not-found/i.test(String(error?.code||''))){connected=false;emit()}
+  const failure=new Error(String(error?.message||'Online server unavailable.').slice(0,220));
+  failure.code=String(error?.code||'');
+  throw failure;
  }
 }
 async function connect(){
@@ -43,6 +45,7 @@ async function connect(){
    if(!health?.ok||health.worldId!=='world1')throw Error('World 1 is not configured.');
    const result=await call('register');
    if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned an invalid player identity.');
+   if(currentUser()?.uid!==signed.uid||!playing())throw Error('Account or game mode changed while connecting.');
    catalog=Array.isArray(health.catalog)?health.catalog:[];
    chatEnabled=health.chatEnabled===true;
    user=signed;connected=true;emit();
@@ -65,10 +68,24 @@ function nonce(){
  const bytes=new Uint8Array(16);window.crypto.getRandomValues(bytes);
  return Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
 }
-async function requestAttack({targetUid,attackId}){
- return request('requestAttack',{targetUid,attackId,requestId:nonce()});
+async function submitIdempotent(action,data={}){
+ requireSession();
+ const caller=user.uid,requestId=nonce();
+ const payload={...data,requestId};
+ try{return await call(action,payload)}
+ catch(error){
+  // Reuse the SAME requestId after an ambiguous network failure. The server
+  // recognizes replays and will not charge the wallet a second time.
+  if(!/unavailable|deadline-exceeded/i.test(error.code||''))throw error;
+  if(user?.uid!==caller||currentUser()?.uid!==caller||!playing())
+   throw Error('Session changed during request; please reconnect.');
+  return call(action,payload);
+ }
 }
-async function requestDefense(){return request('requestDefense',{requestId:nonce()})}
+async function requestAttack({targetUid,attackId}){
+ return submitIdempotent('requestAttack',{targetUid,attackId});
+}
+async function requestDefense(){return submitIdempotent('requestDefense')}
 window.ProfitLandsOnline={
  connect,disconnect,isConnected:()=>connected&&playing()&&user?.uid===currentUser()?.uid,
  getCatalog:()=>catalog.slice(),chatEnabled:()=>chatEnabled,
