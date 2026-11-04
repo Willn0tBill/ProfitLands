@@ -83,7 +83,7 @@ Historically, `main` had nine stale regression expectations from
 older gameplay and UI designs (variable action regeneration, full market-cycle
 refills, and dashboard/workspace v1). The historical regression tests were corrected without changing the economy
 formulas or workspace implementation. This branch now also includes the
-verified v1.8 Save & Recovery and v1.9 portfolio performance updates. The combined suite passes **181/181**
+verified v1.8 Save & Recovery and v1.9 portfolio performance updates. The combined suite passes **190/190**
 automated tests in GitHub Actions. CrazyGames Preview account-save testing remains required.
 
 ## Local browser smoke test — November 3, 2026
@@ -105,7 +105,7 @@ This does **not** verify CrazyGames production SDK behavior, APS account synchro
 - Large portfolios show the first **36** company cards, with a persistent company/industry search field and a **Show more companies** button. Filtering retains the original company index and does not change game state, earnings or saved progress.
 - The HUD avoids repeated net-worth calculations; hidden workspace panels are no longer rebuilt every five seconds and instead refresh when opened. Actual 500 ms income settlement and action regeneration are unchanged.
 - The normal website's performance changes were smoke-tested in clean-profile Chrome with 100 sample companies, company search, management navigation, and a 390-pixel mobile viewport.
-- The combined **CrazyGames** branch passes 181/181 automated regression tests and a successful packaging build. A fresh authenticated Developer Portal preview test is **still required**; browser QA from the normal website does not substitute for a CrazyGames production SDK or APS test.
+- The combined **CrazyGames** branch passes 190/190 automated regression tests and a successful packaging build. A fresh authenticated Developer Portal preview test is **still required**; browser QA from the normal website does not substitute for a CrazyGames production SDK or APS test.
 
 ## v2.0 real-time income performance
 
@@ -117,10 +117,18 @@ Regression tests compare the optimized math with the complete original formula a
 
 Large companies now manage locations in groups of 24 with search by district/name/location number and Previous/Next buttons. Original site indexes remain stable for upgrades, payroll, staffing and sales; focused sites stay visible after updates. Income previews use one fresh **company-specific** economic context per visible page rather than re-running wealth-tier calculations for each action. Mobile paging controls fit a 390-pixel viewport.
 
-The standalone browser test with a 10,000-location company confirmed search/editing of Site 8766, correct displayed income, and no runtime errors. The combined CrazyGames branch passes **181/181** automated tests and successfully builds an isolated HTML5 ZIP. This does not replace required authenticated CrazyGames Developer Portal APS and mobile-device testing before publication.
+The standalone browser test with a 10,000-location company confirmed search/editing of Site 8766, correct displayed income, and no runtime errors. The combined CrazyGames branch passes **190/190** automated tests and successfully builds an isolated HTML5 ZIP. This does not replace required authenticated CrazyGames Developer Portal APS and mobile-device testing before publication.
 
 ## v2.0.2 bug fixes and mobile UI QA
 
 The CrazyGames draft incorporates the verified fixes from main: reliable save-write verification, safe handling of legitimate debt and large-company snapshots (without enabling file import/export under CrazyGames APS), refreshed stock affordability, disabled trade controls when out of actions, and a review prompt after market-price changes. Mobile trade dialogs now position the stock price below the Close button, with accessible close labels; fractional per-second location earnings are shown accurately.
 
-The reconciled branch passes **181/181 automated Node tests** on the development Windows PC. Its standalone build produces **71 packaged files** (approximately 495 KB uncompressed). The normal-site clean-profile Chrome QA tested the main fixes at 320px, 390px, 768px and desktop widths. **These do not replace a CrazyGames Developer Portal test with real APS login and cross-session persistence.** This release remains draft and unpublished.
+The reconciled branch passes **190/190 automated Node tests** on the development Windows PC. Its standalone build produces **71 packaged files** (approximately 495 KB uncompressed). The normal-site clean-profile Chrome QA tested the main fixes at 320px, 390px, 768px and desktop widths. **These do not replace a CrazyGames Developer Portal test with real APS login and cross-session persistence.** This release remains draft and unpublished.
+
+## v2.0.3 repeat district and modal UI fixes
+
+Businesses can now open more than one branch in each district, with unique branch names and independent staff/upgrade/inventory state. Expansion uses the existing cash/action price formula and refuses growth beyond Save Center's supported 50,000-per-company/100,000-empire limits. The new branch opens directly in management. The district picker forecasts profit in dollars per second from a fresh company-specific market context. Management's mobile header is spaced clear of its Close button, with a visual highlight for the selected site.
+
+Quick Switch now keeps Tab/Shift+Tab inside its dialog and prevents Escape from dismissing a lower game modal. The CrazyGames-specific external-link restrictions in Quick Switch remain intact.
+
+The combined branch passes **190/190** automated regression tests. Normal-site Chrome verified district reuse, new-branch management, Quick Switch keyboard behavior, and the compact 390px layout. **CrazyGames Developer Portal APS persistence and real platform SDK preview remain unverified.** This release remains unpublished.
