@@ -7,7 +7,9 @@
 const KEY='profitlands-v2';
 const BACKUP='profitlands-v2-backup';
 const PREIMPORT='profitlands-v2-before-import';
-const MAX_FILE=4*1024*1024;
+const MAX_FILE=16*1024*1024;
+const MAX_LOCATIONS_PER_BUSINESS=50000;
+const MAX_LOCATIONS_TOTAL=100000;
 const DURATIONS=Object.freeze({fast:300,standard:900,long:3600,persistent:86400});
 const MODE_SET=new Set(Object.keys(DURATIONS));
 const blockedKeys=new Set(['__proto__','constructor','prototype']);
@@ -31,7 +33,7 @@ function currentMeta(){
 function inspectShape(x,depth,counts){
  if(depth>32)throw Error('The backup is nested too deeply.');
  counts.objects++;
- if(counts.objects>150000)throw Error('The backup contains too many entries.');
+ if(counts.objects>300000)throw Error('The backup contains too many entries.');
  if(x===null)return;
  if(typeof x==='number'&&!Number.isFinite(x))throw Error('The backup contains invalid numbers.');
  if(typeof x==='string'){
@@ -51,7 +53,7 @@ function inspectShape(x,depth,counts){
  }
 }
 function parseSnapshot(text){
- if(typeof text!=='string'||text.length>MAX_FILE)throw Error('Select a ProfitLands JSON save smaller than 4 MB.');
+ if(typeof text!=='string'||text.length>MAX_FILE)throw Error('Select a ProfitLands JSON save smaller than 16 MB.');
  let data;
  try{data=JSON.parse(text)}catch(e){throw Error('This file is not valid JSON.')}
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('This file is not a ProfitLands empire.');
@@ -59,19 +61,23 @@ function parseSnapshot(text){
  if(!MODE_SET.has(data.mode))throw Error('The backup has an unknown game mode.');
  if(data.saveVersion!==4)throw Error('This version of Save Center supports ProfitLands v4 saves only.');
  if(!Number.isSafeInteger(data.day)||data.day<1||data.day>1000000000)throw Error('The saved game day is invalid.');
- if(!Number.isFinite(data.cash)||data.cash<0)throw Error('The saved cash balance is invalid.');
+ // Cash can be negative during a valid debt or recovery period.
+ if(!Number.isFinite(data.cash))throw Error('The saved cash balance is invalid.');
  if(typeof data.cashHuge!=='string')throw Error('The backup is missing its large-money ledger.');
  try{
   const bank=window.ProfitLandsMoney?.parse?.(data.cashHuge);
-  if(!bank||bank.m<0)throw Error('Invalid amount');
+  if(!bank||!Number.isFinite(bank.m)||!Number.isSafeInteger(bank.e))throw Error('Invalid amount');
  }catch(e){throw Error('The saved large-money ledger is invalid.')}
  if(!Array.isArray(data.businesses)||data.businesses.length>100)throw Error('The business portfolio is invalid.');
  const allowed=new Set((window.BUSINESS_TYPES||[]).map(b=>b.id));
  if(allowed.size<1)throw Error('Business catalogue is not available.');
+ let locationTotal=0;
  for(const business of data.businesses){
   if(!business||typeof business!=='object'||!allowed.has(business.type))throw Error('An unknown business type was found.');
   if(typeof business.name!=='string'||business.name.length>120)throw Error('A business name is invalid.');
-  if(business.locations!==undefined&&(!Array.isArray(business.locations)||business.locations.length>400))throw Error('A location list is invalid.');
+  if(business.locations!==undefined&&(!Array.isArray(business.locations)||business.locations.length>MAX_LOCATIONS_PER_BUSINESS))throw Error('A location list is invalid.');
+  locationTotal+=(business.locations||[]).length;
+  if(locationTotal>MAX_LOCATIONS_TOTAL)throw Error('The backup has too many business locations.');
   for(const location of business.locations||[]){
    if(!location||typeof location!=='object')throw Error('A business location is invalid.');
    if(location.level!==undefined&&(!Number.isSafeInteger(location.level)||location.level<1||location.level>100000000))throw Error('A location level is invalid.');
@@ -96,7 +102,7 @@ function manualSave(){
   const raw=localStorage.getItem(KEY);
   if(!raw)throw Error('Your browser did not store the save.');
   const saved=JSON.parse(raw);
-  if(!saved||!Number.isFinite(saved.savedAt))throw Error('Save verification failed.');
+  if(!saved||!Number.isFinite(saved.savedAt)||raw!==JSON.stringify(window.state))throw Error('Local storage did not update to the current empire.');
   message('Local snapshot saved at '+fmtDate(saved.savedAt)+'.');
   renderStatus();
   return true;
@@ -122,6 +128,7 @@ function applySnapshot(data){
  const current=window.state;
  if(!current)throw Error('Game is not initialized.');
  const before=JSON.stringify(current);
+ const previousKeys=new Set(Object.keys(current));
  const previous=localStorage.getItem(KEY);
  // Reserve an independent recovery copy; normal autosaves rotate a different key.
  if(previous)localStorage.setItem(PREIMPORT,previous);
@@ -140,6 +147,7 @@ function applySnapshot(data){
   window.ProfitLandsLocationOps?.normalizeAll?.();
   window.ProfitLandsGrowth?.ensure?.();
   window.save?.();
+  if(localStorage.getItem(KEY)!==JSON.stringify(current))throw Error('The restored empire could not be saved to this browser.');
   window.render?.();
   window.startTimer?.();
   window.ProfitLandsGrowth?.render?.();
@@ -148,6 +156,7 @@ function applySnapshot(data){
   return true;
  }catch(e){
   // Do not strand the active player in a partially imported empire.
+  for(const key of Object.keys(current))if(!previousKeys.has(key))delete current[key];
   Object.assign(current,JSON.parse(before));
   window.ProfitLandsMoney?.attach?.(current);
   if(previous)localStorage.setItem(KEY,previous);
@@ -221,7 +230,7 @@ function initialize(){
   importer.addEventListener('change',async()=>{
    const file=importer.files?.[0];if(!file)return;
    try{
-    if(file.size>MAX_FILE)throw Error('Backup files must be smaller than 4 MB.');
+    if(file.size>MAX_FILE)throw Error('Backup files must be smaller than 16 MB.');
     const raw=await file.text();
     restore(raw,file.name);
    }catch(e){message(e.message,true)}
