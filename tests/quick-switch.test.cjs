@@ -12,7 +12,7 @@ function harness(){
  const window={state,ProfitLandsWorkspace:{views,ready:()=>true,show:x=>{actions.push(['view',x]);return true}},
  openManage:index=>actions.push(['company',index])};
  const appends=[];
- const document={readyState:'loading',getElementById:x=>x==='gameScreen'?{classList:{contains:name=>name==='active'}}:null,
+ const document={readyState:'loading',getElementById:x=>x==='gameScreen'?{classList:{contains:name=>name==='active'}}:x==='openSettings'?{click(){actions.push(['settings','opened'])}}:null,
  createElement:tag=>({tag,href:'',target:'',rel:'',click(){actions.push(['link',this.href])},remove(){}}),
  body:{appendChild:x=>appends.push(x)},addEventListener(){}};
  const context=vm.createContext({window,document,console});
@@ -65,4 +65,14 @@ test('keyboard menu uses Ctrl/Cmd K and slash and does not pollute saved game',(
  assert.ok(code.includes("e.key==='/'"));
  assert.ok(!code.includes('localStorage.setItem'));
  assert.ok(!code.includes('window.save?.()'));
+});
+
+test('Quick Switch opens Save & Recovery without touching cash, actions or saves',()=>{
+ const h=harness();
+ const entry=h.api.items('Save & Recovery')[0];
+ assert.equal(entry.key,'settings');
+ assert.equal(h.api.execute(entry),true);
+ assert.deepEqual(h.actions,[['settings','opened']]);
+ assert.equal(h.state.cash,50000);
+ assert.equal(h.state.actions,60);
 });
