@@ -52,7 +52,7 @@ function setup({platform='web',signedIn=false,active=true,confirm=true,autoBacku
  const ctx=vm.createContext({window,document,localStorage,console,Date,JSON,Number,Math,Set,Object,
    setTimeout:()=>1,Blob:function(){},URL:{},});
  new vm.Script(code,{filename:'save-center.js'}).runInContext(ctx);
- return{api:window.ProfitLandsSaveCenter,state,window,memory,saved:()=>saved,
+ return{api:window.ProfitLandsSaveCenter,state,window,memory,localStorage,saved:()=>saved,
   rendered:()=>rendered,timers:()=>timers,confirmed:()=>confirmed,normalized:()=>normalized,opened:()=>opened};
 }
 test('accepts a complete current-version empire and does not modify validation input',()=>{
@@ -147,4 +147,53 @@ test('settings UI and save center run only in play, with existing display contro
  const route=fs.readFileSync(path.join(root,'play-route.js'),'utf8');
  assert.doesNotMatch(route,/stopImmediatePropagation/,'route must not swallow the in-game settings click');
  assert.ok(html.includes('href="../settings/"'),'dedicated display page remains accessible');
+});
+
+test('valid debt-period saves and 10,000-location empires are accepted for backup',()=>{
+ const h=setup();
+ const locations=Array.from({length:10000},(_,i)=>({id:i%2?'downtown':'tech',name:'Branch '+(i+1),
+  level:2,marketing:1,efficiency:0,workers:0,manager:false,basePopularity:60}));
+ const snapshot=validSave({cash:-22000,cashHuge:'-2.2e4',
+  businesses:[{type:'coffee',name:'Big Coffee Co',locationManagementVersion:1,locations}]});
+ const raw=JSON.stringify(snapshot);
+ assert.ok(raw.length>200000&&raw.length<16*1024*1024);
+ const parsed=h.api.parseSnapshot(raw);
+ assert.equal(parsed.cash,-22000);
+ assert.equal(parsed.businesses[0].locations.length,10000);
+ assert.equal(h.api.restore(raw,'large backup',true),true);
+ assert.equal(h.state.businesses[0].locations.length,10000);
+ assert.equal(h.state.cash,-22000);
+});
+test('dangerously oversize locations or files still fail safely',()=>{
+ const h=setup();
+ const oversized=validSave({businesses:[{type:'coffee',name:'Overflow',
+  locations:Array.from({length:50001},()=>({id:'downtown',level:1}))}]});
+ assert.throws(()=>h.api.parseSnapshot(JSON.stringify(oversized)),/oversized collection|location list/i);
+ assert.throws(()=>h.api.parseSnapshot(' '.repeat(16*1024*1024+1)),/16 MB/i);
+});
+test('Save Now does not falsely report success when storage silently retains an old empire',()=>{
+ const h=setup(),old=h.memory.get('profitlands-v2');
+ h.state.day=101;
+ const set=h.localStorage.setItem;
+ h.localStorage.setItem=(key,value)=>{
+  if(key==='profitlands-v2')return; // quota/wrapper silently dropped the write
+  set(key,value);
+ };
+ assert.equal(h.api.manualSave(),false);
+ assert.equal(h.memory.get('profitlands-v2'),old);
+});
+test('failed restore write rolls back active data and preserves the previous local save',()=>{
+ const h=setup();
+ const before=JSON.stringify(h.state),old=h.memory.get('profitlands-v2');
+ let skipOnce=true;
+ const set=h.localStorage.setItem;
+ h.localStorage.setItem=(key,value)=>{
+  if(key==='profitlands-v2'&&skipOnce){skipOnce=false;return}
+  set(key,value);
+ };
+ const incoming=validSave({day:55,cash:8000,cashHuge:'8e3',newExperimentalField:'not-in-old-save'});
+ assert.equal(h.api.restore(JSON.stringify(incoming),'file',true),false);
+ assert.equal(JSON.stringify(h.state),before);
+ assert.equal(h.memory.get('profitlands-v2'),old);
+ assert.equal(Object.hasOwn(h.state,'newExperimentalField'),false);
 });
