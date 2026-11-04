@@ -11,6 +11,13 @@ const db=getFirestore();
 const world=db.collection('worlds').doc(core.WORLD_ID);
 const players=world.collection('players');
 const events=world.collection('events');
+// Short-lived per-instance cache coalesces overlapping leaderboard/rival reads.
+// It cannot authorize payments: every mutation still reads Firestore in a transaction.
+const rosterCache={records:null,expiresAt:0,inflight:null,version:0};
+function invalidateRoster(){
+ rosterCache.version++;
+ rosterCache.records=null;rosterCache.expiresAt=0;rosterCache.inflight=null;
+}
 const CHAT_ENABLED=false; // Off until moderation and blocking controls are reviewed.
 const ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
  'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
@@ -51,7 +58,7 @@ async function register(request){
   tx.set(world,{joined:count+1,createdAt:room.exists?room.data().createdAt:FieldValue.serverTimestamp(),
    worldId:core.WORLD_ID}, {merge:true});
   return {worldId:core.WORLD_ID,player:publicProfile(profile),created:true};
- });
+ }).then(result=>{invalidateRoster();return result});
 }
 async function mutateOwn(uid,transform){
  const ref=players.doc(uid);
@@ -63,7 +70,7 @@ async function mutateOwn(uid,transform){
   safeNumber(result.player);
   tx.set(ref,result.player);
   return {player:publicProfile(result.player),cost:result.cost||0};
- });
+ }).then(result=>{invalidateRoster();return result});
 }
 // Purchases and upgrades must be idempotent just like PvP. A lost HTTP
 // response is not permission to repeat a charge or duplicate a business.
@@ -86,7 +93,7 @@ async function mutatePaid(uid,action,requestId,parameter,transform){
   tx.create(eventRef,{type:'world_purchase',action,parameter,cost:result.cost,
    userUid:uid,worldId:core.WORLD_ID,createdAt:FieldValue.serverTimestamp()});
   return {player:publicProfile(result.player),cost:result.cost,replayed:false};
- });
+ }).then(result=>{invalidateRoster();return result});
 }
 async function getMine(uid){
  const ref=players.doc(uid);
@@ -99,9 +106,24 @@ async function getMine(uid){
  });
 }
 async function getAll(){
- const snapshot=await players.limit(core.MAX_PLAYERS).get();
- const now=nowMs();
- return snapshot.docs.map(doc=>core.settle(doc.data(),now));
+ const at=nowMs();
+ let records=rosterCache.records;
+ if(!records||at>=rosterCache.expiresAt){
+  if(!rosterCache.inflight){
+   const generation=rosterCache.version;
+   rosterCache.inflight=players.limit(core.MAX_PLAYERS).get().then(snapshot=>{
+    const list=snapshot.docs.map(doc=>doc.data());
+    if(rosterCache.version===generation){
+     rosterCache.records=list;rosterCache.expiresAt=nowMs()+3000;
+    }
+    return list;
+   }).finally(()=>{
+    if(rosterCache.version===generation)rosterCache.inflight=null;
+   });
+  }
+  records=await rosterCache.inflight;
+ }
+ return records.map(record=>core.settle(record,at));
 }
 async function getLeaderboard(uid,period){
  if(!['day','week','all'].includes(period))err('invalid-argument','Unknown leaderboard period.');
@@ -157,7 +179,7 @@ async function attack(uid,body){
   tx.set(attackerRef,newAttacker);tx.set(targetRef,newDefender);
   tx.create(eventRef,{...result.event,createdAt:FieldValue.serverTimestamp()});
   return {ok:true,replayed:false,event:result.event,player:publicProfile(newAttacker)};
- });
+ }).then(result=>{invalidateRoster();return result});
 }
 async function defend(uid,body){
  const requestId=body.requestId;
@@ -180,7 +202,7 @@ async function defend(uid,body){
   tx.set(ref,result.player);
   tx.create(eventRef,{...result.event,createdAt:FieldValue.serverTimestamp()});
   return {ok:true,replayed:false,event:result.event,player:publicProfile(result.player)};
- });
+ }).then(result=>{invalidateRoster();return result});
 }
 exports.worldApi=onCall({region:'us-west1',memory:'256MiB',maxInstances:5,timeoutSeconds:30,
  cors:['https://willn0tbill.github.io',/^http:\/\/localhost:\d+$/]},async request=>{
