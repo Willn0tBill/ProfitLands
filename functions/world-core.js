@@ -57,7 +57,7 @@ function fresh(uid,displayName,now){
   dayKey:dayKey(now),weekKey:weekKey(now),dayGain:0,weekGain:0,
   nextAttackAt:0,protectedUntil:0,nextVulnerableAt:0,
   activePenalty:0,activePenaltyUntil:0,lastPvPSwitchAt:0,
-  chatLastAt:0};
+  chatLastAt:0,incomeMilliRemainder:0};
 }
 function periodRoll(p,at){
  const nextDay=dayKey(at),nextWeek=weekKey(at);
@@ -85,24 +85,34 @@ function settle(player,now){
  const p=clone(player),start=Math.min(now,Math.max(0,Number(p.lastSettledAt)||now));
  const from=Math.max(start,now-MAX_OFFLINE_SECONDS*1000);
  // UTC boundaries are split before reward allocation.
- let cursor=from,secondsAccounted=0;
+ let cursor=from;
+ // Preserve sub-dollar earnings between polls. Polling every 500ms must not
+ // erase income, especially when PvP multipliers reduce earnings below $1/s.
+ let milliRemainder=Number.isSafeInteger(p.incomeMilliRemainder)&&p.incomeMilliRemainder>=0&&p.incomeMilliRemainder<1000
+  ?p.incomeMilliRemainder:0;
  while(cursor<now){
   periodRoll(p,cursor);
   const d=new Date(cursor),midnight=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1);
   const nextMonday=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+((8-d.getUTCDay())%7||7));
   const penaltyBoundary=Number(p.activePenaltyUntil||0)*1000;
   const next=Math.min(now,midnight,nextMonday,penaltyBoundary>cursor?penaltyBoundary:Infinity);
-  const seconds=Math.max(0,Math.floor((next-cursor)/1000));
-  if(seconds>0){
+  const durationMs=Math.max(0,next-cursor);
+  if(durationMs>0){
    const rate=perSecond(p);
-   const penalty=Number(p.activePenaltyUntil||0)*1000>cursor?Math.max(0,Math.min(.30,Number(p.activePenalty)||0)):0;
-   credit(p,Math.floor(rate*(1-penalty)*seconds));
-   secondsAccounted+=seconds;
+   const penalty=Number(p.activePenaltyUntil||0)*1000>cursor
+    ?Math.max(0,Math.min(30,Math.round(Number(p.activePenalty||0)*100))):0;
+   // Thousandths of a dollar avoid round-down losses on repeated settlements.
+   const milliEarned=Math.floor(durationMs*rate*(100-penalty)/100);
+   const totalMilli=milliRemainder+milliEarned;
+   const earned=Math.floor(totalMilli/1000);
+   milliRemainder=totalMilli%1000;
+   if(earned>0)credit(p,earned);
   }
   cursor=next;
  }
  periodRoll(p,now);
  p.lastSettledAt=now;
+ p.incomeMilliRemainder=milliRemainder;
  p.netWorth=worth(p);
  return p;
 }
