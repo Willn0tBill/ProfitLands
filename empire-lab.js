@@ -52,10 +52,25 @@ function ensure(){
  p.trades=Array.isArray(p.trades)?p.trades:[];
  p.publicCompanies=Array.isArray(p.publicCompanies)?p.publicCompanies:[];
  p.log=Array.isArray(p.log)?p.log:[];
- if(!Number.isFinite(p.nextId))p.nextId=1;
+ if(!Number.isSafeInteger(p.nextId)||p.nextId<1)p.nextId=1;
  window.ProfitLandsLocationOps?.normalizeAll?.();
+ // Restores and mergers may retain stale counters or duplicate IDs.
+ // Reserve all existing IDs first to avoid conflicting with a later location.
+ const seen=new Set(),reserved=new Set();
  for(const b of state.businesses||[])for(const l of b.locations||[]){
-   if(!l.labId)l.labId='site_'+p.nextId++;
+   if(typeof l.labId==='string'&&l.labId)reserved.add(l.labId);
+   const match=typeof l.labId==='string'&&/^site_(\d+)$/.exec(l.labId);
+   if(match){
+     const id=Number(match[1]);
+     if(Number.isSafeInteger(id))p.nextId=Math.max(p.nextId,id+1);
+   }
+ }
+ for(const b of state.businesses||[])for(const l of b.locations||[]){
+   if(typeof l.labId!=='string'||!l.labId||seen.has(l.labId)){
+     let id;do{id='site_'+p.nextId++}while(reserved.has(id));
+     l.labId=id;reserved.add(id);
+   }
+   seen.add(l.labId);
    if(!l.lab||typeof l.lab!=='object')l.lab={enabled:false,stock:24,price:1,roles:{sales:0,production:0,logistics:0},sold:0,autoRestock:false,autoPrice:false,region:'local'};
    const a=l.lab;
    if(!a.roles)a.roles={sales:0,production:0,logistics:0};
@@ -74,7 +89,7 @@ function allSites(){
  return a;
 }
 function chosen(){const list=allSites();return list.find(x=>x.id===currentSite)||list[0]||null}
-function selectSite(id){currentSite=typeof id==='object'?id.labId:id;currentTab='store';window.ProfitLandsWorkspace?.show?.('operations');window.ProfitLandsLayout?.open?.('empireLab');render();$('empireLab')?.scrollIntoView?.({behavior:'instant',block:'nearest'})}
+function selectSite(id){ensure();currentSite=typeof id==='object'?id.labId:id;currentTab='store';window.ProfitLandsWorkspace?.show?.('operations');window.ProfitLandsLayout?.open?.('empireLab');render();$('empireLab')?.scrollIntoView?.({behavior:'instant',block:'nearest'})}
 function have(n){return money?money.canAfford(n):game().cash>=n}
 function charge(cost,usesAction=false){
  const s=game();
@@ -110,7 +125,7 @@ function forecast(site){
 }
 function delta(b,l,revenue,runningCost){
  if(!l.lab?.enabled)return 0;
- const s={b,l};const f=forecast(s),equity=ensure().publicCompanies.find(x=>x.companyId===b.labCompanyId);
+ const s={b,l};const f=forecast(s),equity=(game()?.empireLab?.publicCompanies||[]).find(x=>x.companyId===b.labCompanyId);
  const afterEquity=equity?.8:1;
  return revenue*(f.factor*afterEquity-1)-runningCost*f.bonus;
 }
@@ -120,7 +135,7 @@ function act(action,opt={}){
  const requireSite=()=>site&&lab;
  if(action==='manage'){
    if(!site)return false;
-   window.openManage?.(site.bi);return true;
+   window.openManage?.(site.bi,site.li);return true;
  }else if(action==='enable'){
    if(!requireSite())return false;
    lab.enabled=true;ok=true;message='Store operations activated for '+site.l.name+'.';
