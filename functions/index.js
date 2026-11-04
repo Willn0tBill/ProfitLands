@@ -65,6 +65,29 @@ async function mutateOwn(uid,transform){
   return {player:publicProfile(result.player),cost:result.cost||0};
  });
 }
+// Purchases and upgrades must be idempotent just like PvP. A lost HTTP
+// response is not permission to repeat a charge or duplicate a business.
+async function mutatePaid(uid,action,requestId,parameter,transform){
+ if(!intId(requestId))err('invalid-argument','Invalid request identifier.');
+ const ref=players.doc(uid),eventRef=events.doc(uid+'_'+requestId);
+ return db.runTransaction(async tx=>{
+  const [prior,snapshot]=await Promise.all([tx.get(eventRef),tx.get(ref)]);
+  if(!snapshot.exists)err('failed-precondition','Join World 1 before playing online.');
+  if(prior.exists){
+   const event=prior.data();
+   if(event.type!=='world_purchase'||event.action!==action||event.parameter!==parameter)
+    err('invalid-argument','Request ID was already used for a different action.');
+   return {player:publicProfile(core.settle(snapshot.data(),nowMs())),cost:event.cost,replayed:true};
+  }
+  const result=transform(snapshot.data(),nowMs());
+  if(!result.ok)err('failed-precondition',result.error||'Purchase rejected.');
+  safeNumber(result.player);
+  tx.set(ref,result.player);
+  tx.create(eventRef,{type:'world_purchase',action,parameter,cost:result.cost,
+   userUid:uid,worldId:core.WORLD_ID,createdAt:FieldValue.serverTimestamp()});
+  return {player:publicProfile(result.player),cost:result.cost,replayed:false};
+ });
+}
 async function getMine(uid){
  const ref=players.doc(uid);
  return db.runTransaction(async tx=>{
@@ -170,8 +193,8 @@ exports.worldApi=onCall({region:'us-west1',memory:'256MiB',maxInstances:5,timeou
   case 'me':return getMine(uid);
   case 'getLeaderboard':return getLeaderboard(uid,data.period);
   case 'getPlayers':return getPlayers(uid);
-  case 'buyBusiness':return mutateOwn(uid,(p,at)=>core.buyBusiness(p,data.businessId,at));
-  case 'upgradeBusiness':return mutateOwn(uid,(p,at)=>core.upgradeBusiness(p,data.index,at));
+  case 'buyBusiness':return mutatePaid(uid,'buyBusiness',data.requestId,data.businessId,(p,at)=>core.buyBusiness(p,data.businessId,at));
+  case 'upgradeBusiness':return mutatePaid(uid,'upgradeBusiness',data.requestId,data.index,(p,at)=>core.upgradeBusiness(p,data.index,at));
   case 'togglePvP':return togglePvP(uid);
   case 'requestAttack':return attack(uid,data);
   case 'requestDefense':return defend(uid,data);
