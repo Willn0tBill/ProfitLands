@@ -104,14 +104,32 @@ function initialize(){
    results.querySelector('.selected')?.scrollIntoView?.({block:'nearest'});
   }else if(e.key==='Enter'){e.preventDefault();execute(options[selected])}
  });
+ // Capture these keystrokes BEFORE the document-level backdrop dismissor.
+ // Otherwise Escape can dismiss both Quick Switch and an underlying game modal.
  window.addEventListener('keydown',e=>{
   const t=e.target,typing=t?.matches?.('input,textarea,select,[contenteditable="true"]');
-  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.key.toLowerCase()==='k'&&isPlaying()){
-   e.preventDefault();if(modal.hidden)open();else close();return;
+  if(!modal.hidden&&e.key==='Escape'){
+   e.preventDefault();e.stopPropagation?.();close();return;
   }
-  if(e.key==='Escape'&&!modal.hidden){e.preventDefault();close();return}
+  if(!modal.hidden&&e.key==='Tab'){
+   const focusable=[...modal.querySelectorAll('button:not([disabled]), input:not([disabled])')].filter(el=>!el.hidden);
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(first&&last){
+    if(e.shiftKey&&(document.activeElement===first||!modal.contains(document.activeElement))){
+     e.preventDefault();last.focus();
+    }else if(!e.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){
+     e.preventDefault();first.focus();
+    }
+   }
+   return;
+  }
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.key.toLowerCase()==='k'&&isPlaying()){
+   e.preventDefault();e.stopPropagation?.();
+   if(modal.hidden)open();else close();
+   return;
+  }
   if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!typing&&modal.hidden&&isPlaying()){e.preventDefault();open()}
- });
+ },true);
  const menu=document.querySelector('#gameScreen .pl-workspace-sidebar-actions');
  if(menu){
   const b=document.createElement('button');b.type='button';b.className='pl-workspace-quick-button pl-workspace-secondary pl-switch-trigger';
