@@ -270,3 +270,80 @@ html.pl-reduced-motion body.pl-play-page *:after{
 }
 html.pl-contrast #gameScreen .pl-workspace-panels>.panel,
 html.pl-contrast #gameScreen .pl-workspace-hud .game-hud .stat{border-color:#c5e7ff!important}
+
+/* A first-time player sees the path to gameplay, not a table of reports. */
+#gameScreen .pl-quest-card{
+  background:linear-gradient(118deg,#493764,#263e5e 52%,#195653)!important;
+  border:1px solid #ffdf9d88!important;
+  box-shadow:0 8px 28px #0004,inset 0 1px #ffefc51c;
+}
+#gameScreen .pl-quest-card h3{font-size:clamp(18px,2vw,24px)!important;color:#fff0bc!important}
+#gameScreen .pl-quest-card p{color:#d5e7f4!important;font-size:13px!important;max-width:660px}
+#gameScreen .pl-quest-card .pl-workspace-eyebrow{color:#ffe3a7!important}
+#gameScreen .pl-quest-card .pl-workspace-intro-button{
+  background:linear-gradient(130deg,#ffe39a,#b6f4a7)!important;
+  color:#182d26!important;border:1px solid #fff0ba!important;
+  font-size:12px!important;box-shadow:0 4px 0 #9e8256,0 8px 21px #0003;
+}
+#gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:translateY(-2px);filter:brightness(1.05)}
+#gameScreen .pl-game-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px;
+}
+#gameScreen .pl-game-step{
+  display:flex;align-items:flex-start;gap:11px;min-height:96px;text-align:left;
+  border:1px solid #8b92dc77;border-radius:14px;padding:16px 13px;
+  color:#edf3ff;background:linear-gradient(125deg,#2b2d54,#1b3149);
+  box-shadow:0 4px 0 #0b1427,0 9px 19px #0003;
+  cursor:pointer;transition:transform .2s ease,box-shadow .2s,border-color .2s;
+}
+#gameScreen .pl-game-step-icon{font-size:25px;line-height:1.1;flex:0 0 auto}
+#gameScreen .pl-game-step-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+#gameScreen .pl-game-step strong{color:#ffefb8;font-size:14px}
+#gameScreen .pl-game-step small{color:#ccddef;font-size:11px;line-height:1.5}
+#gameScreen .pl-game-step:hover{
+ transform:translateY(-3px);border-color:#ffe29e;
+ box-shadow:0 7px 0 #0b1427,0 13px 30px #0005;
+}
+#gameScreen .pl-game-step:active{transform:translateY(1px);box-shadow:0 1px 0 #0b1427}
+#gameScreen .pl-game-advanced{
+  border:1px solid #586fa283;border-radius:13px;
+  background:#182a3c88;padding:12px;margin-top:2px;
+}
+#gameScreen .pl-game-advanced summary{
+  cursor:pointer;list-style-position:inside;font-weight:800;
+  padding:9px 11px;font-size:13px;color:#d4e9ff;
+}
+#gameScreen .pl-game-advanced[open] summary{margin-bottom:12px;color:#ffe3a5}
+#gameScreen .pl-game-advanced>.panel{
+  padding:15px!important;margin:0 0 11px!important;
+  border:1px solid #617aa37d!important;border-radius:12px;
+  background:linear-gradient(140deg,#1b2b42,#15283a)!important;
+}
+#gameScreen .pl-workspace-advanced-nav{
+  display:flex;flex-direction:column;border-radius:9px;
+  background:#101b3180;border:1px solid #6f7ea855;margin:7px 0 0;
+}
+#gameScreen .pl-workspace-advanced-nav summary{
+  cursor:pointer;color:#b9d1e8;padding:12px 11px;
+  font-size:11px;letter-spacing:.08em;font-weight:850;list-style-position:inside;
+}
+#gameScreen .pl-workspace-advanced-nav[open] summary{color:#ffe0a3;border-bottom:1px solid #51668f55}
+#gameScreen .pl-workspace-advanced-nav .pl-workspace-nav-item{width:calc(100% - 10px);margin:3px 5px}
+#gameScreen .pl-game-advanced summary:focus-visible,
+#gameScreen .pl-game-step:focus-visible,
+#gameScreen .pl-workspace-advanced-nav summary:focus-visible{
+ outline:3px solid #ffe39c;outline-offset:2px;
+}
+@media(max-width:780px){
+ #gameScreen .pl-game-steps{grid-template-columns:1fr;gap:9px}
+ #gameScreen .pl-game-step{min-height:65px;align-items:center;padding:11px}
+ #gameScreen .pl-quest-card{flex-direction:column;align-items:flex-start}
+ #gameScreen .pl-quest-card .pl-workspace-intro-button{width:100%}
+ #gameScreen .pl-workspace-advanced-nav{min-width:max-content;flex:0 0 auto;margin:0}
+ #gameScreen .pl-workspace-advanced-nav .pl-workspace-nav-item{min-width:135px}
+}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-game-step:hover,#gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:none}
+}
+html.pl-reduced-motion #gameScreen .pl-game-step:hover,
+html.pl-reduced-motion #gameScreen .pl-quest-card .pl-workspace-intro-button:hover{transform:none}
