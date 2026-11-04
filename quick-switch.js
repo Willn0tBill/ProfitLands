@@ -29,7 +29,7 @@ function rank(item,query){
 function isPlaying(){return Boolean($('gameScreen')?.classList.contains('active'))}
 function items(query=''){
  const ws=window.ProfitLandsWorkspace;
- const entries=(ws?.views||[]).map((x,i)=>({kind:'view',key:x.id,label:x.name,detail:'Workspace screen',view:x.id,order:i}));
+ const entries=(ws?.views||[]).filter(x=>ws?.available?.(x.id)!==false).map((x,i)=>({kind:'view',key:x.id,label:x.name,detail:'Game screen',view:x.id,order:i}));
  const owned=window.state?.businesses||[];
  for(let i=0;i<owned.length;i++){
   const b=owned[i],name=String(b.name||'Business '+(i+1)).slice(0,90);
