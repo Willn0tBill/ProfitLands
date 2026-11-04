@@ -38,6 +38,8 @@ on:
       - 'quick-switch.css'
       - 'save-center.js'
       - 'save-center.css'
+      - 'trade-ui.js'
+      - 'trade-ui.css'
       - 'achievement-engine.css'
       - 'executive-briefing.js'
       - 'executive-briefing.css'
@@ -83,6 +85,8 @@ on:
       - 'quick-switch.css'
       - 'save-center.js'
       - 'save-center.css'
+      - 'trade-ui.js'
+      - 'trade-ui.css'
       - 'achievement-engine.css'
       - 'executive-briefing.js'
       - 'executive-briefing.css'
@@ -132,6 +136,7 @@ jobs:
           node --check executive-briefing.js
           node --check quick-switch.js
           node --check save-center.js
+          node --check trade-ui.js
           node --check crazygames.js
           node --check crazygames-coach.js
           node --check scripts/build-crazygames.cjs
