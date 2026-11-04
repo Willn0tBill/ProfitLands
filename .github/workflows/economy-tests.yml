@@ -127,6 +127,13 @@ jobs:
           node --check quick-switch.js
           node --check save-center.js
           node --check trade-ui.js
+          node --check firebase-world-adapter.js
+          node --check multiplayer-world.js
+          node --check functions/world-core.js
+          node --check functions/pvp-rules.js
+          node --check functions/index.js
+      - name: Verify Firebase server dependency resolution
+        run: npm --prefix functions install --no-audit --no-fund --ignore-scripts
       - name: Run economy regression suite
         id: regression
         shell: bash
