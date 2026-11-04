@@ -79,11 +79,11 @@ Official documentation:
 
 ## Baseline regression note
 
-The unchanged `main` branch had nine stale regression expectations from
+Historically, `main` had nine stale regression expectations from
 older gameplay and UI designs (variable action regeneration, full market-cycle
 refills, and dashboard/workspace v1). The historical regression tests were corrected without changing the economy
 formulas or workspace implementation. This branch now also includes the
-verified v1.8 Save & Recovery update. The combined suite passes **145/145**
+verified v1.8 Save & Recovery and v1.9 portfolio performance updates. The combined suite passes **155/155**
 automated tests in GitHub Actions. CrazyGames Preview account-save testing remains required.
 
 ## Local browser smoke test — November 3, 2026
@@ -99,3 +99,10 @@ A clean-profile Chrome 156 run on Windows tested a **generated upload package**,
 - After adding the local favicon, **zero Chrome runtime/console errors** occurred during this smoke test.
 
 This does **not** verify CrazyGames production SDK behavior, APS account synchronization across devices, ad integration, or the Developer Portal review. These require a real authenticated portal preview and must be checked before publishing.
+
+## v1.9 portfolio performance compatibility
+
+- Large portfolios show the first **36** company cards, with a persistent company/industry search field and a **Show more companies** button. Filtering retains the original company index and does not change game state, earnings or saved progress.
+- The HUD avoids repeated net-worth calculations; hidden workspace panels are no longer rebuilt every five seconds and instead refresh when opened. Actual 500 ms income settlement and action regeneration are unchanged.
+- The normal website's performance changes were smoke-tested in clean-profile Chrome with 100 sample companies, company search, management navigation, and a 390-pixel mobile viewport.
+- The combined **CrazyGames** branch passes 155/155 automated regression tests and a successful packaging build. A fresh authenticated Developer Portal preview test is **still required**; browser QA from the normal website does not substitute for a CrazyGames production SDK or APS test.
