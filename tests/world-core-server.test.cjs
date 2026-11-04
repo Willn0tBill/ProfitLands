@@ -142,3 +142,29 @@ test('fractional online earnings survive UTC scoring boundaries',()=>{
  assert.equal(result.dayGain,1);
  assert.equal(result.incomeMilliRemainder,0);
 });
+
+test('1ms repeated polls with PvP penalty preserve hundredth-milli income',()=>{
+ const p=core.buyBusiness(startup(),'coffee',now).player;
+ p.activePenalty=0.12;
+ p.activePenaltyUntil=Math.floor(now/1000)+10;
+ let rapid=p;
+ for(let i=1;i<=1000;i++)rapid=core.settle(rapid,now+i);
+ const single=core.settle(p,now+1000);
+ assert.equal(rapid.cash,single.cash);
+ assert.equal(rapid.incomeMilliRemainder,single.incomeMilliRemainder);
+ assert.equal(rapid.incomeSubMilliRemainder,single.incomeSubMilliRemainder);
+ assert.equal(rapid.incomeMilliRemainder,880);
+ assert.equal(rapid.incomeSubMilliRemainder,0);
+});
+test('PvP fractional remainder carries correctly from 1ms poll into the next',()=>{
+ const p=core.buyBusiness(startup(),'coffee',now).player;
+ p.activePenalty=0.12;
+ p.activePenaltyUntil=Math.floor(now/1000)+10;
+ const one=core.settle(p,now+1);
+ assert.equal(one.cash,1000);
+ assert.equal(one.incomeMilliRemainder,0);
+ assert.equal(one.incomeSubMilliRemainder,88);
+ const next=core.settle(one,now+2);
+ assert.equal(next.incomeMilliRemainder,1);
+ assert.equal(next.incomeSubMilliRemainder,76);
+});
