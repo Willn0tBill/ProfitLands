@@ -7,7 +7,7 @@ let modal,input,results,selected=0,lastFocus=null,ready=false;
 const studio='https://willn0tbill.github.io/WtvStudios/';
 const sortTitle=(a,b)=>a.label.localeCompare(b.label);
 const recentKeys=[];
-const defaultKeys=['overview','businesses','operations','markets','analytics','trophies','buy','settings','wtvi','nation'];
+const defaultKeys=['overview','businesses','operations','arcade','clans','trophies','markets','buy','settings','wtvi','nation'];
 const normalize=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const identity=item=>item.kind+':'+item.key+(item.kind==='business'?':'+item.label:'');
 function remember(item){
