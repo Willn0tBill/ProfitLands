@@ -1,0 +1,60 @@
+/* Multiplayer world HUD and chat dock. Chat is inert until a verified server exists. */
+#gameScreen .pl-workspace-nav-item[hidden],#gameScreen .pl-workspace-nav-group[hidden]{display:none!important}
+.pl-world-panel{min-width:0}
+.pl-online-callout{display:flex;align-items:center;gap:15px;padding:20px;border:1px solid #768ecd9c;border-radius:17px;background:linear-gradient(120deg,#2e2c59,#1b4053);margin-bottom:16px}
+.pl-online-callout>span{font-size:38px}
+.pl-online-callout h3{font-size:19px;margin:0 0 6px;color:#fff1be}
+.pl-online-callout p{font-size:12px;line-height:1.55;margin:0;color:#c6d9f0}
+.pl-online-live{border-color:#65d7b9}
+.pl-online-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.pl-online-box,.pl-online-info{padding:16px;border:1px solid #617ca87c;border-radius:14px;background:linear-gradient(145deg,#222c49,#173349);margin-bottom:12px}
+.pl-online-title{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.pl-online-title h3{font-size:17px!important;color:#ffefa9!important}
+.pl-online-title span{font-size:10px;color:#9fd8bd}
+.pl-online-info h4{margin:0 0 10px;color:#d7bafa;font-size:14px}
+.pl-online-info p,.pl-online-box p,.pl-online-note{font-size:12px;line-height:1.6;color:#becfe7}
+.pl-online-info p:last-child{margin-bottom:0}
+.pl-online-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px}
+.pl-online-tabs button{appearance:none;cursor:pointer;min-height:35px;padding:7px 12px;border-radius:9px;border:1px solid #577ba4;background:#182b42;color:#d9eafb;font-size:12px;font-weight:700}
+.pl-online-tabs button[aria-pressed="true"]{background:linear-gradient(120deg,#ffe69e,#a1eac1);color:#122931;border-color:#ffebb5}
+.pl-online-scores{display:grid;gap:6px;min-height:65px}
+.pl-lb-row{display:flex;align-items:center;gap:9px;background:#152641;border:1px solid #395c7e;border-radius:9px;padding:11px 10px}
+.pl-lb-rank{font-size:12px;color:#ffdf9a;font-weight:900;min-width:28px}
+.pl-lb-player{font-size:12px;flex:1;min-width:0;overflow-wrap:anywhere}
+.pl-lb-row strong{font-variant-numeric:tabular-nums;color:#aaf3c0;font-size:13px}
+.pl-online-empty{padding:10px 0;color:#bbc8dd}
+#worldRivals{margin:12px 0}
+#worldRivals label{display:block;font-size:11px;font-weight:750;color:#d4dffc;margin-bottom:6px}
+#worldRivals select{width:100%;min-height:38px;border:1px solid #7284ac;border-radius:9px;padding:8px;background:#111d35;color:#f6f9ff;font-size:12px}
+.pl-pvp-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pl-pvp-options button{min-height:77px;background:linear-gradient(130deg,#423354,#28324f);border:1px solid #997fa6;border-radius:11px;padding:12px;text-align:left;color:#fff;cursor:pointer}
+.pl-pvp-options button:hover:not(:disabled){border-color:#f2c5a9;transform:translateY(-2px)}
+.pl-pvp-options button strong{display:block;font-size:12px;color:#ffdbaf}
+.pl-pvp-options button small{display:block;margin-top:5px;font-size:10px;color:#c5d5e9;line-height:1.5}
+.pl-pvp-options button:disabled{cursor:not-allowed;opacity:.55}
+.pl-pvp-protection{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.pl-pvp-protection button{padding:9px 12px;background:#28445c;color:#f5fbff;border:1px solid #6f9bc1;border-radius:9px;font-weight:700;font-size:11px;cursor:pointer}
+.pl-online-status{color:#e4d3b4;font-size:12px;min-height:18px;margin:8px 0}
+.pl-world-chat-dock{position:fixed;bottom:16px;right:16px;z-index:990;display:flex;flex-direction:column;align-items:flex-end;max-width:min(370px,calc(100vw - 24px));pointer-events:none}
+.pl-world-chat-dock[hidden]{display:none!important}
+.pl-world-chat-toggle{pointer-events:auto;cursor:pointer;min-height:44px;padding:11px 15px;border-radius:999px;color:#152b30;font-size:12px;font-weight:900;border:1px solid #f8e6b7;background:linear-gradient(125deg,#ffe1a0,#88e9e4);box-shadow:0 5px 20px #0008}
+.pl-world-chat-panel{pointer-events:auto;display:flex;flex-direction:column;width:min(352px,calc(100vw - 24px));max-height:min(440px,calc(100dvh - 110px));overflow:hidden;border:1px solid #8a9dca;border-radius:14px;background:#17243d;box-shadow:0 17px 48px #000a;margin-bottom:10px}
+.pl-world-chat-panel[hidden]{display:none!important}
+.pl-world-chat-panel header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(95deg,#33315c,#244a56);border-bottom:1px solid #657caa}
+.pl-world-chat-panel header strong{color:#fff2b2;font-size:13px}
+.pl-world-chat-panel header button{background:transparent;color:#eff8ff;font-size:22px;cursor:pointer;border:0}
+#worldChatStatus{padding:9px 12px;margin:0;font-size:10px;color:#9ccdb6}
+.pl-world-chat-messages{padding:12px;overflow-y:auto;overscroll-behavior:contain;flex:1 1 200px;min-height:100px;font-size:12px;line-height:1.5;color:#d6e5fa}
+.pl-world-message{border-bottom:1px solid #4755798c;padding:8px 0;overflow-wrap:anywhere}
+.pl-world-message strong{color:#ffe29f}
+.pl-world-message button{color:#eabdd3;background:transparent;border:0;font-size:9px;margin-left:8px;cursor:pointer}
+#worldChatForm{display:flex;gap:6px;flex-wrap:wrap;padding:9px;border-top:1px solid #61799b}
+#worldChatForm label{font-size:10px;color:#d7e5ff;flex-basis:100%}
+#worldChatInput{min-height:38px;background:#0b1b30;color:#e8f5ff;border:1px solid #526d92;border-radius:8px;padding:9px;flex:1;min-width:0;font:inherit;font-size:12px}
+#worldChatSend{min-height:38px;background:#c5f4b8;border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer}
+#worldChatSend:disabled{opacity:.45;cursor:not-allowed}
+.pl-online-box button:focus-visible,.pl-world-chat-dock button:focus-visible,.pl-world-chat-dock input:focus-visible,#worldRivals select:focus-visible{outline:3px solid #ffe096;outline-offset:2px}
+@media(max-width:900px){.pl-online-layout{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.pl-pvp-options{grid-template-columns:1fr}.pl-world-chat-dock{right:8px;bottom:8px}.pl-world-chat-panel{max-height:min(390px,calc(100dvh - 100px))}.pl-world-chat-toggle{padding:9px 13px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.pl-pvp-options button:hover:not(:disabled){transform:none}}
+html.pl-reduced-motion .pl-pvp-options button:hover:not(:disabled){transform:none}
