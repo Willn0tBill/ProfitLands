@@ -618,7 +618,7 @@
   function bind(){
     window.__profitBaseRender=window.render;
     window.render=renderOverride;
-    window.ProfitLandsEconomy={locationProfit:(b,l,i)=>Math.round(locationProfit(b,l,i)),businessProfit,businessValue:businessValue2,profitFactors};
+    window.ProfitLandsEconomy={locationProfit:(b,l,i,factors)=>Math.round(locationProfit(b,l,i,factors)),companyFactors:b=>businessFactors(b,profitFactors()),businessProfit,businessValue:businessValue2,profitFactors};
     window.businessDailyProfit=businessProfit;
     window.businessValue=businessValue2;
     window.totalBusinessProfit=()=>{
