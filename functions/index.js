@@ -128,11 +128,13 @@ async function getAll(){
 async function getLeaderboard(uid,period){
  if(!['day','week','all'].includes(period))err('invalid-argument','Unknown leaderboard period.');
  const all=await getAll();
+ if(!all.some(player=>player.uid===uid))err('failed-precondition','Join World 1 before viewing rankings.');
  return all.map(p=>({uid:p.uid,displayName:p.displayName,score:core.score(p,period,p.lastSettledAt)}))
   .sort((a,b)=>b.score-a.score||a.uid.localeCompare(b.uid)).slice(0,20);
 }
 async function getPlayers(uid){
  const all=await getAll();
+ if(!all.some(player=>player.uid===uid))err('failed-precondition','Join World 1 before viewing other players.');
  return all.filter(p=>p.uid!==uid).map(p=>publicRival(p)).slice(0,63);
 }
 async function togglePvP(uid){
