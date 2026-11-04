@@ -6,6 +6,18 @@
 
 ProfitLands is a browser-based financial and empire-building strategy game prototype. You start with **$1,000** and expand your empire as far as the economy can grow. **There is no final $1 trillion win condition.**
 
+## Operations location selection and capacity safety (v2.0.4)
+
+The **Operations & Supply** location picker now shows a searchable maximum of **80 matching sites**, with the current location pinned so actions cannot silently move to the wrong branch. Filtering by branch, business, district or exact location number updates only the dropdown (keeping keyboard focus), rather than rebuilding all panel controls. The same picker is shared by store operations, deliveries, IPO selections and simulated market activity. Selecting **Hire staff / Upgrade this location** opens that specific location even if it is thousands of branches deep.
+
+Saved Operations location IDs are checked for duplicates after device restore, mergers, and old counter values. Existing unique IDs and inventory are preserved; only missing or duplicate IDs are repaired.
+
+In the real-time operating-profit path, enabled stores no longer call a full-empire normalization for every location. That eliminates a significant quadratic workload for thousands of stores.
+
+Capacity handling is fail-closed: full warehouses, saturated store inventory and full delivery targets cannot charge cash for stock that would be thrown away. Rival acquisitions, international branch openings, and company mergers cannot cross the Save Center business and location count limits. Disallowed actions leave the player's money, inventory, and management actions unchanged. The affected UI buttons are disabled where capacity is known.
+
+A clean-profile Chrome test with 10,000 locations verified search for Branch 8766, exact stock targeting, branch navigation and a 390px mobile layout. Regression tests cover duplicate IDs, large location selectors, profit calculations and transaction capacity limits. These changes use the existing v4 save schema.
+
 ## Chain expansion and dialog accessibility (v2.0.3)
 
 **Chain growth no longer stops after the seven original districts are occupied.** Players can open multiple independently managed locations in any district. Repeat branches get distinct display names (for example, `Downtown · Branch 2`) and retain separate local staff, upgrades, finances and inventory. New purchases cost the same as the existing chain formula and immediately open the purchased location in management rather than closing the modal.

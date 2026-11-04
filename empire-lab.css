@@ -37,3 +37,11 @@
 .empire-lab-footnote{font-size:11px;color:#a2c8b1;line-height:1.4;margin-top:9px}
 @media(max-width:720px){.empire-lab-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.empire-lab-tabs button{padding:9px 5px;font-size:11px}.lab-role-grid{grid-template-columns:1fr}.lab-actions button{min-width:130px}.lab-cards{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.empire-lab-panel *{transition:none!important}}
+
+/* Large-empires: keep search mounted while changing the bounded option list. */
+.lab-site-picker{display:grid;gap:6px;margin:14px 0 16px;padding:12px;border:1px solid #3f6750;background:#10251b;border-radius:12px;min-width:0}
+.empire-lab-content .lab-site-picker label{display:grid;grid-template-columns:minmax(100px,145px) minmax(0,1fr);align-items:center;gap:10px;margin:2px 0}
+.lab-site-picker input[type=search],.lab-site-picker select{min-width:0;width:100%;min-height:44px;padding:9px 11px;border:1px solid #62816e;border-radius:9px;background:#0c1f17;color:#e5f4e6;font:inherit;font-size:12px}
+.lab-site-picker input[type=search]:focus-visible{outline:3px solid #bafb8a;outline-offset:2px}
+.lab-site-picker small{font-size:11px;color:#b4cdbc;line-height:1.45}
+@media(max-width:600px){.empire-lab-content .lab-site-picker label{grid-template-columns:1fr;gap:5px}.lab-site-picker{padding:10px}}

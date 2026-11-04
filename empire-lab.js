@@ -31,6 +31,7 @@ const RESEARCH=[
  {id:'customers',label:'Customer analytics',cost:4300,info:'Raises store demand 8%.'},
  {id:'automation',label:'Corporate automation',cost:6500,info:'Allows managed branches to auto-adjust prices.'}
 ];
+const MAX_STORE_STOCK=1000000,MAX_COMPANY_SITES=50000,MAX_EMPIRE_SITES=100000,MAX_COMPANIES=100;
 const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 const fmt=v=>window.ProfitLandsMoney?.format?.(v)||window.money?.(v)||'$'+Number(v).toLocaleString('en-US');
 const clean=t=>String(t??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -52,10 +53,25 @@ function ensure(){
  p.trades=Array.isArray(p.trades)?p.trades:[];
  p.publicCompanies=Array.isArray(p.publicCompanies)?p.publicCompanies:[];
  p.log=Array.isArray(p.log)?p.log:[];
- if(!Number.isFinite(p.nextId))p.nextId=1;
+ if(!Number.isSafeInteger(p.nextId)||p.nextId<1)p.nextId=1;
  window.ProfitLandsLocationOps?.normalizeAll?.();
+ // Restores and mergers may retain stale counters or duplicate IDs.
+ // Reserve all existing IDs first to avoid conflicting with a later location.
+ const seen=new Set(),reserved=new Set();
  for(const b of state.businesses||[])for(const l of b.locations||[]){
-   if(!l.labId)l.labId='site_'+p.nextId++;
+   if(typeof l.labId==='string'&&l.labId)reserved.add(l.labId);
+   const match=typeof l.labId==='string'&&/^site_(\d+)$/.exec(l.labId);
+   if(match){
+     const id=Number(match[1]);
+     if(Number.isSafeInteger(id))p.nextId=Math.max(p.nextId,id+1);
+   }
+ }
+ for(const b of state.businesses||[])for(const l of b.locations||[]){
+   if(typeof l.labId!=='string'||!l.labId||seen.has(l.labId)){
+     let id;do{id='site_'+p.nextId++}while(reserved.has(id));
+     l.labId=id;reserved.add(id);
+   }
+   seen.add(l.labId);
    if(!l.lab||typeof l.lab!=='object')l.lab={enabled:false,stock:24,price:1,roles:{sales:0,production:0,logistics:0},sold:0,autoRestock:false,autoPrice:false,region:'local'};
    const a=l.lab;
    if(!a.roles)a.roles={sales:0,production:0,logistics:0};
@@ -74,7 +90,7 @@ function allSites(){
  return a;
 }
 function chosen(){const list=allSites();return list.find(x=>x.id===currentSite)||list[0]||null}
-function selectSite(id){currentSite=typeof id==='object'?id.labId:id;currentTab='store';window.ProfitLandsWorkspace?.show?.('operations');window.ProfitLandsLayout?.open?.('empireLab');render();$('empireLab')?.scrollIntoView?.({behavior:'instant',block:'nearest'})}
+function selectSite(id){ensure();currentSite=typeof id==='object'?id.labId:id;currentTab='store';window.ProfitLandsWorkspace?.show?.('operations');window.ProfitLandsLayout?.open?.('empireLab');render();$('empireLab')?.scrollIntoView?.({behavior:'instant',block:'nearest'})}
 function have(n){return money?money.canAfford(n):game().cash>=n}
 function charge(cost,usesAction=false){
  const s=game();
@@ -110,7 +126,7 @@ function forecast(site){
 }
 function delta(b,l,revenue,runningCost){
  if(!l.lab?.enabled)return 0;
- const s={b,l};const f=forecast(s),equity=ensure().publicCompanies.find(x=>x.companyId===b.labCompanyId);
+ const s={b,l};const f=forecast(s),equity=(game()?.empireLab?.publicCompanies||[]).find(x=>x.companyId===b.labCompanyId);
  const afterEquity=equity?.8:1;
  return revenue*(f.factor*afterEquity-1)-runningCost*f.bonus;
 }
@@ -120,12 +136,13 @@ function act(action,opt={}){
  const requireSite=()=>site&&lab;
  if(action==='manage'){
    if(!site)return false;
-   window.openManage?.(site.bi);return true;
+   window.openManage?.(site.bi,site.li);return true;
  }else if(action==='enable'){
    if(!requireSite())return false;
    lab.enabled=true;ok=true;message='Store operations activated for '+site.l.name+'.';
  }else if(action==='buyStock'){
    if(!requireSite())return false;
+   if(lab.stock+qty>MAX_STORE_STOCK)return false;
    const discount=window.ProfitLandsAdvancements?.modifiers?.(site.l)?.stock||1;
    const cost=Math.round(qty*8*(p.research.includes('inventory')?.85:1)*discount);
    if(!charge(cost))return false;
@@ -152,13 +169,14 @@ function act(action,opt={}){
    p.trucks++;ok=true;message='Delivery vehicle #'+p.trucks+' added to your fleet.';
  }else if(action==='warehouseStock'){
    if(!p.warehouse)return false;
+   if(!p.warehouse||p.warehouseStock+qty>p.warehouse*1200)return false;
    const cost=Math.round(qty*7*(p.research.includes('inventory')?.85:1));if(!charge(cost))return false;
    p.warehouseStock=clamp(p.warehouseStock+qty,0,p.warehouse*1200);ok=true;message='Warehouse received '+qty+' units.';
  }else if(action==='route'){
    if(!requireSite()||!p.warehouse||!p.trucks)return false;
    p.route={siteId:site.id,auto:false};ok=true;message='Supply route linked to '+site.l.name+'.';
  }else if(action==='dispatch'){
-   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||!p.trucks||p.warehouseStock<qty)return false;
+   const target=allSites().find(x=>x.id===p.route?.siteId);if(!target||!p.trucks||p.warehouseStock<qty||target.l.lab.stock+qty>MAX_STORE_STOCK)return false;
    const fee=Math.max(1,Math.round((9+qty*.5)*(p.research.includes('routes')?.6:1)));
    if(!charge(fee))return false;
    p.warehouseStock-=qty;target.l.lab.stock+=qty;ok=true;
@@ -178,6 +196,7 @@ function act(action,opt={}){
    p.regions.push(r.id);ok=true;message=r.label+' expansion market unlocked.';
  }else if(action==='openRegion'){
    if(!requireSite()||!p.regions.includes(opt.region))return false;
+   if(site.b.locations.length>=MAX_COMPANY_SITES||allSites().length>=MAX_EMPIRE_SITES)return false;
    const r=region(opt.region),base=companyType(site.b)?.cost||500;
    const cost=Math.round(base*3*r.demand*(1+(site.b.locations.length-1)*.5));
    if(!charge(cost,true))return false;
@@ -201,7 +220,9 @@ function act(action,opt={}){
    p.publicCompanies.push({companyId:site.b.labCompanyId,companyName:site.b.name,equitySold:.2});
    ok=true;message=site.b.name+' IPO raised '+fmt(proceeds)+'; investors receive 20% of future site operating revenue.';
  }else if(action==='acquire'){
-   const rival=p.rivals.find(x=>x.id===opt.rival);if(!rival||!charge(rival.value,true))return false;
+   const rival=p.rivals.find(x=>x.id===opt.rival);
+   if(!rival||s.businesses.length>=MAX_COMPANIES||allSites().length>=MAX_EMPIRE_SITES)return false;
+   if(!charge(rival.value,true))return false;
    const btype=companyType({type:rival.type});if(!btype)return false;
    const count=s.businesses.filter(b=>b.type===rival.type).length+1;
    const acquired={type:rival.type,name:rival.name+' (Acquired)',level:1,marketing:0,efficiency:0,
@@ -215,10 +236,11 @@ function act(action,opt={}){
    const second=s.businesses[idx];
    if(!Number.isInteger(idx)||!second||second===site.b||second.type!==site.b.type)return false;
    if((p.publicCompanies||[]).some(x=>x.companyId===second.labCompanyId||x.companyId===site.b.labCompanyId))return false;
+   if(site.b.locations.length+(second.locations||[]).length>MAX_COMPANY_SITES)return false;
    const value=window.ProfitLandsEconomy?.businessValue?.(second)||companyType(second)?.cost||500;
    const fee=Math.max(100,Math.round(value*.05));
    if(!charge(fee,true))return false;
-   site.b.locations.push(...(second.locations||[]));
+   for(const location of second.locations||[])site.b.locations.push(location);
    site.b.chainCount=site.b.locations.length-1;
    site.b.financialBalance=(site.b.financialBalance||0)+(second.financialBalance||0);
    s.businesses.splice(idx,1);
@@ -268,8 +290,34 @@ function tick(now=Date.now()){
  if(now-lastSave>15000){lastSave=now;window.save?.()}
  renderStats();
 }
+const SITE_LIMIT=80;
+let siteQuery='',siteResultText='';
 function optionsSite(){
- const list=allSites();return list.length?list.map(x=>'<option value="'+clean(x.id)+'" '+(chosen()?.id===x.id?'selected':'')+'>'+clean(x.b.name)+' · '+clean(x.l.name)+'</option>').join(''):'<option value="">No businesses yet</option>';
+ const sites=allSites();
+ const selected=chosen();
+ const term=siteQuery.trim().toLocaleLowerCase();
+ const matches=term?sites.filter(x=>String(x.b.name||'').toLocaleLowerCase().includes(term)
+   ||String(x.l.name||'').toLocaleLowerCase().includes(term)
+   ||String(x.l.id||'').toLocaleLowerCase().includes(term)
+   ||String(x.li+1)===term):sites;
+ const visible=matches.slice(0,SITE_LIMIT);
+ if(selected&&!visible.some(x=>x.id===selected.id))visible.unshift(selected);
+ const pinned=Boolean(selected&&!matches.slice(0,SITE_LIMIT).some(x=>x.id===selected.id));
+ const shown=Math.min(matches.length,SITE_LIMIT);
+ siteResultText=matches.length+' matching '+(matches.length===1?'location':'locations')+
+   ' · '+shown+' result'+(shown===1?'':'s')+' shown'
+   +(pinned?' · current selection pinned':'')
+   +(matches.length>SITE_LIMIT?' · refine the search to find more':'');
+ return visible.length?visible.map(x=>'<option value="'+clean(x.id)+'" '+(selected?.id===x.id?'selected':'')+'>'+
+   clean(x.b.name)+' · '+clean(x.l.name)+'</option>').join(''):'<option value="">No locations</option>';
+}
+function siteSelector(title){
+ const opts=optionsSite();
+ return '<div class="lab-site-picker"><label for="labSiteSearch">Find a location'+
+   '<input type="search" id="labSiteSearch" value="'+clean(siteQuery)+'" '+
+   'placeholder="Business, branch or district" autocomplete="off" /></label>'+
+   '<label for="labSite">'+clean(title)+' <select id="labSite">'+opts+'</select></label>'+
+   '<small id="labSiteCount" role="status" aria-live="polite">'+clean(siteResultText)+'</small></div>';
 }
 function button(name,label,disabled=false,opt=''){
  return '<button type="button" data-lab-action="'+clean(name)+'" '+opt+' '+(disabled?'disabled':'')+'>'+label+'</button>';
@@ -282,12 +330,12 @@ function render(){
  if(currentTab==='store'){
    const b=site?.b,l=site?.l,roles=lab?.roles||{sales:0,production:0,logistics:0},assigned=Object.values(roles).reduce((a,v)=>a+amount(v),0),workers=amount(l?.workers);
    content='<h3>Store Operations</h3><p>Manage local products, staffing roles, prices, and inventory. Enable a location to activate these optional operating mechanics.</p>'+
-     '<label>Business location <select id="labSite">'+optionsSite()+'</select></label>';
+     siteSelector('Business location');
    if(!has)content+='<p>Purchase a business first to try store operations.</p>';
    else content+='<div class="lab-metrics"><span>Business <b>'+clean(b.name)+'</b></span><span>Stock <b>'+lab.stock.toFixed(1)+' units</b></span><span>Price <b>'+lab.price.toFixed(2)+'×</b></span><span>Staff assigned <b>'+assigned+'/'+workers+'</b></span></div>'+
      '<p>Products: '+products(b).map(clean).join(' · ')+'</p>'+
      (!lab.enabled?button('enable','Activate store simulation (free)'):'<p class="lab-status">Store simulation active · Inventory shortages will reduce local revenue.</p>')+
-     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),false,'data-qty="20"')+
+     '<div class="lab-actions">'+button('manage','Hire staff / Upgrade this location')+button('buyStock','Buy 20 units · '+fmt(p.research.includes('inventory')?136:160),lab.stock+20>MAX_STORE_STOCK,'data-qty="20"')+
      button('priceDown','Lower prices 5%')+button('priceUp','Raise prices 5%')+'</div>'+
      '<h4>Employee roles</h4><p>Assign your existing employees. Hire more through the location-management window. Assignments are free.</p>'+
      '<div class="lab-role-grid">'+['sales','production','logistics'].map(role=>'<div><b>'+role+'</b><span>'+amount(roles[role])+' employees</span>'+
@@ -300,22 +348,22 @@ function render(){
    content='<h3>Warehouses & Supply Lines</h3><p>Buy stock centrally and ship it to your locations. Delivery fees consume cash; researched logistics lowers the cost.</p>'+
      '<div class="lab-metrics"><span>Warehouse level <b>'+p.warehouse+'</b></span><span>Delivery vehicles <b>'+p.trucks+'</b></span><span>Warehouse stock <b>'+Math.floor(p.warehouseStock)+'</b></span><span>Route <b>'+clean(route?.l.name||'Unassigned')+'</b></span></div>'+
      '<div class="lab-actions">'+button('buyWarehouse','Build / upgrade warehouse · '+fmt(1400*2**p.warehouse),!have(1400*2**p.warehouse))+button('buyTruck','Purchase delivery vehicle · '+fmt(900*1.7**p.trucks),!p.warehouse||!have(900*1.7**p.trucks))+
-     button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse,'data-qty="50"')+'</div>'+
-     '<label>Delivery destination <select id="labSite">'+optionsSite()+'</select></label>'+
+     button('warehouseStock','Buy 50 warehouse units · '+fmt(50*7*(p.research.includes('inventory')?.85:1)),!p.warehouse||p.warehouseStock+50>p.warehouse*1200,'data-qty="50"')+'</div>'+
+     siteSelector('Delivery destination')+
      '<div class="lab-actions">'+button('route','Link selected location to warehouse',!p.warehouse||!p.trucks||!has)+
      button('dispatch','Send 10 units · pay delivery fee',!p.route||!p.trucks||p.warehouseStock<10,'data-qty="10"')+
      button('autoRoute',p.route?.auto?'Pause supply deliveries':'Auto-deliver when stock is low',!p.route)+'</div>';
  }else if(currentTab==='world'){
    content='<h3>Cities, Countries & AI Rivals</h3><p>Expand into new markets with their own rent, demand, and taxes. Rival businesses compete for customers; you can acquire them.</p>'+
      '<h4>Regional markets</h4><div class="lab-cards">'+REGIONS.map(r=>'<div class="lab-card"><strong>'+clean(r.label)+'</strong><span>Demand '+r.demand.toFixed(2)+'× · Rent '+r.rent.toFixed(2)+'× · Tax '+Math.round(r.tax*100)+'%</span>'+
-       (p.regions.includes(r.id)?button('openRegion','Open branch in this market',!has,'data-region="'+r.id+'"'):button('unlockRegion','Unlock · '+fmt(r.price),!have(r.price),'data-region="'+r.id+'"'))+'</div>').join('')+'</div>'+
-     '<h4>Rival companies (simulated AI)</h4><div class="lab-cards">'+p.rivals.map(r=>'<div class="lab-card"><strong>'+clean(r.name)+'</strong><span>Sector '+clean(r.type)+' · Market pressure '+Math.round(r.share*100)+'%</span>'+button('acquire','Acquire · '+fmt(r.value),!have(r.value),'data-rival="'+r.id+'"')+'</div>').join('')+'</div>';
+       (p.regions.includes(r.id)?button('openRegion','Open branch in this market',!has||site.b.locations.length>=MAX_COMPANY_SITES||s.businesses.reduce((n,b)=>n+(b.locations?.length||0),0)>=MAX_EMPIRE_SITES,'data-region="'+r.id+'"'):button('unlockRegion','Unlock · '+fmt(r.price),!have(r.price),'data-region="'+r.id+'"'))+'</div>').join('')+'</div>'+
+     '<h4>Rival companies (simulated AI)</h4><div class="lab-cards">'+p.rivals.map(r=>'<div class="lab-card"><strong>'+clean(r.name)+'</strong><span>Sector '+clean(r.type)+' · Market pressure '+Math.round(r.share*100)+'%</span>'+button('acquire','Acquire · '+fmt(r.value),!have(r.value)||s.businesses.length>=MAX_COMPANIES||s.businesses.reduce((n,b)=>n+(b.locations?.length||0),0)>=MAX_EMPIRE_SITES,'data-rival="'+r.id+'"')+'</div>').join('')+'</div>';
  }else if(currentTab==='hq'){
    content='<h3>Corporate HQ, Research & IPOs</h3><p>Build headquarters to unlock research and raise investment capital. An IPO exchanges 20% of future operating revenue for cash.</p>'+
      '<div class="lab-metrics"><span>HQ level <b>'+p.hq+'</b></span><span>Completed research <b>'+p.research.length+'/'+RESEARCH.length+'</b></span><span>Public companies <b>'+p.publicCompanies.length+'</b></span></div>'+
      button('buyHQ','Build / upgrade HQ · '+fmt(6000*3**p.hq),!have(6000*3**p.hq))+
      '<h4>Corporate research</h4><div class="lab-cards">'+RESEARCH.map(r=>'<div class="lab-card"><strong>'+clean(r.label)+'</strong><span>'+clean(r.info)+'</span>'+button('research',p.research.includes(r.id)?'Researched':'Research · '+fmt(r.cost),!p.hq||p.research.includes(r.id)||!have(r.cost),'data-research="'+r.id+'"')+'</div>').join('')+'</div>'+
-     '<label>Company for an IPO <select id="labSite">'+optionsSite()+'</select></label>'+
+     siteSelector('Company for an IPO')+
      button('ipo','Launch this company IPO (sell 20% of future revenue)',!p.hq||!has)+
      '<h4>Mergers</h4><p>Combine two companies in the same industry. The acquired company’s locations, staff and existing operations move into the surviving chain. A 5% integration fee and one management action apply.</p>'+
      '<label>Company to merge <select id="labMergeSource">'+s.businesses.map((x,i)=>'<option value="'+i+'">'+clean(x.name)+'</option>').join('')+'</select></label>'+
@@ -323,12 +371,19 @@ function render(){
  }else if(currentTab==='market'){
    content='<h3>Shared Market Concept Demo</h3><p><strong>Offline simulation only.</strong> No other players are connected, no real-world payments occur, and these orders only change your local empire. This previews what a server-backed multiplayer market might feel like.</p>'+
      '<div class="lab-metrics"><span>Reputation <b>'+p.reputation+'</b></span><span>Simulated transactions <b>'+p.trades.length+'</b></span><span>Demo participants <b>4 AI firms</b></span></div>'+
-     '<label>Sell stock from <select id="labSite">'+optionsSite()+'</select></label>'+
+     siteSelector('Sell stock from')+
      button('marketSell','List & simulate a sale of 5 product units',!has||!(lab?.stock>=5),'data-qty="5"')+
      '<h4>Recent simulated trades</h4><div class="lab-events">'+(p.trades.length?p.trades.slice(-8).reverse().map(x=>'<p>'+clean(x.site)+' · '+x.qty+' units · '+fmt(x.proceeds)+' · SIMULATED</p>').join(''):'<p>No simulated transactions yet.</p>')+'</div>';
  }
  box.innerHTML=content;
  box.querySelector('#labSite')?.addEventListener('change',e=>{currentSite=e.target.value;render()});
+ box.querySelector('#labSiteSearch')?.addEventListener('input',e=>{
+   siteQuery=String(e.target.value||'').slice(0,120);
+   const select=box.querySelector('#labSite');
+   if(select)select.innerHTML=optionsSite();
+   const note=box.querySelector('#labSiteCount');
+   if(note)note.textContent=siteResultText;
+ });
  renderStats();
 }
 function renderStats(){
