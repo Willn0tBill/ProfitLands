@@ -10,7 +10,8 @@ const css=fs.readFileSync(path.join(root,'city-contracts.css'),'utf8');
 
 function setup({
  businesses=[],day=1,playType='single',started=true,active=true,
- existing=null,grantFails=false,withMoney=true,assets=true
+ existing=null,grantFails=false,withMoney=true,assets=true,
+ rewardAt=0,catalog=['coffee','restaurant','gamestore','hotel','dealership','factory','software','logistics']
 }={}){
  const ids=new Map(),intervals=[],events={},docEvents={},audit={saves:0,renders:0,toasts:[],gains:0,shown:[]};
  function element(tag='div'){
@@ -44,10 +45,11 @@ function setup({
  city.closest=selector=>selector==='.pl-workspace-view'?view:null;
  const district=element('section');district.id='plDistrictBoard';
  const game=element('section');game.id='gameScreen';if(active)game.classList.add('active');
- const state={started,playType,day,cash:1000,businesses:businesses.map(b=>({...b})),news:[]};
+ const state={started,playType,day,cash:1000,businesses:businesses.map(b=>({...b})),news:[],cityContractLastRewardAt:rewardAt};
  if(existing)state.cityContract=structuredClone(existing);
  const win={
   state,
+  ProfitLandsBusinessTypes:catalog.map(id=>({id})),
   ProfitLandsWorkspace:{show:id=>audit.shown.push(id)},
   addEventListener:(key,fn)=>{events[key]=fn},
   setInterval:fn=>{intervals.push(fn);return intervals.length},
@@ -103,6 +105,8 @@ test('contracts require post-acceptance gameplay and reject double collection',(
  assert.equal(h.api.accept('open'),true);
  assert.equal(h.api.claim(),false,'starting a contract must never instantly pay');
  h.state.businesses.push(...coffee());
+ assert.equal(h.api.progressFor(h.state).complete,false,'portfolio changes alone do not count');
+ assert.equal(h.api.recordAction('open'),true);
  h.api.refresh();
  assert.equal(h.ids.get('plContractState').textContent,'READY TO COLLECT');
  assert.equal(h.ids.get('plContractProgress').attributes['aria-valuenow'],'1');
@@ -124,6 +128,8 @@ test('upgrades and marketing pay only for the real action after accepting',()=>{
  assert.equal(upgrade.api.accept('upgrade'),true);
  assert.equal(upgrade.api.claim(),false);
  upgrade.state.businesses[0].level=2;
+ assert.equal(upgrade.api.progressFor(upgrade.state).complete,false);
+ assert.equal(upgrade.api.recordAction('upgrade'),true);
  assert.equal(upgrade.api.progressFor(upgrade.state).complete,true);
  assert.equal(upgrade.api.claim(),true);
  assert.equal(upgrade.audit.gains,90);
@@ -131,6 +137,7 @@ test('upgrades and marketing pay only for the real action after accepting',()=>{
  assert.ok(marketing.api.offersFor(marketing.state).some(x=>x.id==='promote'));
  assert.equal(marketing.api.accept('promote'),true);
  marketing.state.businesses[0].marketing=1;
+ assert.equal(marketing.api.recordAction('promote'),true);
  assert.equal(marketing.api.claim(),true);
  assert.equal(marketing.audit.gains,55);
 });
@@ -141,6 +148,8 @@ test('expansion tracks real chainCount changes and routes to Operations',()=>{
  h.ids.get('plContractGo').click();
  assert.deepEqual(h.audit.shown,['operations']);
  h.state.businesses[0].chainCount=1;
+ assert.equal(h.api.progressFor(h.state).complete,false);
+ assert.equal(h.api.recordAction('expand'),true);
  assert.equal(h.api.progressFor(h.state).complete,true);
  assert.equal(h.api.claim(),true);
  assert.equal(h.audit.gains,125);
@@ -230,10 +239,71 @@ test('new empires clear old contract markers and assets load in the actual play 
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.ok(html.indexOf('city-contracts.css')>html.indexOf('district-development.css'));
  assert.ok(html.indexOf('city-contracts.js')>html.indexOf('district-development.js'));
- assert.match(html,/city-contracts\.css\?v=contracts01/);
- assert.match(html,/city-contracts\.js\?v=contracts01/);
+ assert.match(html,/city-contracts\.css\?v=contracts02/);
+ assert.match(html,/city-contracts\.js\?v=contracts02/);
+ const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+ assert.match(economy,/state\.cityContract=null;state\.cityContractLastRewardAt=0;/);
  assert.match(css,/\[hidden\]/);
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/pl-reduced-motion/);
  assert.match(css,/pl-online-world/);
+});
+
+
+test('location-based marketing and upgrades use actual purchased actions and survive migration',()=>{
+ const companies=[{type:'coffee',level:6,marketing:3,chainCount:1,locationManagementVersion:1,
+  locations:[{id:'downtown',level:6,marketing:3},{id:'tech',level:2,marketing:2}]}];
+ const h=setup({businesses:companies,day:1});
+ assert.equal(h.api.snapshot(h.state).levels,8);
+ assert.equal(h.api.snapshot(h.state).marketing,5);
+ assert.equal(h.api.snapshot(h.state).locations,1);
+ assert.equal(h.api.accept('upgrade'),true);
+ // Legacy b.level changing or reconstituting locations cannot finish a new job.
+ h.state.businesses[0].level=20;
+ assert.equal(h.api.progressFor(h.state).complete,false);
+ assert.equal(h.api.recordAction('promote'),false);
+ h.state.businesses[0].locations[1].level++;
+ assert.equal(h.api.recordAction('upgrade'),true);
+ assert.equal(h.api.claim(),true);
+ assert.equal(h.state.cash,1090);
+});
+test('last paid contract imposes a real-time cooldown across day speeds',()=>{
+ const h=setup({day:7,businesses:coffee(),rewardAt:Date.now()-40000});
+ assert.ok(h.api.cooldownMs(h.state)>13*60000);
+ assert.deepEqual(Array.from(h.api.offersFor(h.state)),[]);
+ assert.equal(h.api.accept('upgrade'),false);
+ assert.equal(h.ids.get('plContractOffers').children.filter(b=>!b.hidden).length,0);
+ assert.match(h.ids.get('plContractOfferStatus').textContent,/Contracts refresh/);
+ h.state.cityContractLastRewardAt=Date.now()-16*60000;
+ h.api.refresh();
+ assert.equal(h.api.cooldownMs(h.state),0);
+ assert.ok(h.api.offersFor(h.state).length>0);
+});
+test('cannot accept impossible new-industry jobs after owning all available types',()=>{
+ const types=['coffee','restaurant','gamestore','hotel','dealership','factory','software','logistics'];
+ const h=setup({businesses:types.map(type=>({type,level:2,marketing:0,chainCount:0})),catalog:types});
+ const ids=h.api.offersFor(h.state).map(x=>x.id);
+ assert.equal(ids.includes('open'),false);
+ assert.ok(ids.every(id=>['upgrade','promote','expand'].includes(id)));
+ assert.equal(h.api.accept('open'),false);
+});
+test('claimed contracts store reward timestamp and no second payout after page reload',()=>{
+ const h=setup();
+ assert.equal(h.api.accept('open'),true);
+ h.state.businesses.push(...coffee());
+ h.api.recordAction('open');
+ assert.equal(h.api.claim(),true);
+ const saved=structuredClone(h.state.cityContract),last=h.state.cityContractLastRewardAt;
+ assert.ok(last>Date.now()-2000);
+ const reload=setup({day:1,businesses:coffee(),existing:saved,rewardAt:last});
+ assert.equal(reload.api.claim(),false);
+ assert.deepEqual(Array.from(reload.api.offersFor(reload.state)),[]);
+ assert.ok(reload.api.cooldownMs(reload.state)>0);
+});
+test('failed reward transfer does not leave a cash cooldown marker',()=>{
+ const h=setup({existing:{day:1,kind:'open',status:'accepted',
+  baseline:{shops:0,levels:0,marketing:0,locations:0}},
+  businesses:coffee(1),grantFails:true});
+ assert.equal(h.api.claim(),false);
+ assert.equal(h.state.cityContractLastRewardAt,0);
 });
