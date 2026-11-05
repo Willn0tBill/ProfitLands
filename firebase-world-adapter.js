@@ -7,6 +7,8 @@
 'use strict';
 let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,epoch=0;
 const pendingMutations=new Map();
+let lastProbeAt=0,lastProbeResult=false,probeInFlight=null;
+const PROBE_TTL_MS=15000;
 const playing=()=>window.state?.playType==='multi'&&
  Boolean(document.getElementById('gameScreen')?.classList.contains('active'));
 const currentUser=()=>{
@@ -26,6 +28,25 @@ const endpoint=()=>{
 function ready(){return Boolean(endpoint()&&typeof fetch==='function')}
 function emit(){
  if(typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('profitlands:serverupdate'));
+}
+/* A configured URL is not proof the Worker is deployed: Cloudflare's default
+ * "Hello World!" responds 200 but is not a usable multiplayer backend.
+ * Health never requires or sends a Firebase account token.
+ */
+async function probe(force=false){
+ if(!ready())return false;
+ if(probeInFlight)return probeInFlight;
+ if(!force&&lastProbeAt&&Date.now()-lastProbeAt<PROBE_TTL_MS)return lastProbeResult;
+ probeInFlight=(async()=>{
+  try{
+   const result=await call('health');
+   lastProbeResult=result?.ok===true&&result.worldId==='world1'&&Array.isArray(result.catalog);
+  }catch(error){lastProbeResult=false}
+  finally{lastProbeAt=Date.now()}
+  return lastProbeResult;
+ })();
+ try{return await probeInFlight}
+ finally{probeInFlight=null}
 }
 async function call(action,data={}){
  const origin=endpoint();
@@ -72,7 +93,8 @@ async function connect(){
    if(!signed)throw Error('Please sign in from the homepage or account menu first.');
    if(!playing())throw Error('Open Multiplayer before connecting to World 1.');
    const health=await call('health');
-   if(!health?.ok||health.worldId!=='world1')throw Error('The Cloudflare server is not serving World 1.');
+   if(!health?.ok||health.worldId!=='world1'||!Array.isArray(health.catalog))throw Error('The Cloudflare server is not serving World 1.');
+   lastProbeResult=true;lastProbeAt=Date.now();
    const result=await call('register');
    if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned the wrong player identity.');
    if(epoch!==token||currentUser()?.uid!==signed.uid||!playing())
@@ -131,7 +153,7 @@ async function paid(action,data={}){
  }
 }
 window.ProfitLandsOnline={
- connect,disconnect,isConnected:()=>connected&&playing()&&user?.uid===currentUser()?.uid,
+ connect,disconnect,probe,isConnected:()=>connected&&playing()&&user?.uid===currentUser()?.uid,
  isConfigured:ready,endpoint,chatEnabled:()=>chatEnabled,getCatalog:()=>catalog.slice(),
  getMyEmpire:()=>request('me'),
  getLeaderboard:period=>request('getLeaderboard',{period}),
