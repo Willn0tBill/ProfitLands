@@ -132,3 +132,14 @@ html.pl-reduced-motion #gameScreen .pl-contract-board *::after{
  animation:none!important;transition:none!important;
 }
 body.pl-online-world #gameScreen .pl-contract-board{display:none!important}
+
+/* Do not display empty offers when a reward cooldown is active. */
+#gameScreen .pl-contract-offer-status{
+ margin:0;padding:10px 12px;border:1px solid #657976;
+ border-radius:4px;background:#192e34;color:#d9c9a7;
+ font:600 11px/1.45 Arial,Helvetica,sans-serif;
+}
+#gameScreen .pl-contract-offer-status[hidden]{display:none!important}
+#gameScreen .pl-contract-board .pl-contract-offer:disabled{
+ opacity:.55;cursor:not-allowed;
+}
