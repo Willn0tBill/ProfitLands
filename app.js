@@ -43,6 +43,7 @@ const BUSINESS_TYPES=[
 {id:'software',name:'Software Company',icon:'💻',cost:2500000,baseRevenue:196733,baseExpense:170000,volatility:.45,desc:'High-growth technology company with high demand volatility.'},
 {id:'logistics',name:'Logistics Company',icon:'📦',cost:10000000,baseRevenue:1283757,baseExpense:770000,volatility:.24,desc:'Moves goods across ProfitLands and benefits from strong commerce.'}
 ];
+window.ProfitLandsBusinessTypes=BUSINESS_TYPES.map(t=>({id:t.id,cost:t.cost,name:t.name}));
 const state={mode:'standard',playType:'single',difficulty:'executive',country:'us',fiscal:{year:1,nextTaxDay:366,taxableProfit:0,lastBill:0,totalTaxPaid:0},day:1,cash:1000,stocks:{},businesses:[],property:0,actions:60,actionCapacityVersion:0,timeLeft:900,news:[],trend:null,started:false,lastDayProfit:0,bankrupt:false};
 let timerHandle=null;
 let dayEnding=false;
