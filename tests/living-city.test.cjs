@@ -189,8 +189,8 @@ test('the live city is part of the actual game and retains reduced-motion and of
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.ok(html.indexOf('living-city.css')>html.indexOf('game-feedback-v4.css'));
  assert.ok(html.indexOf('living-city.js')>html.indexOf('game-feedback-v4.js'));
- assert.match(html,/living-city\.css\?v=city01/);
- assert.match(html,/living-city\.js\?v=city01/);
+ assert.match(html,/living-city\.css\?v=city02/);
+ assert.match(html,/living-city\.js\?v=city02/);
  for(const key of ['plCityTraffic','plCityMoney','plCityBuild','plCityCloud','plCityConveyor',
   'pl-city-profit-particle','pl-city-ticker','pl-city-live-dot']){
   if(key==='plCityTraffic'||key==='plCityMoney'||key==='plCityBuild'||key==='plCityCloud'||key==='plCityConveyor')
@@ -268,4 +268,18 @@ test('handcrafted art uses legible signage, pedestrians and reduced-motion guard
  assert.match(css,/pl-city-building:not\(\.pl-city-building-ghost\):focus-visible/);
  assert.match(css,/html\.pl-reduced-motion/);
  assert.doesNotMatch(script,/localStorage\.setItem|state\.businesses\s*=|fetch\(/);
+});
+
+
+test('the handcrafted theme loads after the city and removes generic neon chrome',()=>{
+ const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
+ const theme=fs.readFileSync(path.join(root,'district-theme.css'),'utf8');
+ assert.ok(html.indexOf('district-theme.css')>html.indexOf('living-city.css'));
+ assert.match(html,/district-theme\.css\?v=handcrafted01/);
+ for(const rule of ['.pl-workspace-sidebar','.pl-workspace-section-head','.pl-workspace-nav-item.active',
+  '.pl-workspace-panels .business-card','.pl-workspace-hud .game-hud .stat']){
+   assert.ok(theme.includes(rule),rule);
+ }
+ assert.match(theme,/painted-teal|painted teal|handcrafted/i);
+ assert.doesNotMatch(theme,/url\(['"]?https?:/i,'no external visual dependencies');
 });
