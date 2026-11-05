@@ -46,7 +46,7 @@ function offersFor(s){
  const companies=Array.isArray(s?.businesses)?s.businesses:[];
  if(cooldownMs(s)>0)return [];
  const owned=new Set(companies.map(c=>c?.type));
- const types=Array.isArray(window.BUSINESS_TYPES)?window.BUSINESS_TYPES:[];
+ const types=Array.isArray(window.ProfitLandsBusinessTypes)?window.ProfitLandsBusinessTypes:[];
  const openPossible=types.length===0||types.some(t=>!owned.has(t.id));
  const branches=companies.reduce((sum,b)=>sum+
   (Array.isArray(b?.locations)&&b.locations.length?b.locations.length:1),0);
