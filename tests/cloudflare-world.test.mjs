@@ -112,7 +112,30 @@ test('public health works without user identity but protected actions need signe
  assert.equal(noAuth.status,401);assert.equal(noAuth.body.error.code,'unauthenticated');
  const forged=await post(db,'register','user-one',{}, {authorization:'Bearer forged'});
  assert.equal(forged.status,401);
- assert.equal(db.reads,0,'unauthenticated calls never access D1');
+ assert.equal(db.reads,1,'only the public health probe reads D1; unauthenticated calls cannot access player records');
+});
+test('Cloudflare site is an authorized frontend origin and unrelated sites are rejected',async()=>{
+ const db=dbMock();
+ const origin='https://profitlands.winotbill.workers.dev';
+ const ok=await post(db,'health',null,{}, {origin});
+ assert.equal(ok.status,200);
+ assert.equal(ok.headers.get('Access-Control-Allow-Origin'),origin);
+ assert.equal(ok.body.worldId,'world1');
+ const rejected=await post(db,'health',null,{}, {origin:'https://other.example'});
+ assert.equal(rejected.status,403);
+ assert.equal(rejected.headers.get('Access-Control-Allow-Origin'),null);
+ const preflight=await worker.fetch(new Request(base+'/api',{method:'OPTIONS',headers:{Origin:origin,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}}),{DB:db});
+ assert.equal(preflight.status,204);
+ assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),origin);
+});
+test('health remains unavailable until the D1 binding and schema are ready',async()=>{
+ const noDb=await worker.fetch(new Request(base+'/health',{method:'GET',headers:{Origin:'https://profitlands.winotbill.workers.dev'}}),{});
+ assert.equal(noDb.status,503);
+ assert.equal((await noDb.json()).error.code,'unavailable');
+ const missingTable={prepare(){return {bind(){return this},async first(){throw Error('no such table world_state')}}}};
+ const noSchema=await worker.fetch(new Request(base+'/health',{method:'GET'}),{DB:missingTable});
+ assert.equal(noSchema.status,503);
+ assert.equal((await noSchema.json()).error.code,'unavailable');
 });
 test('World 1 persists a registered player, keeps local client cash out and buys with canonical costs',async()=>{
  const db=dbMock();
