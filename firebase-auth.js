@@ -145,7 +145,7 @@
     const saved=window.profitlandsLastCloudSave;
     const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
-    const hasProgress=st=>!!st&&(st.started===true||Number(st.day)>1||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
+    const hasProgress=st=>!!st&&(st.started===true||Number(st.day)>1||Number(st.cash)!==1000||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
     const owner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
     const safeLocal=owner&&owner!==currentUser?.uid?null:localState;
     const data=saved?.hasSave?saved:(hasProgress(safeLocal)?{...safeLocal,hasSave:true,localOnly:true}:null);
