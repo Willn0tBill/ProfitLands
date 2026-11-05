@@ -1,0 +1,136 @@
+/* ProfitLands game motion v2 — compositor-friendly transitions only.
+   Follows system/user reduced motion and retains usable controls without JS. */
+:root{
+ --pl-motion-fast:150ms;
+ --pl-motion-standard:250ms;
+ --pl-motion-ease:cubic-bezier(.22,.82,.24,1);
+ --pl-motion-ease-soft:cubic-bezier(.16,1,.3,1);
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item{
+ position:relative;
+ transition:transform var(--pl-motion-fast) var(--pl-motion-ease),
+  background-color var(--pl-motion-fast) ease,border-color var(--pl-motion-fast) ease,
+  box-shadow var(--pl-motion-standard) ease!important;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item:before{
+ content:"";position:absolute;left:0;top:15%;bottom:15%;width:3px;
+ border-radius:5px;background:linear-gradient(#fff2ad,#95f6c7);
+ opacity:0;transform:scaleY(.25);transform-origin:center;
+ transition:transform 220ms var(--pl-motion-ease-soft),opacity 180ms ease;
+ pointer-events:none;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item.active:before{
+ opacity:1;transform:scaleY(1);
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-index,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-indicator{
+ transition:transform 200ms var(--pl-motion-ease),background-color 200ms,color 200ms,opacity 200ms;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item:hover .pl-workspace-nav-indicator,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-indicator{
+ transform:translateX(3px);
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-index{
+ transform:scale(1.04);
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-section-title,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-section-description,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-context{
+ transition:color 200ms ease,border-color 200ms ease,background-color 200ms ease;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-panels button:not(:disabled),
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-sidebar-actions button:not(:disabled),
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-game-step{
+ transition:transform 170ms var(--pl-motion-ease),border-color 180ms ease,
+  box-shadow 230ms ease,filter 180ms ease,background-color 180ms ease!important;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-panels button:active:not(:disabled),
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-sidebar-actions button:active:not(:disabled){
+ transform:scale(.975);
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-panels .business-card,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-panels .stock,
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-workspace-panels .action-button{
+ transition:transform 200ms var(--pl-motion-ease),border-color 180ms ease,
+  box-shadow 220ms ease,background-color 180ms ease!important;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]){
+ animation:plSmoothView 250ms var(--pl-motion-ease) both;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]) .pl-workspace-panels>.panel{
+ animation:plSmoothPanel 310ms var(--pl-motion-ease-soft) both!important;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]) .pl-workspace-panels>.panel:nth-child(2){
+ animation-delay:40ms!important;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]) .pl-workspace-panels>.panel:nth-child(3){
+ animation-delay:70ms!important;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]) .business-list>.business-card:nth-child(-n+6){
+ animation:plSmoothCard 310ms var(--pl-motion-ease-soft) both;
+}
+html.pl-motion-v2:not(.pl-motion-lite) body.pl-play-page
+#gameScreen .pl-workspace-view.pl-motion-enter.active:not([hidden]) .business-list>.business-card:nth-child(2n){
+ animation-delay:35ms;
+}
+html.pl-motion-v2 body.pl-play-page #gameScreen .pl-motion-value{
+ animation:plSmoothNumber 260ms var(--pl-motion-ease) both;
+}
+html.pl-motion-v2 body.pl-play-page .modal:not(.hidden){
+ animation:plSmoothBackdrop 190ms ease-out both;
+}
+html.pl-motion-v2 body.pl-play-page .modal:not(.hidden) .modal-card{
+ animation:plSmoothDialog 250ms var(--pl-motion-ease-soft) both!important;
+}
+html.pl-motion-v2 body.pl-play-page .modal:not(.hidden) .modal-card button:not(:disabled){
+ transition:transform 170ms var(--pl-motion-ease),filter 180ms ease,border-color 180ms ease;
+}
+html.pl-motion-v2 body.pl-play-page .modal:not(.hidden) .modal-card button:active:not(:disabled){
+ transform:scale(.98);
+}
+@keyframes plSmoothView{
+ from{opacity:.72;transform:translateY(6px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes plSmoothPanel{
+ from{opacity:.58;transform:translateY(9px) scale(.995)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes plSmoothCard{
+ from{opacity:.55;transform:translateY(6px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes plSmoothNumber{
+ from{opacity:.65;transform:translateY(4px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes plSmoothBackdrop{from{opacity:0}to{opacity:1}}
+@keyframes plSmoothDialog{
+ from{opacity:.7;transform:translateY(13px) scale(.985)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+/* Low-end and battery-constrained devices retain quick tactile feedback,
+   but skip the staggered panel/card entrances. */
+html.pl-motion-v2.pl-motion-lite body.pl-play-page #gameScreen .pl-motion-value{animation:none}
+html.pl-motion-v2.pl-motion-lite body.pl-play-page .modal:not(.hidden) .modal-card{
+ animation:plSmoothBackdrop 130ms ease-out both!important;
+}
+/* Respect both the browser setting and the explicit in-game preference.
+   Disabling motion wins over high-performance styles and !important legacy rules. */
+@media(prefers-reduced-motion:reduce){
+ html.pl-motion-v2 body.pl-play-page *,
+ html.pl-motion-v2 body.pl-play-page *:before,
+ html.pl-motion-v2 body.pl-play-page *:after{
+  animation:none!important;transition:none!important;scroll-behavior:auto!important;
+ }
+}
+html.pl-reduced-motion.pl-motion-v2 body.pl-play-page *,
+html.pl-reduced-motion.pl-motion-v2 body.pl-play-page *:before,
+html.pl-reduced-motion.pl-motion-v2 body.pl-play-page *:after{
+ animation:none!important;transition:none!important;scroll-behavior:auto!important;
+}
