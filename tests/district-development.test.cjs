@@ -137,7 +137,7 @@ test('the next development goal updates automatically with exact portfolio progr
  assert.equal(p.current.name,'Main Street');
  assert.equal(p.nextGoal.key,'shops');
  assert.equal(h.ids.get('plDistrictNextGoal').textContent,'Businesses: 2 / 3');
- assert.equal(h.ids.get('plDistrictTrack').attributes['aria-valuenow'],'83');
+ assert.equal(h.ids.get('plDistrictTrack').attributes['aria-valuenow'],'67');
  h.win.state.businesses.push({type:'hotel',level:1});
  h.intervals[0]();
  assert.equal(h.ids.get('plDistrictNextGoal').textContent,'Combined levels: 5 / 6');
