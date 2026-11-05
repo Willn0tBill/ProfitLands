@@ -10,7 +10,7 @@ const SAVE_KEY='profitlands-v2',OWNER_KEY='profitlands-local-owner';
 const clean=s=>String(s||'').trim().replace(/\s+/g,' ');
 const formatDay=s=>Math.max(1,Math.floor(Number(s?.day)||1));
 const hasSave=s=>!!(s&&typeof s==='object'&&(
- s.started===true||Number(s.day)>1||
+ s.started===true||Number(s.day)>1||Number(s.cash)!==1000||
  Array.isArray(s.businesses)&&s.businesses.length>0||
  Number(s.property)>0||Object.values(s.stocks||{}).some(x=>Number(x?.shares)>0)
 ));
@@ -138,6 +138,7 @@ async function onSubmit(event){
    const result=await firebaseAuth.createUserWithEmailAndPassword(email,password);
    await firestore.collection('users').doc(result.user.uid).set({playerName:player,companyName:company},{merge:true});
    window.profitlandsHomeProfile={playerName:player,companyName:company};
+   refresh();
   }else{
    await firebaseAuth.signInWithEmailAndPassword(email,password);
   }
