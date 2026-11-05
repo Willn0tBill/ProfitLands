@@ -1,0 +1,107 @@
+/* ProfitLands feedback v4 — visible, bounded effects for actual gameplay actions.
+   All effects are decorative. Never affects controls, values or game state. */
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt{
+ position:fixed;right:clamp(12px,2.2vw,28px);top:clamp(72px,10vh,110px);
+ z-index:30030;pointer-events:none;isolation:isolate;
+ width:min(348px,calc(100vw - 24px));min-height:84px;
+ display:flex;gap:14px;align-items:center;
+ padding:15px 17px 18px;
+ border:1px solid #a7f7c887;border-radius:17px;
+ background:linear-gradient(115deg,#203047f5,#172d33f7 52%,#1d3b35f7);
+ box-shadow:0 18px 46px #070b1fb8,0 0 0 1px #f9efa312,inset 0 1px #ffffff2e;
+ color:#f4fff6;
+ animation:plReceiptEnter 420ms cubic-bezier(.16,1,.3,1) both;
+ overflow:hidden;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt-symbol{
+ width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;
+ border-radius:13px;background:linear-gradient(140deg,#c9fb8b,#78e8c0);
+ color:#10291e;font-size:24px;font-weight:950;
+ box-shadow:0 0 22px #b9f8a93e,inset 0 1px #fff9;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt-copy{
+ display:flex;flex-direction:column;gap:5px;min-width:0;
+ font:inherit;line-height:1.3;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt-copy strong{
+ font-size:10px;font-weight:900;letter-spacing:.13em;color:#bbfdb6;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt-copy>span{
+ font-size:13px;font-weight:750;color:#f2fbff;overflow-wrap:anywhere;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt-track{
+ position:absolute;left:0;bottom:0;width:100%;height:4px;
+ border-radius:0 0 17px 17px;background:linear-gradient(90deg,#c4fe9b,#72e8ce,#ffe39a);
+ box-shadow:0 0 17px #b9ffd267;transform-origin:left center;
+ animation:plReceiptTime 2700ms linear both;
+}
+html.pl-motion-v4 body.pl-play-page .pl-action-receipt.pl-action-receipt-out{
+ animation:plReceiptExit 240ms ease-in both!important;
+}
+html.pl-motion-v4 body.pl-play-page #gameScreen .pl-workspace-section-head.pl-action-done{
+ animation:plActionHeaderGlow 600ms ease-out both;
+}
+html.pl-motion-v4 body.pl-play-page #gameScreen #businessList .business-card{
+ position:relative;
+}
+html.pl-motion-v4:not(.pl-motion-lite) body.pl-play-page #gameScreen #businessList .business-card::after{
+ content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ background:radial-gradient(circle 175px at var(--pl-spot-x,50%) var(--pl-spot-y,50%),
+   #c5ffc01c 0%,#b3ffde16 28%,transparent 85%);
+ opacity:0;transition:opacity 200ms ease;z-index:1;
+}
+html.pl-motion-v4:not(.pl-motion-lite) body.pl-play-page #gameScreen #businessList .business-card:hover::after,
+html.pl-motion-v4:not(.pl-motion-lite) body.pl-play-page #gameScreen #businessList .business-card:focus-visible::after{
+ opacity:1;
+}
+html.pl-motion-v4 body.pl-play-page #gameScreen .pl-workspace-hud .stat.pl-gain-flash{
+ box-shadow:0 0 0 1px #a9fdba66,0 0 23px #aaf99a37,inset 0 1px #ffffff22!important;
+}
+@keyframes plReceiptEnter{
+ 0%{opacity:0;transform:translate3d(28px,-9px,0) scale(.95)}
+ 75%{opacity:1}
+ 100%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes plReceiptExit{
+ 0%{opacity:1;transform:translate3d(0,0,0)}
+ 100%{opacity:0;transform:translate3d(19px,-4px,0)}
+}
+@keyframes plReceiptTime{
+ from{transform:scaleX(1)}to{transform:scaleX(0)}
+}
+@keyframes plActionHeaderGlow{
+ 0%{filter:brightness(1);border-color:#89d5dd88}
+ 38%{filter:brightness(1.25);border-color:#d5ffaa}
+ 100%{filter:brightness(1);border-color:#89d5dd88}
+}
+html.pl-motion-v4.pl-motion-lite body.pl-play-page .pl-action-receipt{
+ background:#172e2d;box-shadow:0 9px 24px #0008;
+ animation-duration:260ms;backdrop-filter:none;
+}
+html.pl-motion-v4.pl-motion-lite body.pl-play-page #gameScreen .pl-workspace-section-head.pl-action-done{
+ animation:none;
+}
+@media(max-width:620px){
+ html.pl-motion-v4 body.pl-play-page .pl-action-receipt{
+  top:68px;right:10px;width:min(310px,calc(100vw - 20px));
+  padding:12px 14px 15px;min-height:70px;
+ }
+ html.pl-motion-v4 body.pl-play-page .pl-action-receipt-symbol{
+  width:36px;height:36px;flex-basis:36px;font-size:20px;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ html.pl-motion-v4 body.pl-play-page .pl-action-receipt,
+ html.pl-motion-v4 body.pl-play-page .pl-action-receipt *,
+ html.pl-motion-v4 body.pl-play-page #gameScreen #businessList .business-card::after,
+ html.pl-motion-v4 body.pl-play-page #gameScreen .pl-workspace-section-head.pl-action-done{
+  animation:none!important;transition:none!important;
+ }
+ html.pl-motion-v4 body.pl-play-page #gameScreen #businessList .business-card::after{display:none}
+}
+html.pl-reduced-motion.pl-motion-v4 body.pl-play-page .pl-action-receipt,
+html.pl-reduced-motion.pl-motion-v4 body.pl-play-page .pl-action-receipt *,
+html.pl-reduced-motion.pl-motion-v4 body.pl-play-page #gameScreen .pl-workspace-section-head.pl-action-done{
+ animation:none!important;transition:none!important;
+}
+html.pl-reduced-motion.pl-motion-v4 body.pl-play-page #gameScreen #businessList .business-card::after{display:none}
