@@ -83,7 +83,7 @@ body.pl-home-page .pl-header-link:focus-visible{outline:3px solid #efdbac;outlin
 .home-lower-links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:22px}
 .home-lower-links a{font:750 12px Arial,Helvetica,sans-serif;color:#cfbb94;text-decoration:none;border-bottom:1px solid #b9a580;padding:4px 0}
 body.pl-home-page .pl-home-footer{margin-top:23px;color:#9bafa8;border-color:#436166;font-size:11px}
-.home-auth-dialog[hidden]{display:none!important}
+.home-auth-dialog[hidden],#homeAuthReset[hidden],#homeAuthSignupFields[hidden]{display:none!important}
 .home-auth-dialog{
  position:fixed;inset:0;z-index:50000;overflow-y:auto;
  display:grid;place-items:center;padding:20px 10px;
