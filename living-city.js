@@ -35,7 +35,7 @@ function modelFor(state){
   totalLevels:all.reduce((sum,b)=>sum+(nonnegativeInt(b?.level,1)||1),0)};
 }
 function signature(model){
- return [model.count,model.buildings.map(b=>[b.kind,b.height,b.level,b.locations].join('-')).join('|')].join(':');
+ return [model.count,model.buildings.map(b=>[b.kind,b.icon,b.height,b.level,b.locations].join('-')).join('|')].join(':');
 }
 function make(tag,className,text){
  const el=document.createElement(tag);
