@@ -147,3 +147,69 @@ body.pl-home-page .pl-home-footer{margin-top:23px;color:#8996a5;border-color:#27
 @media(prefers-reduced-motion:reduce){
  .home-auth-dialog *,.home-command-hero *{animation:none!important;transition:none!important}
 }
+
+/* Original-color polish: cleaner hierarchy without bringing back sand/teal.
+ * Cosmetic only; preserves launcher, save detection and account controls. */
+body.pl-home-page .home-command-hero{
+ border-color:#334d43;border-radius:22px;
+ background:radial-gradient(circle at 81% 25%,#55d69a16,transparent 35%),
+  radial-gradient(circle at 22% -30%,#aef45f12,transparent 42%),
+  linear-gradient(125deg,#19222c 0%,#111720 65%,#121b22 100%);
+ box-shadow:0 18px 48px #05090f99,inset 0 1px #e8fff112;
+}
+body.pl-home-page .home-mark{
+ border-radius:19px;transform:rotate(3deg);
+ box-shadow:0 15px 35px #01070b66,0 0 27px #aef45f20;
+}
+body.pl-home-page .home-launch-card,
+body.pl-home-page .home-account-card{
+ border:1px solid #303e42;border-radius:18px;
+ background:linear-gradient(145deg,#171f28,#11161d);
+ box-shadow:0 10px 32px #05070b7a,inset 0 1px #ffffff09;
+}
+body.pl-home-page .home-gameplay article{
+ border-radius:14px;border-color:#2c3b3e;
+ background:linear-gradient(160deg,#141c24,#10171d);
+ transition:transform .18s ease,border-color .18s ease;
+}
+body.pl-home-page .home-gameplay article:hover{
+ transform:translateY(-2px);border-color:#5c8f6a;
+}
+body.pl-home-page .home-continue,
+body.pl-home-page .home-new{
+ border-radius:12px;box-shadow:none;
+ transition:background .18s ease,transform .18s ease,border-color .18s ease;
+}
+body.pl-home-page .home-continue:not(:disabled):hover,
+body.pl-home-page .home-new:hover{
+ transform:translateY(-2px);filter:none;
+}
+body.pl-home-page .home-continue:not(:disabled):active,
+body.pl-home-page .home-new:active{transform:translateY(0)}
+body.pl-home-page .home-continue:disabled{
+ background:#1e292b;border-color:#394a4c;color:#a5b5b7;opacity:1;
+}
+body.pl-home-page .home-new{
+ background:#192b25;border-color:#5b926d;color:#dfffdd;
+}
+body.pl-home-page .home-account-actions button,
+body.pl-home-page .home-auth-card input,
+body.pl-home-page .home-auth-close,
+body.pl-home-page .home-auth-submit{border-radius:10px}
+body.pl-home-page .home-account-primary,
+body.pl-home-page .home-auth-submit{background:#aef45f;border-color:#d3ffb6;color:#09150d}
+body.pl-home-page .home-account-secondary{background:#1b2923;border-color:#50795b;color:#e3f4e1}
+body.pl-home-page .home-account-actions button:hover:not(:disabled),
+body.pl-home-page .home-auth-submit:hover:not(:disabled){filter:brightness(1.1)}
+body.pl-home-page .home-auth-card{
+ border-radius:18px;border-color:#4b6352;background:#141c24;
+ box-shadow:0 18px 55px #000a;
+}
+@media(prefers-reduced-motion:reduce){
+ body.pl-home-page .home-gameplay article,
+ body.pl-home-page .home-continue,
+ body.pl-home-page .home-new{transition:none!important;transform:none!important}
+}
+html.pl-reduced-motion body.pl-home-page .home-gameplay article,
+html.pl-reduced-motion body.pl-home-page .home-continue,
+html.pl-reduced-motion body.pl-home-page .home-new{transition:none!important;transform:none!important}
