@@ -374,3 +374,243 @@ html.pl-reduced-motion #gameScreen .pl-city-ticker *,
 html.pl-reduced-motion #gameScreen .pl-city-ticker *:before,
 html.pl-reduced-motion #gameScreen .pl-city-ticker *:after{animation:none!important}
 body.pl-online-world #gameScreen .pl-city-ticker{display:none!important}
+
+
+/* District Art Direction v2
+   Drawn like a miniature city-builder: painted facades, ink outlines, shop signs,
+   warm daylight and readable silhouettes. No glassmorphism/neon bloom. */
+#gameScreen .pl-city-panel{
+ border:2px solid #566775;border-radius:12px;
+ background:#15242b;
+ box-shadow:0 7px 0 #0a1620,0 16px 30px #040c1280;
+}
+#gameScreen .pl-city-head{
+ background:#203440;
+ border-bottom:2px solid #4d666f;
+ padding:18px 21px;
+}
+#gameScreen .pl-city-head h3{
+ color:#f6e8cd!important;
+ font-size:clamp(20px,2.35vw,27px)!important;
+ letter-spacing:-.045em;
+ text-shadow:none;
+}
+#gameScreen .pl-city-head p{color:#bdc8c4;font-size:12px}
+#gameScreen .pl-city-kicker{
+ color:#d1bf99;letter-spacing:.11em;font-size:10px
+}
+#gameScreen .pl-city-live-dot{
+ background:#b4be93;box-shadow:none;animation:none
+}
+#gameScreen .pl-city-day,#gameScreen .pl-city-phase{
+ display:inline-block;
+ padding:4px 7px;border:1px solid #657978;
+ border-radius:3px;background:#12252c;
+ color:#f0dbaf;letter-spacing:.07em;font-size:9px;
+}
+#gameScreen .pl-city-manage{
+ background:#eddbb6;color:#23343a;
+ border:2px solid #f8e8c4;border-radius:5px;
+ box-shadow:3px 3px 0 #0c1924;
+ letter-spacing:.01em;
+}
+#gameScreen .pl-city-manage:hover{
+ filter:none;transform:translate(-1px,-1px);
+ box-shadow:4px 4px 0 #0c1924;
+}
+#gameScreen .pl-city-stage{
+ height:278px;
+ background:linear-gradient(180deg,#91b3c1 0%,#b8c9bc 65%,#dfc6a6 100%);
+ transition:background-color 1s ease;
+}
+#gameScreen .pl-city-sun{
+ top:32px;right:17%;
+ width:58px;height:58px;
+ background:#f9e2ad;border:2px solid #f7eccf;
+ box-shadow:none;
+}
+#gameScreen .pl-city-stars{opacity:.07;animation:none}
+#gameScreen .pl-city-cloud{
+ background:#e7e7d8;opacity:.55;filter:none;
+}
+#gameScreen .pl-city-distant{opacity:.35}
+#gameScreen .pl-city-hill{
+ height:77px;background:#6e8e7c;box-shadow:none;
+}
+#gameScreen .pl-city-buildings{
+ pointer-events:auto;
+ gap:clamp(5px,1.4vw,13px);
+ z-index:3;
+}
+#gameScreen .pl-city-building{
+ --city-face1:#688a93;--city-face2:#436b75;--city-shine:#ddbf8b;
+ display:block;position:relative;appearance:none;
+ padding:0;margin:0;
+ font:inherit;color:inherit;
+ min-height:44px;
+ border:2px solid #263d48;border-bottom:0;
+ border-radius:2px 2px 0 0;
+ background:repeating-linear-gradient(0deg,transparent 0 23px,#ffffff09 24px 25px),
+   linear-gradient(92deg,var(--city-face1),var(--city-face2));
+ box-shadow:inset 4px 0 #f3f0df21,inset -5px 0 #14232c3f,4px 1px 0 #213742aa;
+ animation:plCityBuild 700ms cubic-bezier(.16,1,.3,1) backwards;
+ transition:transform .22s cubic-bezier(.15,.85,.3,1),filter .22s ease;
+}
+#gameScreen .pl-city-building:not(.pl-city-building-ghost){
+ cursor:pointer;pointer-events:auto;
+}
+#gameScreen .pl-city-building:not(.pl-city-building-ghost):hover,
+#gameScreen .pl-city-building:not(.pl-city-building-ghost):focus-visible{
+ transform:translateY(-7px);
+ filter:brightness(1.08);
+ z-index:7;
+}
+#gameScreen .pl-city-building:not(.pl-city-building-ghost):focus-visible{
+ outline:3px solid #f5d599;outline-offset:3px;
+}
+#gameScreen .pl-city-cafe{--city-face1:#aa796a;--city-face2:#805d5a}
+#gameScreen .pl-city-food{--city-face1:#ca9a70;--city-face2:#925d49}
+#gameScreen .pl-city-retail{--city-face1:#8d9ca7;--city-face2:#586d80}
+#gameScreen .pl-city-hotel{--city-face1:#a79fa4;--city-face2:#6d737e}
+#gameScreen .pl-city-factory{--city-face1:#85968f;--city-face2:#596d6c}
+#gameScreen .pl-city-tech{--city-face1:#8ab0ac;--city-face2:#4c8085}
+#gameScreen .pl-city-roof{
+ top:-7px;height:8px;left:-3px;right:-3px;border-radius:1px;
+ background:#465b62;border:1px solid #263c46;box-shadow:none;
+}
+#gameScreen .pl-city-windows{inset:13px 9px 35px;gap:6px}
+#gameScreen .pl-city-window{
+ background:#c3c6b67d;
+ border:1px solid #394d55a0;border-radius:0;box-shadow:none;
+ animation:plCityWindows 7.5s ease-in-out var(--window-delay,0s) infinite alternate;
+}
+#gameScreen .pl-city-window:nth-child(3n+1){background:#ead19b}
+#gameScreen .pl-city-window:nth-child(4n+2){background:#7faba8}
+#gameScreen .pl-city-storefront{
+ left:5%;bottom:2px;width:90%;height:26px;
+ border:1px solid #2e424b;border-bottom:0;border-radius:1px;
+ padding:3px 0 0;
+ font-family:Arial,Helvetica,sans-serif;
+ font-size:clamp(6px,.85vw,9px);font-weight:900;
+ letter-spacing:.045em;line-height:1;
+ color:#f9eac7;text-shadow:none;
+ background:#263e45;box-shadow:none;
+ white-space:nowrap;overflow:hidden;
+}
+/* Hand-painted storefront canopy instead of emoji brand marks */
+#gameScreen .pl-city-storefront:before{
+ content:"";position:absolute;top:0;left:0;right:0;height:4px;
+ background:repeating-linear-gradient(90deg,#e0b98b 0 9px,#9f6860 9px 18px);
+}
+#gameScreen .pl-city-tech .pl-city-storefront:before{
+ background:repeating-linear-gradient(90deg,#a9d0c0 0 9px,#4c7f86 9px 18px);
+}
+#gameScreen .pl-city-hotel .pl-city-storefront:before{
+ background:repeating-linear-gradient(90deg,#d6c9b1 0 9px,#867e91 9px 18px);
+}
+#gameScreen .pl-city-building-ghost{
+ border:2px dashed #57727e;border-bottom:0;
+ opacity:.4;filter:saturate(.25);
+}
+#gameScreen .pl-city-profit-particle{display:none}
+#gameScreen .pl-city-road{
+ background:#333e46;
+ border-top:5px solid #d0b897;
+ box-shadow:none;
+}
+#gameScreen .pl-city-lanes{
+ background:repeating-linear-gradient(90deg,#d5c19c 0 27px,transparent 27px 70px);
+}
+#gameScreen .pl-city-car{
+ background:#6d9fa0;border:1px solid #335561;box-shadow:2px 2px 0 #1e2f3c;
+}
+#gameScreen .pl-city-car-b{background:#b97168;border-color:#784d4b}
+#gameScreen .pl-city-van{background:#c6ac84;border:1px solid #70675d;box-shadow:none}
+#gameScreen .pl-city-lamp:after{
+ background:#f5e4be;box-shadow:0 0 9px #ffdc9b66;
+}
+#gameScreen .pl-city-horizon-light{opacity:.2;background:#f1debd}
+#gameScreen .pl-city-more{
+ background:#243b43;border:1px solid #a6a79a;border-radius:4px;color:#f1dbb9;
+}
+#gameScreen .pl-city-footer{
+ background:#1b303b;border-top:2px solid #50636c;
+}
+#gameScreen .pl-city-footer>div{border-right:1px solid #50636c}
+#gameScreen .pl-city-footer strong{color:#f1e3c6}
+#gameScreen .pl-city-footer>div>span{color:#b6bfbd}
+#gameScreen .pl-city-live-label{color:#d4c4a1}
+#gameScreen .pl-city-live-label i{background:#91a799;box-shadow:none;animation:none}
+#gameScreen .pl-city-ticker{
+ border:1px solid #43545b;border-radius:5px;
+ background:#1c303b;box-shadow:none;
+}
+#gameScreen .pl-city-ticker-status{color:#d2c6aa}
+#gameScreen .pl-city-ticker-status i{background:#91a89d;box-shadow:none;animation:none}
+#gameScreen .pl-city-ticker-conveyor i{
+ background:#aa9f84;box-shadow:none;border-radius:0;
+}
+#gameScreen .pl-city-ticker-conveyor i:nth-child(2n){
+ background:#7ba79e;
+}
+#gameScreen .pl-city-ticker strong{color:#e0d2b0}
+/* A short line of commuters gives the town movement beyond endlessly pulsing UI. */
+#gameScreen .pl-city-pedestrian{
+ position:absolute;bottom:47px;left:-20px;
+ z-index:4;width:7px;height:16px;border-radius:4px 4px 1px 1px;
+ background:#53646b;border:1px solid #253f46;
+ pointer-events:none;
+ animation:plCityWalk 19s linear infinite;
+}
+#gameScreen .pl-city-pedestrian:before{
+ content:"";position:absolute;top:-7px;left:0;width:7px;height:7px;
+ border-radius:50%;background:#b78d70;
+}
+#gameScreen .pl-city-pedestrian:after{
+ content:"";position:absolute;bottom:-7px;left:1px;width:5px;height:8px;
+ border-left:2px solid #35444a;border-right:2px solid #35444a;
+}
+#gameScreen .pl-city-pedestrian-b{
+ animation-delay:-9s;animation-duration:25s;
+ background:#b1715d;
+}
+@keyframes plCityWalk{
+ from{transform:translate3d(-20px,0,0)}
+ to{transform:translate3d(calc(100vw + 40px),0,0)}
+}
+/* Game-cycle dusk and night. This is based on elapsed time in the actual round. */
+#gameScreen .pl-city-panel.pl-city-phase-dusk .pl-city-stage{
+ background:linear-gradient(180deg,#6b8394 0%,#bc9e92 64%,#b17d66 100%);
+}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-stage{
+ background:linear-gradient(180deg,#172a40 0%,#2d3e51 64%,#48525a 100%);
+}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-stars{opacity:.75}
+#gameScreen .pl-city-panel.pl-city-phase-dusk .pl-city-stars{opacity:.25}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-sun{
+ background:#f0e9cf;border-color:#f4e7c8;
+ box-shadow:0 0 23px #f2e6cc55;
+ width:47px;height:47px;
+}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-hill{background:#354b58}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-lamp:after{
+ background:#ffe5b4;box-shadow:0 0 13px 6px #ffe0a464;
+}
+#gameScreen .pl-city-panel.pl-city-phase-night .pl-city-window:nth-child(3n+1){
+ background:#ffdf92;box-shadow:0 0 7px #ffe0a766;
+}
+#gameScreen .pl-city-phase{color:#e5d3af}
+/* Compact cards on phones stay readable, clickable and keyboard navigable. */
+@media(max-width:650px){
+ #gameScreen .pl-city-stage{height:238px}
+ #gameScreen .pl-city-building{min-height:40px}
+ #gameScreen .pl-city-windows{inset:9px 5px 30px;gap:4px}
+ #gameScreen .pl-city-storefront{font-size:6px;height:22px;letter-spacing:0}
+ #gameScreen .pl-city-pedestrian{bottom:46px}
+}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-city-pedestrian{animation:none!important;display:none}
+ #gameScreen .pl-city-building{transition:none!important}
+}
+html.pl-reduced-motion #gameScreen .pl-city-pedestrian{animation:none!important;display:none}
+html.pl-reduced-motion #gameScreen .pl-city-building{transition:none!important}
