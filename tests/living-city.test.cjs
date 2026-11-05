@@ -86,9 +86,10 @@ function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
 
 test('the animated city mounts at the TOP of the real Overview',()=>{
  const h=fakeDOM();
- const city=h.ids.get('plLivingCity');
+ const city=h.overview.children[0];
  assert.equal(h.window.ProfitLandsLivingCity.diagnostics().mounted,true);
- assert.equal(h.overview.children[0],city);
+ assert.equal(city.id,'plLivingCity');
+ assert.match(city.className,/pl-city-panel/);
  assert.match(city.innerHTML,/pl-city-stage/);
  assert.match(city.innerHTML,/pl-city-road/);
  assert.match(city.innerHTML,/pl-city-cloud-a/);
