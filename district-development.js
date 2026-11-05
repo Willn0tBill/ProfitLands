@@ -45,7 +45,8 @@ function progressFor(state){
   return {id:m.id,name:m.name,reward:m.reward,goals,done,progress,index};
  });
  // All milestones require increasing enterprise development.
- const tier=steps.filter(s=>s.done).length;
+ let tier=0;
+ while(tier<steps.length&&steps[tier].done)tier++;
  const current=steps[tier]||null;
  const nextGoal=current?.goals.find(g=>!g.done)||null;
  return {stats,tier,steps,current,nextGoal,complete:tier===MILESTONES.length};
