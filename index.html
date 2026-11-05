@@ -1,67 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10131a">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
-  <meta name="description" content="Build your empire endlessly in ProfitLands. Earn every second, invest, trade, and conquer new wealth milestones with no final dollar goal.">
-  <title>ProfitLands — Build Your Empire | Wtv Innovations</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="site-pages.css?v=pages01">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#152b32">
+ <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
+ <meta name="description" content="ProfitLands: set up a new business empire, continue your saved game, or sign in to access your account.">
+ <title>ProfitLands — Your Empire Starts Here | Wtv Innovations</title>
+ <link rel="stylesheet" href="style.css">
+ <link rel="stylesheet" href="site-pages.css?v=pages01">
+ <link rel="stylesheet" href="home-hub.css?v=hub01">
 </head>
-<body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand"><div class="brand-mark">$</div><div><h1>ProfitLands</h1><p>Wtv Innovations · Games & Digital Experiences</p></div></div>
-      <nav class="pl-header-tools" aria-label="Main navigation">
-        <a class="pl-header-link" href="play/">Play</a>
-        <a class="pl-header-link" href="settings/">Settings</a>
-         <a class="pl-header-link" href="https://willn0tbill.github.io/WtvStudios/" target="_blank" rel="noopener noreferrer">WtvI</a>
-      </nav>
-    </header>
-    <main>
-      <section id="homeScreen" class="screen active">
-        <div class="hero">
-          <div><span class="eyebrow">WTV INNOVATIONS PRESENTS</span><h2>Start with $1,000.<br><span>Build an endless empire.</span></h2>
-          <p>Start a business, earn cash every second, grow into new industries, and master the changing world economy. How far can your empire grow? There is no final wealth target.</p></div>
-          <div class="hero-coin">$</div>
-        </div>
-        <section id="landingSavedBox" class="pl-saved-box" hidden aria-label="Saved local game">
-          <span class="eyebrow">SAVED ON THIS DEVICE</span>
-          <h3>Your empire is waiting.</h3>
-          <p>Day <strong id="savedDay">1</strong> · <span id="savedMode">Standard</span> mode · <span id="savedBusinessCount">0</span> businesses</p>
-          <a class="primary-button" href="play/?resume=1">Continue Your Empire →</a>
-        </section>
-        <div class="section-title"><span class="eyebrow">START NEW EMPIRE</span><h3>Choose your world</h3></div>
-        <div class="type-grid" role="group" aria-label="Play type">
-          <button class="type-card selected" type="button" data-type="single" aria-pressed="true"><strong>Singleplayer</strong><small>Build your empire against the market.</small></button>
-          <button class="type-card" type="button" data-type="multi" aria-pressed="false"><strong>Multiplayer Preview</strong><small>Try the shared-world game prototype.</small></button>
-        </div>
-        <div class="section-title"><span class="eyebrow">MARKET CYCLE</span><h3>Choose a game speed</h3></div>
-        <div class="mode-grid" role="group" aria-label="Market cycle duration">
-          <button class="mode-card" type="button" data-mode="fast" aria-pressed="false"><span>⚡</span><strong>Fast</strong><small>5 min automatic cycle · 40 actions</small></button>
-          <button class="mode-card selected" type="button" data-mode="standard" aria-pressed="true"><span>◆</span><strong>Standard</strong><small>15 min automatic cycle · 60 actions</small></button>
-          <button class="mode-card" type="button" data-mode="long" aria-pressed="false"><span>◷</span><strong>Long</strong><small>1 hour automatic cycle · 100 actions</small></button>
-          <button class="mode-card" type="button" data-mode="persistent" aria-pressed="false"><span>∞</span><strong>Persistent</strong><small>24 hour automatic cycle · 120 actions</small></button>
-        </div>
-        <div id="multiNotice" class="info-box hidden"><b>Multiplayer is a prototype</b><span>The shared online game server is still in development. Play locally while multiplayer development continues.</span></div>
-        <div class="play-entry-actions">
-          <a id="landingStart" class="primary-button" href="play/?new=1&amp;mode=standard&amp;type=single">Set Up New Empire <span>→</span></a>
-          <a class="secondary-button" href="play/">Open Game</a>
-          <a class="secondary-button" href="preview/">Try $25M Interactive Demo</a>
-          <a class="pl-link" href="settings/">Display Settings</a>
-        </div>
-        <p class="local-note">The game saves on this device. Account sign-in and cloud saves are available inside the game.</p>
-        <div class="pl-intro-details">
-          <article><strong>Real-time income</strong><p>Net cash flow updates every second while you play, even between market cycles.</p></article>
-          <article><strong>Strategic growth</strong><p>Buy companies, upgrade them, expand into chains, and manage risk.</p></article>
-          <article><strong>Living markets</strong><p>Watch stocks, demand, operating costs, and global events shape your results.</p></article>
-        </div>
-        <footer class="pl-home-footer"><span>ProfitLands · Wtv Innovations (WtvI)</span><span><a href="play/">Game</a> · <a href="settings/">Settings</a></span></footer>
-      </section>
-    </main>
-  </div>
-  <script src="landing.js?v=pages01" defer></script>
+<body class="pl-home-page">
+<div class="app-shell">
+ <header class="topbar">
+  <div class="brand"><div class="brand-mark" aria-hidden="true">P</div><div><h1>ProfitLands</h1><p>Wtv Innovations · Tycoon Strategy</p></div></div>
+  <nav class="pl-header-tools" aria-label="Main navigation">
+   <a class="pl-header-link" href="settings/">Display Settings</a>
+   <a class="pl-header-link" href="https://willn0tbill.github.io/WtvStudios/" target="_blank" rel="noopener noreferrer">WtvI</a>
+   <button type="button" class="pl-header-link" id="homeHeaderAccount">Sign In</button>
+  </nav>
+ </header>
+ <main>
+  <section class="home-command-hero" aria-labelledby="homeTitle">
+   <div class="home-hero-content">
+    <span class="home-eyebrow">WTV INNOVATIONS PRESENTS</span>
+    <h2 id="homeTitle">Build something <span>worth owning.</span></h2>
+    <p>Start with a small shop. Run your locations, invest in growing markets, and build a living city one decision at a time.</p>
+    <div class="home-hero-tags" aria-label="Game highlights"><span>Real-time earnings</span><span>Living business district</span><span>No final wealth cap</span></div>
+   </div>
+   <div class="home-mark" aria-hidden="true"><span>PL</span><div>BUSINESS BUILDER</div></div>
+  </section>
+  <section class="home-launch" aria-label="Play ProfitLands">
+   <article class="home-launch-card">
+    <span class="home-eyebrow">PLAY</span>
+    <h3>Your empire, your way.</h3>
+    <p>Start a fresh company or pick up where you left off.</p>
+    <div class="home-launch-buttons">
+     <button type="button" id="homeContinue" class="home-continue" disabled>Continue Your Empire <span aria-hidden="true">→</span></button>
+     <a id="homeNew" class="home-new" href="play/?new=1">Set Up New Empire <span aria-hidden="true">→</span></a>
+    </div>
+    <p id="homeSaveStatus" class="home-save-status" role="status" aria-live="polite">Looking for a saved empire…</p>
+   </article>
+   <aside class="home-account-card" aria-labelledby="homeAccountTitle">
+    <div class="home-account-head"><span class="home-eyebrow">PLAYER PROFILE</span><span id="homeAccountBadge" class="home-account-badge">GUEST</span></div>
+    <h3 id="homeAccountTitle">Keep your empire close.</h3>
+    <p id="homeIdentity">Play without an account on this device, or sign in for your connected cloud save.</p>
+    <div class="home-account-actions">
+     <button type="button" id="homeSignIn" class="home-account-primary">Sign In</button>
+     <button type="button" id="homeSignUp" class="home-account-secondary">Create Account</button>
+     <button type="button" id="homeSignOut" class="home-account-secondary" hidden>Sign Out</button>
+    </div>
+    <p class="home-account-footnote" id="homeAccountStatus" role="status" aria-live="polite">Your local game is playable without signing in.</p>
+   </aside>
+  </section>
+  <section class="home-gameplay" aria-label="What you can do in ProfitLands">
+   <article><span class="home-story-count">01</span><h3>Open your first business.</h3><p>Choose a market and grow with a clear development plan.</p></article>
+   <article><span class="home-story-count">02</span><h3>Run an evolving district.</h3><p>Watch customers, deliveries, landmarks, and locations grow with your empire.</p></article>
+   <article><span class="home-story-count">03</span><h3>Make the hard choices.</h3><p>Invest, manage payroll and expenses, complete contracts, and navigate market events.</p></article>
+  </section>
+  <div class="home-lower-links"><a href="preview/">Try the $25M Demo</a><a href="settings/">Display & Accessibility</a><a href="play/?new=1">New Empire Setup</a></div>
+ </main>
+ <footer class="pl-home-footer"><span>ProfitLands · Wtv Innovations</span><span>Singleplayer works on this device · Cloud saving requires an account</span></footer>
+</div>
+<div id="homeAuthDialog" class="home-auth-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="homeAuthTitle">
+ <section class="home-auth-card">
+  <button type="button" id="homeAuthClose" class="home-auth-close" aria-label="Close sign-in dialog">×</button>
+  <span class="home-eyebrow">PROFITLANDS ACCOUNT</span>
+  <h2 id="homeAuthTitle">Sign in</h2>
+  <p id="homeAuthIntro">Sign in to see your saved empire on any supported device.</p>
+  <form id="homeAuthForm" novalidate>
+   <label for="homeAuthEmail">Email</label>
+   <input id="homeAuthEmail" type="email" name="email" autocomplete="email" required maxlength="254" placeholder="you@example.com">
+   <label for="homeAuthPassword">Password</label>
+   <input id="homeAuthPassword" type="password" name="password" autocomplete="current-password" required minlength="6" placeholder="Your password">
+   <div id="homeAuthSignupFields" hidden>
+    <label for="homeAuthPlayer">Player name</label>
+    <input id="homeAuthPlayer" name="player" maxlength="24" autocomplete="nickname" placeholder="Your in-game name">
+    <label for="homeAuthCompany">Company name</label>
+    <input id="homeAuthCompany" name="company" maxlength="40" placeholder="Your company">
+   </div>
+   <p id="homeAuthError" class="home-auth-error" role="alert"></p>
+   <button id="homeAuthSubmit" type="submit" class="home-auth-submit">Sign In</button>
+  </form>
+  <button id="homeAuthSwitch" type="button" class="home-auth-switch">Need an account? Create one</button>
+  <button id="homeAuthReset" type="button" class="home-auth-switch">Forgot password?</button>
+ </section>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" defer></script>
+<script src="firebase-config.js" defer></script>
+<script src="landing.js?v=hub01" defer></script>
 </body>
 </html>
