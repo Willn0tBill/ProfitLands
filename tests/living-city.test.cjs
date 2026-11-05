@@ -10,11 +10,11 @@ const css=fs.readFileSync(path.join(root,'living-city.css'),'utf8');
 
 function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
  const ids=new Map(),windowEvents={},documentEvents={},timers=[];
- let showBusinessCalls=0,openShopCalls=0;
+ let showBusinessCalls=0,openShopCalls=0,openManageIndex=null;
  function makeNode(tag='div'){
   const classes=new Set(),listeners={};
   const node={
-   tag,id:'',children:[],hidden:false,attributes:{},title:'',textContent:'',
+   tag,id:'',children:[],hidden:false,attributes:{},dataset:{},title:'',textContent:'',
    classNames:classes,innerMarkup:'',
    classList:{
     contains:key=>classes.has(key),
@@ -35,7 +35,8 @@ function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
     if(location!=='afterend')throw Error('Wrong insertion location');
     node.inserted=el;return el;
    },
-   click:()=>{listeners.click?.()}
+   click:()=>{listeners.click?.()},
+   emit:(name,event)=>{listeners[name]?.(event)}
   };
   Object.defineProperty(node,'className',{
    get:()=>[...classes].join(' '),
@@ -75,13 +76,15 @@ function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
  const window={
   state,
   ProfitLandsWorkspace:{show:view=>{if(view==='businesses')showBusinessCalls++;return true}},
+  openManage:index=>{openManageIndex=index},
   addEventListener:(key,callback)=>{windowEvents[key]=callback},
   setInterval:callback=>{timers.push(callback);return timers.length}
  };
  vm.runInNewContext(script,{document,window,console,MutationObserver:undefined});
  return {document,window,ids,overview,heading,game,income,windowEvents,documentEvents,timers,
   get showBusinessCalls(){return showBusinessCalls},
-  get openShopCalls(){return openShopCalls}};
+  get openShopCalls(){return openShopCalls},
+  get openManageIndex(){return openManageIndex}};
 }
 
 test('the animated city mounts at the TOP of the real Overview',()=>{
@@ -97,7 +100,7 @@ test('the animated city mounts at the TOP of the real Overview',()=>{
  assert.match(city.innerHTML,/pl-city-buildings/);
  assert.equal(h.ids.get('plCityBuildings').children.length,5,'new empire displays a starter town');
  assert.equal(h.ids.get('plCityBusinessCount').textContent,'0');
- assert.equal(h.ids.get('plCityHint').textContent,'Your first shop will light up this district.');
+ assert.equal(h.ids.get('plCityHint').textContent,'Your first shop will fill an empty lot.');
  assert.equal(h.ids.get('plCityTickerCount').textContent,'0 ACTIVE BUSINESSES');
 });
 
@@ -198,4 +201,71 @@ test('the live city is part of the actual game and retains reduced-motion and of
  assert.match(css,/html\.pl-reduced-motion/);
  assert.match(css,/body\.pl-online-world #gameScreen \.pl-city-panel/);
  assert.match(css,/body\.pl-online-world #gameScreen \.pl-city-ticker/);
+});
+
+
+test('city uses crafted store signs instead of emoji badges and exposes real buttons',()=>{
+ const h=fakeDOM({playType:'single',businesses:[
+  {type:'coffee',level:2},{type:'restaurant',level:3},{type:'software',level:1}
+ ]});
+ const city=h.overview.children[0];
+ assert.match(city.innerHTML,/Interactive business district/);
+ assert.doesNotMatch(city.innerHTML,/<div class=\\"pl-city-stage\\" aria-hidden/);
+ const buttons=h.ids.get('plCityBuildings').children;
+ assert.equal(buttons.length,3);
+ assert.equal(buttons[0].tag,'button');
+ assert.equal(buttons[0].type,'button');
+ assert.equal(buttons[0].children[2].textContent,'CAFÉ');
+ assert.equal(buttons[1].children[2].textContent,'DINER');
+ assert.equal(buttons[2].children[2].textContent,'TECH');
+ assert.match(buttons[1].attributes['aria-label'],/Manage Restaurant, level 3/);
+});
+test('clicking a skyline building opens the exact business, even with more than nine owned',()=>{
+ const businesses=Array.from({length:15},(_,i)=>({type:'coffee',level:i+1}));
+ const h=fakeDOM({playType:'single',businesses});
+ const buildings=h.ids.get('plCityBuildings');
+ const first=buildings.children[0];
+ assert.equal(first.dataset.businessIndex,'6','visible buildings retain original portfolio indices');
+ buildings.emit('click',{target:{closest:()=>first}});
+ assert.equal(h.openManageIndex,6);
+ const ninth=buildings.children[8];
+ buildings.emit('click',{target:{closest:()=>ninth}});
+ assert.equal(h.openManageIndex,14);
+ buildings.emit('click',{target:{closest:()=>({dataset:{businessIndex:'999'}})}});
+ assert.equal(h.openManageIndex,14,'out-of-range clicks must be ignored');
+});
+test('empty future lots are not clickable business controls',()=>{
+ const h=fakeDOM();
+ for(const lot of h.ids.get('plCityBuildings').children){
+  assert.equal(lot.tag,'div');
+  assert.match(lot.className,/pl-city-building-ghost/);
+ }
+});
+test('the in-game day cycle switches the visible city between day dusk and night',()=>{
+ const h=fakeDOM({playType:'single',mode:'standard',started:true,
+  timeLeft:850,day:2,businesses:[{type:'hotel',level:2}]});
+ const city=h.overview.children[0];
+ assert.equal(h.ids.get('plCityPhase').textContent,'DAY');
+ h.window.state.timeLeft=350;
+ h.timers[0]();
+ assert.equal(h.ids.get('plCityPhase').textContent,'DUSK');
+ assert.equal(city.classList.contains('pl-city-phase-dusk'),true);
+ h.window.state.timeLeft=110;
+ h.timers[0]();
+ assert.equal(h.ids.get('plCityPhase').textContent,'NIGHT');
+ assert.equal(city.classList.contains('pl-city-phase-night'),true);
+ h.window.state.timeLeft=850;
+ h.timers[0]();
+ assert.equal(city.classList.contains('pl-city-phase-night'),false);
+ assert.equal(city.classList.contains('pl-city-phase-dusk'),false);
+});
+test('handcrafted art uses legible signage, pedestrians and reduced-motion guardrails',()=>{
+ assert.match(css,/pl-city-storefront:before/);
+ assert.match(css,/pl-city-pedestrian/);
+ assert.match(css,/plCityWalk/);
+ assert.match(css,/pl-city-phase-night/);
+ assert.match(css,/pl-city-phase-dusk/);
+ assert.match(css,/pl-city-building:not\(\.pl-city-building-ghost\):focus-visible/);
+ assert.match(css,/html\.pl-reduced-motion/);
+ assert.doesNotMatch(script,/localStorage\.setItem|state\.businesses\s*=|fetch\(/);
 });
