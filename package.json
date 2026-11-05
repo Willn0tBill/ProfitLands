@@ -3,7 +3,6 @@
   "private": true,
   "version": "1.0.0",
   "description": "ProfitLands browser game; static Cloudflare deployment build",
-  "type": "module",
   "scripts": {
     "build": "node scripts/build-cloudflare.mjs",
     "build:cloudflare": "node scripts/build-cloudflare.mjs",
