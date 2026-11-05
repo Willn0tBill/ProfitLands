@@ -116,6 +116,7 @@ function doAction(bIndex,lIndex,kind,quantity=1){
     else if(kind==='hire')l.workers+=quantity;
     else if(kind==='manager')l.manager=true;
     else return false;
+    if(kind==='upgrade'||kind==='marketing')window.ProfitLandsCityContracts?.recordAction?.(kind==='marketing'?'promote':'upgrade');
     const metric={upgrade:'upgrades',marketing:'campaigns',efficiency:'optimizations',hire:'hired'}[kind];
     if(metric)window.ProfitLandsBadges?.record?.(b.type,metric,kind==='hire'?quantity:1);
     state.news.push('LOCATION OPERATIONS — '+b.name+' · '+l.name+': '+kind+(kind==='hire'?' '+quantity:'')+'.');

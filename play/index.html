@@ -44,7 +44,8 @@
   <link rel="stylesheet" href="../district-theme.css?v=handcrafted01" />
   <link rel="stylesheet" href="../city-street-life.css?v=street01" />
   <link rel="stylesheet" href="../district-development.css?v=development01" />
-  <link rel="stylesheet" href="../city-contracts.css?v=contracts01" />
+  <link rel="stylesheet" href="../city-contracts.css?v=contracts02" />
+  <link rel="stylesheet" href="../focus-game.css?v=focus01" />
   <script src="../ui-preferences.js?v=pages01" defer></script>
 </head>
 <body class="pl-play-page">
@@ -65,7 +66,7 @@
     </header>
     <main>
       <section id="homeScreen" class="screen active">
-  <div class="hero play-entry-hero"><div><span class="eyebrow">PROFITLANDS GAME</span><h2>Build your empire.</h2><p>Continue your saved game or choose a world mode to start fresh. Your businesses now earn cash every second during active play.</p></div><div class="hero-coin">$</div></div>
+  <div class="pl-new-empire-intro"><a href="../" class="pl-setup-back">← ProfitLands Home</a><span class="eyebrow">NEW EMPIRE SETUP</span><h2>Set up your next empire</h2><p>Choose your world, market speed, difficulty, and headquarters. Then create your company. To continue a saved empire, use <a href="../">Continue Your Empire on the homepage</a>.</p></div>
   <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
   <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>World 1 Multiplayer</strong><small>Server-verified economy and rival competition. Requires online connection.</small></button></div>
   <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
@@ -102,7 +103,7 @@
     </details>
   </section>
   <div id="multiNotice" class="info-box hidden"><b>Multiplayer preview</b><span>World 1 uses a separate server-owned balance. Joining requires a signed-in account and a deployed Firebase backend. Your singleplayer save is untouched; World chat stays disabled pending moderation.</span></div>
-  <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Start New Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../../">← Homepage</a></div>
+  <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Create My Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../">Back to Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
 </section>
 <section id="gameScreen" class="screen">
@@ -308,11 +309,11 @@
 </section>
     </main>
   </div>
-  <div id="businessModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="businessModal" aria-label="Close business market">×</button><span class="eyebrow">BUSINESS MARKET</span><h2>Choose a business</h2><p class="modal-sub">Every business has different economics, upgrade paths, risks, and chain potential.</p><div id="businessChoices" class="business-choices"></div></div></div>
-  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button class="modal-close" data-close="manageModal" aria-label="Close company management">×</button><div id="manageContent"></div></div></div>
-  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="tradeModal" aria-label="Close stock trading">×</button><div id="tradeContent"></div></div></div>
-  <div id="endGameModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="endGameModal" aria-label="Close end-game confirmation">×</button><div id="endGameContent"></div></div></div>
-  <div id="settingsModal" class="modal hidden"><div class="modal-card"><button class="modal-close" data-close="settingsModal" aria-label="Close game settings">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game settings and local progress.</p><div class="settings-list"><p>Loading local save controls…</p></div></div></div>
+  <div id="businessModal" class="modal hidden"><div class="modal-card"><button type="button" class="modal-close" data-close="businessModal" aria-label="Close business market">×</button><span class="eyebrow">BUSINESS MARKET</span><h2>Choose a business</h2><p class="modal-sub">Every business has different economics, upgrade paths, risks, and chain potential.</p><div id="businessChoices" class="business-choices"></div></div></div>
+  <div id="manageModal" class="modal hidden"><div class="modal-card wide"><button type="button" class="modal-close" data-close="manageModal" aria-label="Close company management">×</button><div id="manageContent"></div></div></div>
+  <div id="tradeModal" class="modal hidden"><div class="modal-card"><button type="button" class="modal-close" data-close="tradeModal" aria-label="Close stock trading">×</button><div id="tradeContent"></div></div></div>
+  <div id="endGameModal" class="modal hidden"><div class="modal-card"><button type="button" class="modal-close" data-close="endGameModal" aria-label="Close end-game confirmation">×</button><div id="endGameContent"></div></div></div>
+  <div id="settingsModal" class="modal hidden"><div class="modal-card"><button type="button" class="modal-close" data-close="settingsModal" aria-label="Close game settings">×</button><span class="eyebrow">GAME SETTINGS</span><h2>Settings</h2><p class="modal-sub">Game settings and local progress.</p><div class="settings-list"><p>Loading local save controls…</p></div></div></div>
   <div id="economyModal" class="modal hidden"><div class="modal-card wide economy-modal-content" role="dialog" aria-modal="true" aria-label="Financial recovery"></div></div>
   <div id="toast" class="toast"></div>
   <aside id="worldChatDock" class="pl-world-chat-dock" hidden aria-label="Multiplayer world chat">
@@ -335,31 +336,31 @@
   <script src="../platform.js?v=steambridge01"></script>
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
-  <script src="../app.js?v=account01"></script>
+  <script src="../app.js?v=balance02"></script>
   <script src="../difficulty-system.js?v=difficulty01"></script>
   <script src="../country-system.js?v=country02"></script>
-  <script src="../enhancements.js?v=huge01"></script>
-  <script src="../economy-system.js?v=account01"></script>
+  <script src="../enhancements.js?v=balance02"></script>
+  <script src="../economy-system.js?v=balance02"></script>
   <script src="../economy-render.js?v=realtime01"></script>
   <script src="../tutorial.js?v=endless01"></script>
   <script src="../performance-motion.js"></script>
   <script src="../trade-ui.js"></script>
   <script src="../sticky-news.js"></script>
   <script src="../player-system.js"></script>
-  <script src="../modal-dismiss.js"></script>
+  <script src="../modal-dismiss.js?v=close02"></script>
   <script src="../mobile-fixes.js"></script>
   <script src="../mobile-controls.js"></script>
   <script src="../top-stats.js"></script>
   <script src="../compact-panels.js"></script>
   <script src="../hud-sticky.js?v=autocycle10"></script>
   <script src="../crazygames.js"></script>
-  <script src="../firebase-auth.js?v=sync03"></script>
+  <script src="../firebase-auth.js?v=home02"></script>
   <script src="../firebase-world-adapter.js?v=worldserver01"></script>
   <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
-  <script src="../location-operations.js?v=trophies01"></script>
+  <script src="../location-operations.js?v=balance02"></script>
   <script src="../empire-lab.js?v=trophies01"></script>
-  <script src="../play-route.js?v=pages01"></script>
+  <script src="../play-route.js?v=home02"></script>
   <script src="../workspace.js?v=worldserver01"></script>
   <script src="../business-advancements.js?v=advances01"></script>
   <script src="../business-arcade.js?v=arcade01"></script>
@@ -373,11 +374,12 @@
   <script src="../multiplayer-pvp-rules.js?v=pvp01"></script>
   <script src="../multiplayer-world.js?v=worldserver01"></script>
   <script src="../game-experience.js?v=tycoon01"></script>
-  <script src="../game-motion-v2.js?v=motion03"></script>
+  <script src="../game-motion-v2.js?v=motion04"></script>
   <script src="../game-feedback-v4.js?v=feedback04"></script>
   <script src="../living-city.js?v=city02"></script>
   <script src="../city-street-life.js?v=street01"></script>
   <script src="../district-development.js?v=development01"></script>
-  <script src="../city-contracts.js?v=contracts01"></script>
+  <script src="../city-contracts.js?v=contracts02"></script>
+  <script src="../focus-game.js?v=focus01"></script>
 </body>
 </html>

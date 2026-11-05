@@ -86,6 +86,10 @@ function setupRipples(){
  document.addEventListener('pointerdown',event=>{
   if(reduced()||document.hidden||!isPlaying())return;
   const button=event.target?.closest?.('button');
+  // A ripple host sets position:relative. On an absolutely positioned X
+  // it displaces the button before click, making the dialog appear impossible
+  // to close. Never add ripple hosts to dismiss or menu controls.
+  if(button?.matches?.('.modal-close,[data-close],#plGameMenu,#plFullscreenToggle'))return;
   if(!button||button.disabled||!button.closest?.('#gameScreen, .modal:not(.hidden)')||
     typeof button.getBoundingClientRect!=='function')return;
   const rect=button.getBoundingClientRect();
