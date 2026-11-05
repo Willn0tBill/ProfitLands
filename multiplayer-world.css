@@ -34,7 +34,7 @@
 .pl-pvp-options button:disabled{cursor:not-allowed;opacity:.55}
 .pl-pvp-protection{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
 .pl-pvp-protection button{padding:9px 12px;background:#28445c;color:#f5fbff;border:1px solid #6f9bc1;border-radius:9px;font-weight:700;font-size:11px;cursor:pointer}
-.pl-online-status{color:#e4d3b4;font-size:12px;min-height:18px;margin:8px 0}
+.pl-online-status{color:#e2edff;font-size:12px;min-height:18px;margin:8px 0}
 .pl-world-chat-dock{position:fixed;bottom:16px;right:16px;z-index:990;display:flex;flex-direction:column;align-items:flex-end;max-width:min(370px,calc(100vw - 24px));pointer-events:none}
 .pl-world-chat-dock[hidden]{display:none!important}
 .pl-world-chat-toggle{pointer-events:auto;cursor:pointer;min-height:44px;padding:11px 15px;border-radius:999px;color:#152b30;font-size:12px;font-weight:900;border:1px solid #f8e6b7;background:linear-gradient(125deg,#ffe1a0,#88e9e4);box-shadow:0 5px 20px #0008}
