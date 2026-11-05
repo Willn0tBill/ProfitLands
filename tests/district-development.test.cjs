@@ -206,7 +206,7 @@ test('new development assets load after the rest of the active in-game city',()=
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.ok(html.indexOf('district-development.css')>html.indexOf('city-street-life.css'));
  assert.ok(html.indexOf('district-development.js')>html.indexOf('city-street-life.js'));
- assert.match(html,/district-development\.css\?v=development01/);
+ assert.match(html,/district-development\.css\?v=original01/);
  assert.match(html,/district-development\.js\?v=development01/);
  for(const name of ['pl-district-garden','pl-district-market','pl-district-plaza',
   'pl-district-transit','pl-district-board','pl-district-track','plDistrictAchievement']){

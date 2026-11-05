@@ -271,15 +271,14 @@ test('handcrafted art uses legible signage, pedestrians and reduced-motion guard
 });
 
 
-test('the handcrafted theme loads after the city and removes generic neon chrome',()=>{
+test('original arcade palette is not overridden by the later sandstone district theme',()=>{
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- const theme=fs.readFileSync(path.join(root,'district-theme.css'),'utf8');
- assert.ok(html.indexOf('district-theme.css')>html.indexOf('living-city.css'));
- assert.match(html,/district-theme\.css\?v=handcrafted01/);
- for(const rule of ['.pl-workspace-sidebar','.pl-workspace-section-head','.pl-workspace-nav-item.active',
-  '.pl-workspace-panels .business-card','.pl-workspace-hud .game-hud .stat']){
-   assert.ok(theme.includes(rule),rule);
- }
- assert.match(theme,/painted-teal|painted teal|handcrafted/i);
- assert.doesNotMatch(theme,/url\(['"]?https?:/i,'no external visual dependencies');
+ const game=fs.readFileSync(path.join(root,'game-experience.css'),'utf8');
+ assert.doesNotMatch(html,/district-theme\.css/);
+ assert.equal(fs.existsSync(path.join(root,'district-theme.css')),false);
+ assert.match(game,/--pl-game-gold:#ffd96a/);
+ assert.match(game,/--pl-game-purple:#b29aff/);
+ assert.match(game,/body\.pl-play-page/);
+ assert.ok(html.indexOf('game-experience.css')<html.indexOf('living-city.css'));
+ assert.match(html,/focus-game\.css\?v=original01/);
 });

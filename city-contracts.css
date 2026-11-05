@@ -1,9 +1,9 @@
 /* ProfitLands — Local City Contracts.
- * Designed like a hand-printed municipal job board, not a reward pop-up. */
+ * Original dark arcade palette, keeping the existing rewards and layout. */
 #gameScreen .pl-contract-board{
  display:grid;gap:13px;margin:0 0 18px;padding:16px 18px;
- background:#23383b;border:2px solid #60706b;border-radius:8px;
- box-shadow:0 5px 0 #102128;color:#eee2c7;
+ background:#1b2140;border:2px solid #53628b;border-radius:8px;
+ box-shadow:0 5px 0 #090e1b;color:#f5f7fb;
 }
 #gameScreen .pl-contract-head{
  display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -11,19 +11,19 @@
 #gameScreen .pl-contract-heading{display:grid;gap:4px}
 #gameScreen .pl-contract-kicker{
  font:900 10px/1.1 Arial,Helvetica,sans-serif;letter-spacing:.12em;
- color:#c4ad83;
+ color:#b29aff;
 }
 #gameScreen .pl-contract-heading h3{
- color:#f6e5bf;font:900 clamp(18px,2vw,22px)/1.2 Arial,Helvetica,sans-serif;
+ color:#f5f7fb;font:900 clamp(18px,2vw,22px)/1.2 Arial,Helvetica,sans-serif;
  letter-spacing:-.025em;margin:0;
 }
 #gameScreen .pl-contract-day{
- border:1px solid #7a8377;border-radius:3px;padding:6px 9px;
- color:#e7d7b1;font:850 10px/1 Arial,Helvetica,sans-serif;
- background:#192f36;white-space:nowrap;
+ border:1px solid #53628b;border-radius:3px;padding:6px 9px;
+ color:#e2edff;font:850 10px/1 Arial,Helvetica,sans-serif;
+ background:#151b31;white-space:nowrap;
 }
 #gameScreen .pl-contract-explanation{
- color:#bbc9bb;margin:0;font:500 12px/1.5 Arial,Helvetica,sans-serif;
+ color:#a8b6d4;margin:0;font:500 12px/1.5 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-offers{
  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
@@ -31,56 +31,56 @@
 #gameScreen .pl-contract-offer{
  display:grid;align-content:start;text-align:left;gap:7px;
  min-width:0;min-height:113px;padding:13px 12px;
- border-radius:4px;border:1px solid #a49c7f;
- background:#e0d3b2;color:#273d3d;
- box-shadow:3px 3px 0 #14262c;cursor:pointer;
+ border-radius:4px;border:1px solid #53628b;
+ background:#202640;color:#e2edff;
+ box-shadow:3px 3px 0 #090e1b;cursor:pointer;
  font-family:Arial,Helvetica,sans-serif;
  transition:transform .16s ease,box-shadow .16s ease,background-color .16s ease;
 }
 #gameScreen .pl-contract-offer:hover{
- background:#f0ddb5;transform:translate(-1px,-2px);
- box-shadow:4px 5px 0 #14262c;
+ background:#333965;transform:translate(-1px,-2px);
+ box-shadow:4px 5px 0 #090e1b;
 }
-#gameScreen .pl-contract-offer:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #14262c}
+#gameScreen .pl-contract-offer:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #090e1b}
 #gameScreen .pl-contract-offer:focus-visible,
 #gameScreen .pl-contract-goto:focus-visible,
 #gameScreen .pl-contract-claim:focus-visible{
- outline:3px solid #f4d794;outline-offset:3px;
+ outline:3px solid #b29aff;outline-offset:3px;
 }
 #gameScreen .pl-contract-offer strong{
  font:900 14px/1.25 Arial,Helvetica,sans-serif;
- color:#304346;
+ color:#f5f7fb;
 }
 #gameScreen .pl-contract-offer small{
  font:500 11px/1.4 Arial,Helvetica,sans-serif;
- color:#516363;
+ color:#a2b7d6;
 }
 #gameScreen .pl-contract-reward{
  justify-self:start;margin-top:auto;padding:3px 7px;
- color:#355247;background:#c8d6b5;border:1px solid #9eaa8d;
+ color:#102326;background:#b6f474;border:1px solid #b6f474;
  border-radius:3px;font:900 12px/1.3 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-active{
  display:grid;gap:8px;padding:12px 13px;
- background:#192e35;border:1px solid #4d706d;border-radius:5px;
+ background:#151b31;border:1px solid #53628b;border-radius:5px;
 }
 #gameScreen .pl-contract-active-label{
- color:#bfbe97;font:900 10px/1 Arial,Helvetica,sans-serif;
+ color:#ffd96a;font:900 10px/1 Arial,Helvetica,sans-serif;
  letter-spacing:.1em;
 }
 #gameScreen .pl-contract-active-title{
- color:#f3e4c2;font:900 16px/1.3 Arial,Helvetica,sans-serif;
+ color:#f5f7fb;font:900 16px/1.3 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-active-detail{
- margin:0;color:#bdcfc5;font:500 12px/1.45 Arial,Helvetica,sans-serif;
+ margin:0;color:#a8b6d4;font:500 12px/1.45 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-progress{
- height:9px;border:1px solid #667e75;
- background:#0c2029;border-radius:2px;overflow:hidden;
+ height:9px;border:1px solid #53628b;
+ background:#10182b;border-radius:2px;overflow:hidden;
 }
 #gameScreen .pl-contract-progress-fill{
  display:block;width:0;height:100%;
- background:repeating-linear-gradient(90deg,#adbb93 0 12px,#829d83 12px 14px);
+ background:repeating-linear-gradient(90deg,#ffd96a 0 12px,#b29aff 12px 14px);
  transition:width .35s ease;
 }
 #gameScreen .pl-contract-actions{
@@ -88,21 +88,21 @@
  flex-wrap:wrap;gap:10px;
 }
 #gameScreen .pl-contract-hint{
- flex:1 1 200px;color:#b9c7bd;
+ flex:1 1 200px;color:#a8b6d4;
  font:500 11px/1.4 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-goto,
 #gameScreen .pl-contract-claim{
  border-radius:4px;min-height:36px;padding:8px 12px;
  font:850 11px/1.25 Arial,Helvetica,sans-serif;
- cursor:pointer;box-shadow:2px 2px 0 #071b23;
+ cursor:pointer;box-shadow:2px 2px 0 #090e1b;
  transition:transform .15s ease,background-color .15s ease;
 }
 #gameScreen .pl-contract-goto{
- border:1px solid #95a99d;background:#b9c8b4;color:#253e41;
+ border:1px solid #53628b;background:#202640;color:#e2edff;
 }
 #gameScreen .pl-contract-claim{
- border:1px solid #f3dba6;background:#e8d49f;color:#263b3e;
+ border:1px solid #ffd96a;background:#ffd96a;color:#121624;
 }
 #gameScreen .pl-contract-goto:hover,
 #gameScreen .pl-contract-claim:hover{transform:translateY(-1px)}
@@ -135,8 +135,8 @@ body.pl-online-world #gameScreen .pl-contract-board{display:none!important}
 
 /* Do not display empty offers when a reward cooldown is active. */
 #gameScreen .pl-contract-offer-status{
- margin:0;padding:10px 12px;border:1px solid #657976;
- border-radius:4px;background:#192e34;color:#d9c9a7;
+ margin:0;padding:10px 12px;border:1px solid #53628b;
+ border-radius:4px;background:#151b31;color:#e2edff;
  font:600 11px/1.45 Arial,Helvetica,sans-serif;
 }
 #gameScreen .pl-contract-offer-status[hidden]{display:none!important}

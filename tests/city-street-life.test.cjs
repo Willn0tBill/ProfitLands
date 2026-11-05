@@ -209,7 +209,7 @@ test('OS and user reduced motion suppress activity but preserve business data',(
 
 test('visual activity loads after city and honors CSS accessibility without network or save writes',()=>{
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- assert.ok(html.indexOf('city-street-life.css')>html.indexOf('district-theme.css'));
+ assert.ok(html.indexOf('city-street-life.css')>html.indexOf('living-city.css'));
  assert.ok(html.indexOf('city-street-life.js')>html.indexOf('living-city.js'));
  assert.match(html,/city-street-life\.css\?v=street01/);
  assert.match(html,/city-street-life\.js\?v=street01/);

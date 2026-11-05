@@ -1,128 +1,128 @@
 /* ProfitLands single homepage. A hand-crafted game launcher:
-   strong hierarchy, warm paper controls, no generic glowing tiles.
+   original dark charcoal and lime-green ProfitLands colors, retaining the current launcher layout.
  */
-body.pl-home-page{background:#12232b;color:#f0e7d4}
+body.pl-home-page{background:#0b0e13;color:#f5f7fb}
 body.pl-home-page .app-shell{width:min(1160px,calc(100% - 32px));padding:20px 0 32px}
 body.pl-home-page .topbar{margin:0 0 22px;gap:20px;flex-wrap:wrap}
-body.pl-home-page .brand-mark{background:#e2d0a9;color:#203943;box-shadow:4px 4px 0 #091e26;border-radius:5px}
+body.pl-home-page .brand-mark{background:linear-gradient(135deg,#b8ff65,#55d69a);color:#07100c;box-shadow:0 6px 24px #55d69a20;border-radius:5px}
 body.pl-home-page .brand h1{letter-spacing:-.035em}
-body.pl-home-page .brand p{color:#a6bab9}
+body.pl-home-page .brand p{color:#9aa5b5}
 body.pl-home-page .pl-header-link{
- appearance:none;border:1px solid #567476;
- border-radius:5px;background:#203b43;color:#e4d9bf;
+ appearance:none;border:1px solid #28313d;
+ border-radius:5px;background:#17241e;color:#d8eddb;
  cursor:pointer;min-height:37px;text-decoration:none;
 }
-body.pl-home-page .pl-header-link:hover{background:#2b4c51;border-color:#c7b089}
-body.pl-home-page .pl-header-link:focus-visible{outline:3px solid #efdbac;outline-offset:2px}
+body.pl-home-page .pl-header-link:hover{background:#24392c;border-color:#aef45f}
+body.pl-home-page .pl-header-link:focus-visible{outline:3px solid #d3ff7f;outline-offset:2px}
 .home-command-hero{
  display:flex;justify-content:space-between;align-items:center;gap:32px;
  min-height:240px;overflow:hidden;border-radius:10px;
- border:2px solid #597472;background:linear-gradient(112deg,#233e46 0%,#172e38 100%);
- padding:34px clamp(20px,4vw,46px);box-shadow:0 7px 0 #0b1b24;
+ border:2px solid #374b32;background:linear-gradient(112deg,#17222b 0%,#0f1319 100%);
+ padding:34px clamp(20px,4vw,46px);box-shadow:0 7px 0 #070a10;
 }
 .home-hero-content{flex:1;min-width:0}
-.home-eyebrow{font:850 10px/1.3 Arial,Helvetica,sans-serif;letter-spacing:.12em;color:#d6ba8e}
+.home-eyebrow{font:850 10px/1.3 Arial,Helvetica,sans-serif;letter-spacing:.12em;color:#aef45f}
 .home-command-hero h2{
  margin:9px 0 12px;font-size:clamp(30px,4.4vw,56px);
  line-height:1.06;letter-spacing:-.05em;max-width:670px;
 }
-.home-command-hero h2 span{color:#e4c99e}
-.home-command-hero p{font-size:13px;line-height:1.65;color:#c3d1cb;max-width:600px}
+.home-command-hero h2 span{color:#b8ff65}
+.home-command-hero p{font-size:13px;line-height:1.65;color:#b9c5d4;max-width:600px}
 .home-hero-tags{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
-.home-hero-tags span{font-size:10px;font-weight:750;color:#d9caae;border:1px solid #6a837d;padding:6px 8px;border-radius:3px}
+.home-hero-tags span{font-size:10px;font-weight:750;color:#d7e8d5;border:1px solid #3b5a44;padding:6px 8px;border-radius:3px}
 .home-mark{
  flex:0 0 164px;aspect-ratio:1;display:grid;align-content:center;place-items:center;
- background:#dfcca6;color:#29424b;border:3px solid #f0e1bb;
- border-radius:8px;box-shadow:8px 8px 0 #0f232b;
+ background:linear-gradient(135deg,#b8ff65,#55d69a);color:#07100c;border:3px solid #d3ffb6;
+ border-radius:8px;box-shadow:8px 8px 0 #07100c;
  transform:rotate(4deg);
 }
 .home-mark span{font:900 80px/.9 Arial,Helvetica,sans-serif;letter-spacing:-.12em;margin-right:.1em}
 .home-mark div{font:900 9px/1 Arial,Helvetica,sans-serif;letter-spacing:.11em;margin-top:11px}
 .home-launch{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;margin:22px 0}
 .home-launch-card,.home-account-card{
- min-width:0;padding:24px;border-radius:8px;border:2px solid #546e6e;
- background:#223b43;box-shadow:0 5px 0 #091b23;
+ min-width:0;padding:24px;border-radius:8px;border:2px solid #28313d;
+ background:#11161d;box-shadow:0 5px 0 #05080b;
 }
 .home-launch-card h3,.home-account-card h3{font-size:clamp(20px,2.4vw,27px);line-height:1.15;letter-spacing:-.025em;margin:10px 0}
-.home-launch-card>p,.home-account-card>p{font-size:12px;line-height:1.55;color:#c4d1c8}
+.home-launch-card>p,.home-account-card>p{font-size:12px;line-height:1.55;color:#aeb8c7}
 .home-launch-buttons{display:grid;gap:9px;margin-top:19px}
 .home-continue,.home-new{
  appearance:none;display:flex;align-items:center;justify-content:space-between;
  text-align:left;width:100%;min-height:52px;padding:14px 16px;
- border-radius:5px;border:2px solid #e5d5af;cursor:pointer;
- color:#243c44;background:#e5d0a2;text-decoration:none;
+ border-radius:5px;border:2px solid #b8ff65;cursor:pointer;
+ color:#0a100c;background:#aef45f;text-decoration:none;
  font:850 14px/1.2 Arial,Helvetica,sans-serif;
- box-shadow:3px 3px 0 #091b23;
+ box-shadow:3px 3px 0 #05080b;
 }
 .home-continue:not(:disabled):hover,.home-new:hover{filter:brightness(1.08)}
-.home-continue:disabled{background:#718987;color:#d8e1d4;border-color:#879b90;cursor:not-allowed;opacity:.8}
-.home-new{background:#29454e;color:#e4dbc7;border-color:#67837e}
-.home-continue:focus-visible,.home-new:focus-visible{outline:3px solid #f6dfac;outline-offset:3px}
-.home-launch-card .home-save-status{font-size:11px;color:#aabfb8;margin:12px 0 0;min-height:16px}
+.home-continue:disabled{background:#27322f;color:#aeb8c7;border-color:#45524b;cursor:not-allowed;opacity:.8}
+.home-new{background:#17241e;color:#d8eddb;border-color:#345140}
+.home-continue:focus-visible,.home-new:focus-visible{outline:3px solid #d3ff7f;outline-offset:3px}
+.home-launch-card .home-save-status{font-size:11px;color:#9aa5b5;margin:12px 0 0;min-height:16px}
 .home-account-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .home-account-badge{font:850 10px/1 Arial,Helvetica,sans-serif;letter-spacing:.08em;
- border:1px solid #7c9384;padding:6px 8px;border-radius:3px;color:#cbd8c9}
+ border:1px solid #3b5545;padding:6px 8px;border-radius:3px;color:#c9d9d1}
 .home-account-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
 .home-account-actions button{
  appearance:none;flex:1 1 140px;min-height:40px;cursor:pointer;
  padding:10px 12px;font:850 12px Arial,Helvetica,sans-serif;border-radius:5px;
 }
-.home-account-primary{background:#e3d0a8;border:1px solid #f4e5c1;color:#243a43}
-.home-account-secondary{background:#2f4d54;border:1px solid #68827d;color:#f1dfbe}
+.home-account-primary{background:#aef45f;border:1px solid #d3ffb6;color:#0a100c}
+.home-account-secondary{background:#17241e;border:1px solid #365146;color:#d8eddb}
 .home-account-actions [hidden]{display:none!important}
-.home-account-actions button:focus-visible{outline:3px solid #f1d7a1;outline-offset:2px}
-.home-account-card .home-account-footnote{margin:12px 0 0;font-size:11px;color:#adc4bc}
+.home-account-actions button:focus-visible{outline:3px solid #d3ff7f;outline-offset:2px}
+.home-account-card .home-account-footnote{margin:12px 0 0;font-size:11px;color:#9aa5b5}
 .home-gameplay{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
 .home-gameplay article{
- border:1px solid #486266;border-radius:6px;background:#192f37;
+ border:1px solid #28313d;border-radius:6px;background:#111e1b;
  padding:16px 17px;
 }
-.home-story-count{color:#bbab8a;font:900 11px Arial,Helvetica,sans-serif}
-.home-gameplay article h3{font-size:15px;line-height:1.3;margin:9px 0;color:#e7dcc5}
-.home-gameplay article p{font-size:11px;color:#b2c2bb;line-height:1.5;margin:0}
+.home-story-count{color:#aef45f;font:900 11px Arial,Helvetica,sans-serif}
+.home-gameplay article h3{font-size:15px;line-height:1.3;margin:9px 0;color:#f5f7fb}
+.home-gameplay article p{font-size:11px;color:#9aa5b5;line-height:1.5;margin:0}
 .home-lower-links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-top:22px}
-.home-lower-links a{font:750 12px Arial,Helvetica,sans-serif;color:#cfbb94;text-decoration:none;border-bottom:1px solid #b9a580;padding:4px 0}
-body.pl-home-page .pl-home-footer{margin-top:23px;color:#9bafa8;border-color:#436166;font-size:11px}
+.home-lower-links a{font:750 12px Arial,Helvetica,sans-serif;color:#b2f565;text-decoration:none;border-bottom:1px solid #537e50;padding:4px 0}
+body.pl-home-page .pl-home-footer{margin-top:23px;color:#8996a5;border-color:#273a33;font-size:11px}
 .home-auth-dialog[hidden],#homeAuthReset[hidden],#homeAuthSignupFields[hidden]{display:none!important}
 .home-auth-dialog{
  position:fixed;inset:0;z-index:50000;overflow-y:auto;
  display:grid;place-items:center;padding:20px 10px;
- background:#07151be1;backdrop-filter:blur(5px);
+ background:#070a0fe1;backdrop-filter:blur(5px);
 }
 .home-auth-card{
- position:relative;width:min(450px,100%);border:2px solid #718781;
- border-radius:9px;background:#213b43;padding:24px 25px;color:#f1e5c9;
- box-shadow:0 8px 0 #0d232d;
+ position:relative;width:min(450px,100%);border:2px solid #374b32;
+ border-radius:9px;background:#11161d;padding:24px 25px;color:#f5f7fb;
+ box-shadow:0 8px 0 #05080b;
 }
 .home-auth-card h2{font-size:25px;letter-spacing:-.025em;margin:10px 0}
-.home-auth-card>p{font-size:12px;line-height:1.55;color:#c2d1c6}
+.home-auth-card>p{font-size:12px;line-height:1.55;color:#aeb8c7}
 .home-auth-close{
  position:absolute;right:10px;top:10px;width:38px;height:38px;
  display:grid;place-items:center;border-radius:4px;
- border:1px solid #688783;background:#28434b;color:#e7d5b2;cursor:pointer;
+ border:1px solid #365146;background:#202832;color:#d8eddb;cursor:pointer;
  font:800 24px/1 Arial,Helvetica,sans-serif;
 }
 .home-auth-card form{display:grid;gap:8px}
-.home-auth-card label{margin-top:7px;color:#d9caac;font:800 11px Arial,Helvetica,sans-serif}
+.home-auth-card label{margin-top:7px;color:#d8eddb;font:800 11px Arial,Helvetica,sans-serif}
 .home-auth-card input{
- width:100%;min-height:43px;border:1px solid #607d7b;
- padding:11px 12px;border-radius:4px;background:#142c35;
- font:500 13px Arial,Helvetica,sans-serif;color:#faf0d6;outline:none;
+ width:100%;min-height:43px;border:1px solid #28313d;
+ padding:11px 12px;border-radius:4px;background:#0b1119;
+ font:500 13px Arial,Helvetica,sans-serif;color:#f5f7fb;outline:none;
 }
-.home-auth-card input:focus{outline:2px solid #d6bf98;outline-offset:1px}
+.home-auth-card input:focus{outline:2px solid #aef45f;outline-offset:1px}
 #homeAuthSignupFields:not([hidden]){display:grid;gap:8px}
-.home-auth-error{min-height:16px;color:#efb3a4;font-size:12px!important;margin:3px 0!important}
+.home-auth-error{min-height:16px;color:#f5b2ad;font-size:12px!important;margin:3px 0!important}
 .home-auth-submit{
- border:1px solid #f4e3b8;border-radius:5px;background:#e5d1ab;
- min-height:45px;cursor:pointer;color:#263b43;font:900 12px Arial,Helvetica,sans-serif;
+ border:1px solid #d3ffb6;border-radius:5px;background:#aef45f;
+ min-height:45px;cursor:pointer;color:#0a100c;font:900 12px Arial,Helvetica,sans-serif;
 }
 .home-auth-submit:disabled{opacity:.65;cursor:wait}
 .home-auth-switch{
  display:block;margin:10px 0 0;padding:5px 0;
- background:transparent;border:0;cursor:pointer;color:#e1c79d;
+ background:transparent;border:0;cursor:pointer;color:#b2f565;
  font:700 12px Arial,Helvetica,sans-serif;text-align:left;
 }
-.home-auth-card button:focus-visible{outline:3px solid #f2dfae;outline-offset:3px}
+.home-auth-card button:focus-visible{outline:3px solid #d3ff7f;outline-offset:3px}
 @media(max-width:800px){
  .home-launch{grid-template-columns:minmax(0,1fr)}
  .home-mark{flex-basis:110px}

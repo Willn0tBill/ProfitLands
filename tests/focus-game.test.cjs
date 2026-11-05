@@ -122,7 +122,7 @@ test('production styles hide the redundant website topbar and fit status into a 
  assert.match(css,/position:absolute!important/);
  assert.match(css,/@media\(max-width:760px\)/);
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- assert.match(html,/focus-game\.css\?v=focus01/);
+ assert.match(html,/focus-game\.css\?v=original01/);
  assert.match(html,/focus-game\.js\?v=focus01/);
  assert.match(html,/modal-dismiss\.js\?v=close02/);
  assert.match(html,/game-motion-v2\.js\?v=motion04/);
