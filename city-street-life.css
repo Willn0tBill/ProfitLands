@@ -178,3 +178,35 @@ html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-renovating::after{
  animation:none!important;
 }
 body.pl-online-world #gameScreen .pl-street-life{display:none!important}
+
+
+/* A newly purchased shop raises its sign rather than appearing without feedback. */
+#gameScreen .pl-city-building.pl-city-new-open::after{
+ content:"NOW OPEN";position:absolute;
+ bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);
+ border:1px solid #405a56;border-radius:3px;
+ padding:4px 6px;color:#253d3b;background:#d6e3be;
+ box-shadow:2px 2px 0 #1a2c3388;white-space:nowrap;
+ font:800 8px/1 Arial,Helvetica,sans-serif;letter-spacing:.04em;
+ animation:plStreetShopLabel .3s ease-out both;
+ pointer-events:none;
+}
+#gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+ animation:plStreetStoreOpen 1.6s ease-out both;
+}
+@keyframes plStreetStoreOpen{
+ 0%{filter:brightness(1)}
+ 25%{filter:brightness(1.85)}
+ 100%{filter:brightness(1)}
+}
+html.pl-motion-lite #gameScreen .pl-street-customer .pl-street-person-legs{animation:none}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-city-building.pl-city-new-open::after,
+ #gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+  animation:none!important;
+ }
+}
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-new-open::after,
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+ animation:none!important;
+}
