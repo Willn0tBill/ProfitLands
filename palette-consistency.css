@@ -1,0 +1,228 @@
+/* ProfitLands shared visual language: restrained slate, painted teal and sandstone.
+ * The existing high-saturation arcade skin stays available through the Vivid setting.
+ * Cosmetic only: no changes to structure, save state, gameplay or networking.
+ */
+:root{--pl-quiet-ink:#10232b;--pl-quiet-surface:#203940;--pl-quiet-surface-raised:#27444a;--pl-quiet-line:#57716e;--pl-quiet-cream:#ecdcb9;--pl-quiet-muted:#b7c8c4;--pl-quiet-teal:#a7d7cb}
+html:not(.pl-colorway-vivid) body.pl-play-page{
+  background:radial-gradient(ellipse 74% 46% at 84% -14%,#33515b4d,transparent 73%),#10232b!important;
+  color:#e9e8dc;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .brand-mark{
+  background:#dfcfaa!important;color:#203740!important;
+  border:1px solid #efe0bc!important;border-radius:6px!important;
+  box-shadow:3px 3px 0 #0b1d24!important;animation:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .brand h1{
+  color:#f1e9d7!important;background:none!important;-webkit-text-fill-color:currentColor!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .mode-pill{
+  background:#1e373f!important;border-color:#506e6f!important;color:#d1e0d9!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .play-entry-hero,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .hero{
+  background:linear-gradient(125deg,#2b484e,#1a343d 65%,#1c3439)!important;
+  border:1px solid #627b76!important;box-shadow:0 6px 0 #0c2026!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .play-entry-hero:before{opacity:.16!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .play-entry-hero h2,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .hero h2{
+  color:#f3e5c9!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .hero-coin{
+  color:#e4d3ab!important;text-shadow:3px 5px 0 #0e2429!important;animation:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .mode-card,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .type-card,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .difficulty-card{
+  background:#203940!important;color:#f3e8d3!important;
+  border:1px solid #516a6a!important;box-shadow:0 3px 0 #10242c!important;border-radius:9px!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .mode-card.selected,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .type-card.selected,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .difficulty-card.selected{
+  background:#2c4b4d!important;border:1px solid #e0c899!important;
+  box-shadow:inset 0 0 0 1px #decda638,0 3px 0 #10242c!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .mode-card span,
+html:not(.pl-colorway-vivid) body.pl-play-page #homeScreen .eyebrow{color:#e0c798!important}
+html:not(.pl-colorway-vivid) body.pl-play-page .primary-button,
+html:not(.pl-colorway-vivid) body.pl-play-page .chain-button{
+  background:#e2d0a7!important;color:#18323a!important;
+  border:1px solid #f5e0b2!important;border-radius:7px!important;
+  box-shadow:2px 3px 0 #112c34!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .primary-button:hover:not(:disabled),
+html:not(.pl-colorway-vivid) body.pl-play-page .chain-button:hover:not(:disabled){
+  background:#f0dfba!important;box-shadow:2px 4px 0 #0b232a!important;
+}
+html:not(.pl-colorway-vivid) body.pl-workspace-enabled:has(#gameScreen.active),
+html:not(.pl-colorway-vivid) body.pl-workspace-enabled:has(#gameScreen.active) .pl-workspace-shell{
+  background:#11262d!important;
+}
+html:not(.pl-colorway-vivid) body.pl-workspace-enabled:has(#gameScreen.active) .app-shell>.topbar{
+  background:#1c363c!important;border-bottom:1px solid #4b6767!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-sidebar{
+  background:#192f38!important;border-right:1px solid #47646a!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-main{
+  background:linear-gradient(160deg,#142a33,#142930 60%,#10252d)!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-main:before{opacity:.1!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-title{color:#f0ddba!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-group{color:#9eb5af!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item{color:#c9d8d4!important;border-radius:7px!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item:hover:not(.active){
+  background:#2b454e!important;border-color:#64807966!important;transform:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item.active{
+  background:#e0d0ac!important;color:#203941!important;border:1px solid #f0dfb6!important;
+  box-shadow:2px 3px 0 #0c242b!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-index{
+  background:#39555a!important;color:#f6e4bc!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item.active .pl-workspace-nav-indicator{color:#36555b!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud{
+  background:#203940!important;border:1px solid #617975!important;border-radius:9px!important;
+  box-shadow:0 4px 0 #0e232c!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-head h2{
+  color:#f1e3c3!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .timer-box strong{color:#e7d0a3!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat{
+  background:#162f38!important;border:1px solid #48686a!important;
+  border-radius:6px!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat:before{
+  background:#93bcb2!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat[data-stat="cash"]:before{background:#dfc18d!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat[data-stat="profit"]:before{background:#a4dda6!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat[data-stat="actions"]:before{background:#9cbace!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat small{color:#b1c8c5!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat strong{color:#f0e4c7!important;text-shadow:none!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-section-head{
+  background:#263f46!important;border:1px solid #587373!important;
+  border-bottom:2px solid #d8bd8c!important;border-radius:8px!important;
+  box-shadow:0 3px 0 #0c232c!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-section-head:before{
+  background:#d4b985!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-section-title{
+  color:#f2e3c3!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-context{
+  background:#314f54!important;border-color:#77948a!important;color:#f0dec0!important;
+  box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels>.panel,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels>.collapsible-panel{
+  background:#203941!important;border:1px solid #55716e!important;
+  border-radius:9px!important;box-shadow:0 3px 0 #0c232b!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels>.panel:hover{border-color:#93b9ac!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .panel-head .eyebrow,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .eyebrow{color:#b6cfc5!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .panel-head h3,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .panel h3{
+  color:#f1e3c5!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .business-card,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .stock,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .action-button{
+  background:#192f38!important;border:1px solid #4c686b!important;
+  box-shadow:2px 3px 0 #10252d!important;border-radius:7px!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .business-card:before{
+  background:#b7d6bf!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .business-card:hover,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .stock:hover,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .action-button:hover{
+  border-color:#e1c998!important;box-shadow:2px 4px 0 #10252d!important;transform:translateY(-1px)!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .mini-stat{
+  background:#142b33!important;border:1px solid #435f62!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .mini-stat small{color:#afc2bd!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .live-tag{
+  background:#28434a!important;border:1px solid #668581!important;color:#e4d4b2!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels .popbar i,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .goal-progress i{
+  background:linear-gradient(90deg,#69bba8,#a3d69c)!important;box-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card{
+  background:#20383f!important;border:1px solid #728881!important;
+  box-shadow:0 16px 50px #07161cca!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card h2{color:#f2e3c5!important}
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card .upgrade-button,
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card .business-choice{
+  background:#193039!important;border-color:#5a7574!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card .upgrade-button:hover,
+html:not(.pl-colorway-vivid) body.pl-play-page .modal:not(.hidden) .modal-card .business-choice:hover{
+  border-color:#d9c297!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .toast.show{
+  background:#e6d9b7!important;border:1px solid #f4e6c4!important;
+  color:#203740!important;box-shadow:0 10px 32px #0008!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-quest-card,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-intro{
+  background:#2a4649!important;border:1px solid #749087!important;
+  box-shadow:0 3px 0 #0e262b!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-quest-card h3,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-intro h3{
+  color:#f2e0ba!important;text-shadow:none!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-quest-card p{color:#d1e0d7!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-step{
+  background:#223b43!important;border:1px solid #637e79!important;
+  box-shadow:0 3px 0 #0c242b!important;color:#e7e7d9!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-step strong{color:#f0dbb3!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-step small{color:#bdd3cc!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-step:hover{
+  border-color:#dbcb9d!important;box-shadow:0 5px 0 #0c242b!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-advanced,
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-game-advanced>.panel{
+  background:#18323b!important;border-color:#506a6a!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-advanced-nav{
+  background:#182c34!important;border-color:#4f6a69!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-advanced-nav summary{color:#d6ded2!important}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-advanced-nav[open] summary{
+  border-color:#627975!important;color:#f1dfb7!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-sidebar-actions .pl-workspace-quick-button{
+  background:#e4d1aa!important;color:#203940!important;border-color:#eedebd!important;
+  box-shadow:2px 3px 0 #0c242b!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-sidebar-actions .pl-workspace-quick-button.pl-workspace-secondary{
+  background:#29474c!important;color:#e7ddc7!important;border-color:#708582!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .pl-focus-prompt-card{
+  background:#203940!important;color:#e9e0cc!important;border-color:#7a8d80!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .pl-game-reward{
+  color:#203940!important;background:#ead9b5!important;border:1px solid #f3e0b9!important;
+  box-shadow:0 7px 20px #0007!important;
+}
+html:not(.pl-colorway-vivid) body.pl-play-page .pl-game-shard{
+  box-shadow:none!important;
+}
+/* Settings selector: native keyboard controls; never replaces the app's widgets. */
+.pl-colorway-control{appearance:auto;min-width:155px;max-width:100%;padding:10px 12px;
+  border:1px solid #607f75;border-radius:8px;background:#1d343b;color:#f2e7d0;
+  font:700 13px/1.35 Inter,system-ui,sans-serif;cursor:pointer}
+.pl-colorway-control:focus-visible{outline:3px solid #e9cc94;outline-offset:3px}
+@media(max-width:680px){.pl-colorway-control{min-width:0;width:100%;margin-top:10px}
+  .pl-colorway-setting{align-items:flex-start;flex-direction:column}}
