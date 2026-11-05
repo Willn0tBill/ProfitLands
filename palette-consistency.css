@@ -226,3 +226,15 @@ html:not(.pl-colorway-vivid) body.pl-play-page .pl-game-shard{
 .pl-colorway-control:focus-visible{outline:3px solid #e9cc94;outline-offset:3px}
 @media(max-width:680px){.pl-colorway-control{min-width:0;width:100%;margin-top:10px}
   .pl-colorway-setting{align-items:flex-start;flex-direction:column}}
+
+/* Accessibility must remain stronger than either colorway's decorative border styles. */
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels>.panel,
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud .game-hud .stat,
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-section-head,
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-nav-item.active{
+  border-color:#c8e5d9!important;
+}
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-panels small,
+html.pl-contrast:not(.pl-colorway-vivid) body.pl-play-page #gameScreen .pl-workspace-hud small{
+  color:#deeee7!important;
+}
