@@ -239,7 +239,7 @@ test('new empires clear old contract markers and assets load in the actual play 
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.ok(html.indexOf('city-contracts.css')>html.indexOf('district-development.css'));
  assert.ok(html.indexOf('city-contracts.js')>html.indexOf('district-development.js'));
- assert.match(html,/city-contracts\.css\?v=contracts02/);
+ assert.match(html,/city-contracts\.css\?v=original01/);
  assert.match(html,/city-contracts\.js\?v=contracts02/);
  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
  assert.match(economy,/state\.cityContract=null;state\.cityContractLastRewardAt=0;/);
