@@ -14,7 +14,7 @@ let generation=0;
 
 function animateView(view){
  if(typeof view!=='string'||!/^[a-z0-9_-]{1,32}$/i.test(view))return false;
- if(reduced()||!isPlaying()||document.hidden)return false;
+ if(reduced()||lowPower()||!isPlaying()||document.hidden)return false;
  const section=document.querySelector('#gameScreen .pl-workspace-view[data-workspace-content="'+view+'"]');
  if(!section||section.hidden||!section.classList.contains('active'))return false;
  if(previousView&&previousView!==section)previousView.classList.remove('pl-motion-enter');
@@ -26,6 +26,11 @@ function animateView(view){
   if(token!==generation||reduced()||!isPlaying()||document.hidden||section.hidden||
     !section.classList.contains('active'))return;
   section.classList.add('pl-motion-enter');
+  // Keep the animation scoped to an actual navigation, not every later
+  // background rerender of a business list or leaderboard.
+  setTimeout(()=>{
+   if(token===generation)section.classList.remove('pl-motion-enter');
+  },480);
  });
  return true;
 }
