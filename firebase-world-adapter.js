@@ -1,137 +1,153 @@
-/* ProfitLands online Firebase callable adapter.
- * No local economy or saved-game state is used for server-side currency.
+/* ProfitLands World 1 — free Cloudflare Worker transport.
+ * Firebase is used ONLY for account identity: the Worker verifies its signed
+ * ID token and stores all multiplayer cash and purchases in Cloudflare D1.
+ * This file never trusts/updates local singleplayer currency.
  */
 (function(){
 'use strict';
-let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,sessionEpoch=0;
+let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,epoch=0;
 const pendingMutations=new Map();
-let callable=null;
 const playing=()=>window.state?.playType==='multi'&&
-  Boolean(document.getElementById('gameScreen')?.classList.contains('active'));
+ Boolean(document.getElementById('gameScreen')?.classList.contains('active'));
+const currentUser=()=>{
+ try{return window.firebase?.auth?.().currentUser||null}catch(e){return null}
+};
+const endpoint=()=>{
+ const raw=String(window.PROFITLANDS_WORLD1_ENDPOINT||'').trim();
+ try{
+  const url=new URL(raw);
+  // Protect account tokens: only send them to the expected Worker name.
+  if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||
+    !/^profitlands-world1\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname)||
+    url.pathname!=='/'&&url.pathname!=='')return '';
+  return url.origin;
+ }catch(e){return ''}
+};
+function ready(){return Boolean(endpoint()&&typeof fetch==='function')}
 function emit(){
  if(typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('profitlands:serverupdate'));
 }
-function ready(){
- try{
-  if(!firebase?.apps?.length||typeof firebase.functions!=='function')return false;
-  if(!callable)callable=firebase.app().functions('us-west1').httpsCallable('worldApi');
-  return true;
- }catch(e){return false}
-}
-function currentUser(){
- try{return firebase.auth().currentUser||null}catch(e){return null}
-}
 async function call(action,data={}){
- if(!ready())throw Error('Firebase multiplayer functions are not configured.');
- if(action!=='health'&&!currentUser())throw Error('Please sign into your ProfitLands account.');
- try{
-  const result=await callable({action,...data});
-  return result.data;
- }catch(error){
-  if(/unauthenticated|not-found/i.test(String(error?.code||''))){connected=false;emit()}
-  const failure=new Error(String(error?.message||'Online server unavailable.').slice(0,220));
-  failure.code=String(error?.code||'');
-  throw failure;
+ const origin=endpoint();
+ if(!origin)throw Error('World 1 has not been deployed. Set the Cloudflare Worker URL in world1-config.js.');
+ if(typeof fetch!=='function')throw Error('Your browser cannot reach the multiplayer server.');
+ const account=currentUser();
+ if(action!=='health'&&!account)throw Error('Please sign into your ProfitLands account.');
+ let token='';
+ if(action!=='health'){
+  try{token=await account.getIdToken()}catch(e){throw Error('Your account could not be verified. Sign in again.')}
  }
+ const abort=typeof AbortController==='function'?new AbortController():null;
+ const timer=abort?setTimeout(()=>abort.abort(),15000):null;
+ try{
+  const response=await fetch(origin+'/api',{method:'POST',mode:'cors',cache:'no-store',
+   headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},
+   body:JSON.stringify({action,...data}),...(abort?{signal:abort.signal}:{})});
+  let result;
+  try{result=await response.json()}catch(e){result=null}
+  if(!response.ok||!result||result.error){
+   const code=String(result?.error?.code|| (response.status===401?'unauthenticated':
+    response.status===503?'unavailable':'internal'));
+   const error=new Error(String(result?.error?.message||'World 1 is not responding correctly.').slice(0,220));
+   error.code=code;
+   if(code==='unauthenticated'){connected=false;emit()}
+   throw error;
+  }
+  return result;
+ }catch(error){
+  if(error?.code)throw error;
+  const e=new Error(error?.name==='AbortError'?'World 1 timed out. Try again.':
+   'Could not reach World 1. Confirm the free Cloudflare Worker is deployed.');
+  e.code=error?.name==='AbortError'?'deadline-exceeded':'unavailable';
+  throw e;
+ }finally{if(timer!==null)clearTimeout(timer)}
 }
 async function connect(){
  if(connected&&user?.uid===currentUser()?.uid)return true;
  if(connecting)return connecting;
  connecting=(async()=>{
-  const epoch=sessionEpoch;
+  const token=epoch;
   try{
    const signed=currentUser();
-   if(!signed)throw Error('Please sign in from the account menu first.');
+   if(!signed)throw Error('Please sign in from the homepage or account menu first.');
    if(!playing())throw Error('Open Multiplayer before connecting to World 1.');
    const health=await call('health');
-   if(!health?.ok||health.worldId!=='world1')throw Error('World 1 is not configured.');
+   if(!health?.ok||health.worldId!=='world1')throw Error('The Cloudflare server is not serving World 1.');
    const result=await call('register');
-   if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned an invalid player identity.');
-   if(sessionEpoch!==epoch||currentUser()?.uid!==signed.uid||!playing())throw Error('Session changed while connecting. Please try again.');
+   if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned the wrong player identity.');
+   if(epoch!==token||currentUser()?.uid!==signed.uid||!playing())
+    throw Error('Session changed while connecting.');
    catalog=Array.isArray(health.catalog)?health.catalog:[];
    chatEnabled=health.chatEnabled===true;
-   user=signed;connected=true;emit();
-   return true;
-  }catch(e){connected=false;emit();throw e}
+   user=signed;connected=true;emit();return true;
+  }catch(error){connected=false;emit();throw error}
   finally{connecting=null}
  })();
  return connecting;
 }
-function disconnect(){sessionEpoch++;connected=false;user=null;chatEnabled=false;catalog=[];emit()}
+function disconnect(){epoch++;connected=false;user=null;catalog=[];chatEnabled=false;emit()}
 function requireSession(){
  if(!connected||!playing()||user?.uid!==currentUser()?.uid)throw Error('Connect to World 1 first.');
 }
-async function request(action,data={}){
- requireSession();
- return call(action,data);
-}
+async function request(action,data={}){requireSession();return call(action,data)}
 function nonce(){
- if(!window.crypto?.getRandomValues)throw Error('Secure random IDs are unavailable.');
+ if(!window.crypto?.getRandomValues)throw Error('Secure request IDs are unavailable.');
  const bytes=new Uint8Array(16);window.crypto.getRandomValues(bytes);
  return Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
 }
-async function submitIdempotent(action,data={}){
+async function paid(action,data={}){
  requireSession();
  const caller=user.uid;
- // An ambiguous server result must keep its original request ID. This avoids
- // buying a second business when a mobile network loses two responses in a row.
  const fingerprint=JSON.stringify([caller,action,data]);
  const storageKey='profitlands-world1-pending:'+fingerprint;
- let requestId=pendingMutations.get(fingerprint);
- if(!requestId){
+ let rid=pendingMutations.get(fingerprint);
+ if(!rid){
   try{
    const saved=JSON.parse(window.sessionStorage?.getItem(storageKey)||'null');
-   if(saved&&Date.now()-saved.createdAt<86400000&&Date.now()>=saved.createdAt&&/^[0-9a-f]{32}$/.test(saved.requestId))
-    requestId=saved.requestId;
+   if(saved&&Date.now()-saved.createdAt<86400000&&Date.now()>=saved.createdAt&&
+      /^[0-9a-f]{32}$/.test(saved.requestId))rid=saved.requestId;
   }catch(e){}
  }
- if(!requestId)requestId=nonce();
- pendingMutations.set(fingerprint,requestId);
- try{window.sessionStorage?.setItem(storageKey,JSON.stringify({requestId,createdAt:Date.now()}))}catch(e){}
+ if(!rid)rid=nonce();
+ pendingMutations.set(fingerprint,rid);
+ try{window.sessionStorage?.setItem(storageKey,JSON.stringify({requestId:rid,createdAt:Date.now()}))}catch(e){}
  const clear=()=>{
   pendingMutations.delete(fingerprint);
   try{window.sessionStorage?.removeItem(storageKey)}catch(e){}
  };
- const payload={...data,requestId};
  try{
-  let result;
-  try{result=await call(action,payload)}
-  catch(error){
-   if(!/unavailable|deadline-exceeded/i.test(error.code||''))throw error;
+  let answer;
+  try{answer=await call(action,{...data,requestId:rid})}
+  catch(e){
+   if(!['unavailable','deadline-exceeded'].includes(e.code))throw e;
    if(user?.uid!==caller||currentUser()?.uid!==caller||!playing())
-    throw Error('Session changed during request; please reconnect.');
-   result=await call(action,payload);
+    throw Error('Your account session changed during the request.');
+   answer=await call(action,{...data,requestId:rid});
   }
-  clear();
-  return result;
- }catch(error){
-  // Keep the key only for uncertain transport failures. A definite rejected
-  // transaction is safe to retry with a fresh request ID.
-  if(!/unavailable|deadline-exceeded/i.test(error.code||''))clear();
-  throw error;
+  clear();return answer;
+ }catch(e){
+  if(!['unavailable','deadline-exceeded'].includes(e.code))clear();
+  throw e;
  }
 }
-async function requestAttack({targetUid,attackId}){
- return submitIdempotent('requestAttack',{targetUid,attackId});
-}
-async function requestDefense(){return submitIdempotent('requestDefense')}
 window.ProfitLandsOnline={
  connect,disconnect,isConnected:()=>connected&&playing()&&user?.uid===currentUser()?.uid,
- getCatalog:()=>catalog.slice(),chatEnabled:()=>chatEnabled,
+ isConfigured:ready,endpoint,chatEnabled:()=>chatEnabled,getCatalog:()=>catalog.slice(),
  getMyEmpire:()=>request('me'),
  getLeaderboard:period=>request('getLeaderboard',{period}),
  getPlayers:()=>request('getPlayers'),
- buyBusiness:businessId=>submitIdempotent('buyBusiness',{businessId}),
- upgradeBusiness:index=>submitIdempotent('upgradeBusiness',{index}),
+ buyBusiness:businessId=>paid('buyBusiness',{businessId}),
+ upgradeBusiness:index=>paid('upgradeBusiness',{index}),
  togglePvP:()=>request('togglePvP'),
- requestAttack,requestDefense,
+ requestAttack:({targetUid,attackId})=>paid('requestAttack',{targetUid,attackId}),
+ requestDefense:()=>paid('requestDefense'),
  getChat:()=>chatEnabled?request('getChat'):Promise.resolve([]),
  sendChat:text=>chatEnabled?request('sendChat',{text}):Promise.reject(Error('World chat is currently disabled.')),
  reportMessage:messageId=>chatEnabled?request('reportMessage',{messageId}):Promise.reject(Error('World chat is currently disabled.'))
 };
 window.addEventListener('load',()=>{
- if(!ready())return;
- firebase.auth().onAuthStateChanged(next=>{
+ if(!window.firebase?.auth)return;
+ window.firebase.auth().onAuthStateChanged(next=>{
   if(!next||next.uid!==user?.uid)disconnect();
  });
 });
