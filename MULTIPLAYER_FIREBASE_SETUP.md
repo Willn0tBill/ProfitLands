@@ -23,7 +23,7 @@ npm install -g firebase-tools
 firebase login
 firebase use wtvstudios-5b40f
 npm install --prefix functions
-npm test
+node --test
 npm run test --prefix functions
 \`\`\`
 
