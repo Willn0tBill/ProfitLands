@@ -51,3 +51,69 @@
  .pl-settings-main{margin:16px auto 50px}
  .pl-control-link{display:none}
 }
+
+/* Display settings use the same original charcoal/lime identity as the home.
+ * Scoped to settings: never overrides gameplay mode styles. */
+body.pl-settings-page{
+ --pl-accent:#aef45f;background:#0b0e13;color:#f5f7fb;
+}
+body.pl-settings-page .brand-mark{
+ border-radius:14px;background:linear-gradient(135deg,#b8ff65,#55d69a);
+ color:#07100c;box-shadow:0 6px 24px #55d69a20;
+}
+body.pl-settings-page .brand p{color:#9aa5b5}
+body.pl-settings-page .pl-header-link{
+ background:#17241e;border-color:#344c39;color:#e1f5e0;
+}
+body.pl-settings-page .pl-header-link:hover{
+ background:#24392c;border-color:#8cc68f;color:#fff;
+}
+body.pl-settings-page .pl-settings-title .eyebrow{
+ color:#aef45f;font-weight:800;letter-spacing:.15em;
+}
+body.pl-settings-page .pl-settings-title h2{
+ color:#f5f7fb;
+}
+body.pl-settings-page .pl-settings-title p{color:#aeb8c7}
+body.pl-settings-page .pl-settings-section{
+ border-color:#2c3945;background:linear-gradient(145deg,#171d27,#11161d);
+ box-shadow:0 12px 32px #03070b66,inset 0 1px #ffffff0b;
+}
+body.pl-settings-page .pl-settings-section h3{color:#f5f7fb}
+body.pl-settings-page .pl-settings-section p,
+body.pl-settings-page .pl-pref small{color:#aeb8c7}
+body.pl-settings-page .pl-pref{
+ border-bottom-color:#2c3945;border-radius:7px;
+}
+body.pl-settings-page .pl-pref input{accent-color:#aef45f}
+body.pl-settings-page .pl-pref:focus-within{
+ outline:2px solid #b8ff65;outline-offset:4px;
+}
+body.pl-settings-page .pl-settings-actions .secondary-button{
+ width:auto;margin:0;min-height:43px;
+ border:1px solid #405648;border-radius:11px;
+ padding:10px 16px;background:#19261e;color:#e2f5df;
+}
+body.pl-settings-page .pl-settings-actions .secondary-button:hover{
+ background:#243b2a;border-color:#85ca89;
+}
+body.pl-settings-page .pl-settings-actions .pl-link{
+ background:#aef45f;color:#0a100c;border:1px solid #d3ffb6;
+ border-radius:11px;min-height:43px;
+}
+body.pl-settings-page .pl-settings-actions .pl-link:hover{
+ background:#c8ff8f;color:#0a100c;
+}
+body.pl-settings-page .pl-setting-note{color:#aef45f}
+body.pl-settings-page .pl-home-footer{
+ border-color:#2c3945;color:#aeb8c7;
+}
+body.pl-settings-page .pl-home-footer a{color:#b2f565}
+body.pl-settings-page .pl-settings-actions :is(button,a):focus-visible{
+ outline:3px solid #b8ff65;outline-offset:3px;
+}
+@media(prefers-reduced-motion:reduce){
+ body.pl-settings-page *,body.pl-settings-page *::before,body.pl-settings-page *::after{
+  transition:none!important;animation:none!important;
+ }
+}
