@@ -35,7 +35,8 @@ try {
   if($LASTEXITCODE -ne 0){throw ('Could not list D1 databases: '+$listOutput)}
   try {
     $payload=ConvertFrom-Json -InputObject $listOutput
-    if($payload -is [array]){$items=@($payload)}
+    if($null -eq $payload){$items=@()}
+    elseif($payload -is [array]){$items=@($payload)}
     elseif($payload.PSObject.Properties.Name -contains 'result'){$items=@($payload.result)}
     else{$items=@($payload)}
   } catch {throw 'Could not parse Wrangler D1 list JSON. No changes were made.'}
@@ -49,7 +50,8 @@ try {
     $listOutput=(& $npx -y $wranglerVersion d1 list --json 2>&1 | Out-String)
     if($LASTEXITCODE -ne 0){throw 'Could not inspect the new D1 database.'}
     $payload=ConvertFrom-Json -InputObject $listOutput
-    if($payload -is [array]){$items=@($payload)}
+    if($null -eq $payload){$items=@()}
+    elseif($payload -is [array]){$items=@($payload)}
     elseif($payload.PSObject.Properties.Name -contains 'result'){$items=@($payload.result)}
     else{$items=@($payload)}
     $found=@($items | Where-Object { $_.name -eq $database })
