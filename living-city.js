@@ -66,6 +66,8 @@ function render(state){
  const count=$('plCityBusinessCount'),levels=$('plCityUpgradeCount');
  const day=$('plCityDay'),flow=$('plCityFlow'),hint=$('plCityHint');
  if(count)count.textContent=model.count.toLocaleString();
+ const tickerCount=$('plCityTickerCount');
+ if(tickerCount)tickerCount.textContent=model.count+' ACTIVE '+(model.count===1?'BUSINESS':'BUSINESSES');
  if(levels)levels.textContent=model.totalLevels.toLocaleString();
  if(day)day.textContent='DAY '+model.day;
  if(hint)hint.textContent=model.count?
@@ -115,6 +117,16 @@ function mount(){
  panel.setAttribute('aria-label','Live animated empire city');
  panel.innerHTML="\n<header class=\"pl-city-head\"><div class=\"pl-city-head-copy\">\n  <div class=\"pl-city-kicker\"><span class=\"pl-city-live-dot\"></span> LIVE EMPIRE <span id=\"plCityDay\" class=\"pl-city-day\">DAY 1</span></div>\n  <h3>Watch your empire come alive.</h3>\n  <p id=\"plCityHint\">Your first shop will light up this district.</p>\n </div><button type=\"button\" id=\"plCityManage\" class=\"pl-city-manage\">Explore businesses <span aria-hidden=\"true\">↗</span></button></header>\n<div class=\"pl-city-stage\" aria-hidden=\"true\">\n <div class=\"pl-city-stars\"></div><div class=\"pl-city-sun\"></div>\n <div class=\"pl-city-cloud pl-city-cloud-a\"></div><div class=\"pl-city-cloud pl-city-cloud-b\"></div>\n <div class=\"pl-city-distant\"></div><div class=\"pl-city-hill\"></div>\n <div class=\"pl-city-buildings\" id=\"plCityBuildings\"></div>\n <div class=\"pl-city-lamp pl-city-lamp-a\"></div><div class=\"pl-city-lamp pl-city-lamp-b\"></div>\n <div class=\"pl-city-road\"><div class=\"pl-city-lanes\"></div>\n <div class=\"pl-city-car pl-city-car-a\"><i></i></div>\n <div class=\"pl-city-car pl-city-car-b\"><i></i></div>\n <div class=\"pl-city-van\"><i></i></div></div>\n <div class=\"pl-city-horizon-light\"></div>\n <span class=\"pl-city-more\" id=\"plCityMore\" hidden></span>\n</div>\n<footer class=\"pl-city-footer\">\n <div><span>ACTIVE BUSINESSES</span><strong id=\"plCityBusinessCount\">0</strong></div>\n <div><span>COMBINED LEVELS</span><strong id=\"plCityUpgradeCount\">0</strong></div>\n <div><span>CURRENT INCOME</span><strong id=\"plCityFlow\">—</strong></div>\n <span class=\"pl-city-live-label\"><i></i> CITY IN MOTION</span>\n</footer>";
  overview.prepend(panel);
+ const heading=document.querySelector('#gameScreen .pl-workspace-section-head');
+ if(heading&&typeof heading.insertAdjacentElement==='function'&&!$('plCityTicker')){
+  const ticker=make('div','pl-city-ticker');
+  ticker.id='plCityTicker';
+  ticker.setAttribute('aria-label','Live empire production activity');
+  ticker.innerHTML='<span class="pl-city-ticker-status"><i></i> EMPIRE ACTIVITY</span>'+
+   '<span class="pl-city-ticker-conveyor" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>'+
+   '<strong id="plCityTickerCount">0 ACTIVE BUSINESSES</strong>';
+  heading.insertAdjacentElement('afterend',ticker);
+ }
  $('plCityManage')?.addEventListener('click',()=>{
   window.ProfitLandsWorkspace?.show?.('businesses');
   if(!Array.isArray(window.state?.businesses)||window.state.businesses.length===0)
