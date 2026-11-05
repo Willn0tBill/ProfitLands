@@ -1,0 +1,201 @@
+/* ProfitLands Focus — reclaim the game viewport.
+ * Shared design language: slate, sandstone, precise borders.
+ * Fullscreen uses the browser API, but the compact console is always available.
+ */
+body.pl-focus-playing.pl-workspace-enabled:has(#gameScreen.active) .app-shell>.topbar{
+ display:none!important;
+}
+body.pl-focus-playing.pl-workspace-enabled:has(#gameScreen.active) .app-shell{
+ height:100dvh!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-main{
+ gap:5px!important;
+ padding-top:7px!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud{
+ min-height:0!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud{
+ display:flex!important;flex-direction:column!important;
+ gap:5px!important;padding:6px 8px!important;
+ margin:0!important;border-radius:5px!important;
+ box-shadow:none!important;min-height:0!important;
+ background:#20353d!important;
+ border:1px solid #5b746d!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .game-head{
+ display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+ align-items:center!important;justify-content:space-between!important;
+ gap:7px!important;min-height:28px!important;max-height:36px!important;
+ margin:0!important;position:relative!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .day-row{
+ gap:10px!important;flex-wrap:nowrap!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .day-row h2{
+ font-size:14px!important;white-space:nowrap;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .timer-box{
+ display:flex!important;gap:5px!important;align-items:baseline!important;
+ white-space:nowrap!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .timer-box small{
+ font-size:8px!important;letter-spacing:0!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .timer-box strong{
+ font-size:14px!important;color:#ebd5aa!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stats-grid{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+ gap:4px!important;min-height:0!important;
+ margin:0!important;padding:0!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat{
+ padding:5px 8px!important;min-height:36px!important;
+ border-radius:4px!important;border:1px solid #48615b!important;
+ box-shadow:none!important;background:#142a31!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat small{
+ font-size:8px!important;font-weight:750!important;
+ line-height:1.1!important;letter-spacing:.01em!important;
+ color:#9db3b0!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat strong{
+ font-size:clamp(11px,1.7vw,15px)!important;
+ color:#f1e1ba!important;line-height:1.2!important;
+ margin-top:2px!important;white-space:nowrap;
+ overflow:hidden;text-overflow:ellipsis;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .event-banner{
+ display:none!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-section-head{
+ min-height:37px!important;padding:5px 10px!important;
+ box-shadow:none!important;border-bottom-width:2px!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-section-head-copy .pl-workspace-eyebrow{
+ display:none!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-section-title{
+ font-size:17px!important;margin:0!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-context{font-size:9px!important;padding:4px 7px!important}
+body.pl-focus-playing #gameScreen .pl-focus-menu-button{
+ appearance:none;display:flex;align-items:center;justify-content:center;
+ flex:0 0 auto;min-height:27px;padding:5px 12px;
+ border:1px solid #b6a37f;background:#e5d3ac;color:#1a3038;
+ border-radius:4px;cursor:pointer;font:850 11px/1 Arial,Helvetica,sans-serif;
+ box-shadow:2px 2px 0 #102329;
+}
+body.pl-focus-playing #gameScreen .pl-focus-menu-button:hover{background:#f2e0b7}
+body.pl-focus-playing #gameScreen .pl-focus-menu-button:focus-visible{
+ outline:3px solid #ecd3a2;outline-offset:2px;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .game-controls{
+ position:absolute!important;top:calc(100% + 7px)!important;right:0!important;
+ z-index:400!important;left:auto!important;bottom:auto!important;
+ display:none!important;flex-direction:column!important;align-items:stretch!important;
+ justify-content:flex-start!important;flex-wrap:nowrap!important;
+ gap:5px!important;width:min(232px,calc(100vw - 25px))!important;
+ min-width:0!important;padding:9px!important;
+ border:1px solid #b1a388!important;border-radius:6px!important;
+ background:#1d343b!important;
+ box-shadow:0 9px 0 #0b2026,0 16px 26px #050e14bb!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud.pl-focus-menu-open .game-controls{
+ display:flex!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-controls .small-button,
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-controls .pl-header-link{
+ display:block!important;position:relative!important;z-index:auto!important;
+ width:100%!important;min-height:38px!important;
+ padding:10px 12px!important;margin:0!important;text-align:left!important;
+ border-radius:4px!important;
+ font-size:11px!important;white-space:nowrap!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-controls .pl-header-link{
+ text-decoration:none!important;color:#e9ddbf!important;
+ background:#2b4550!important;border:1px solid #66817b!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-controls .pl-control-link{
+ display:block!important;
+}
+body.pl-focus-playing #gameScreen .pl-workspace-hud .game-controls .danger-button{
+ color:#f7c6c0!important;
+}
+/* The highest-specificity close rules are deliberate. Ripple hosting used to
+ * change absolute positioning to relative and make the X leap sideways. */
+html body.pl-play-page .modal .modal-card button.modal-close,
+html body.pl-play-page .modal .modal-card button[data-close].modal-close{
+ appearance:none!important;position:absolute!important;inset:auto 10px auto auto!important;
+ top:10px!important;right:10px!important;left:auto!important;bottom:auto!important;
+ z-index:500!important;display:grid!important;place-items:center!important;
+ width:38px!important;height:38px!important;min-width:38px!important;
+ min-height:38px!important;padding:0!important;margin:0!important;
+ transform:none!important;transition:background .13s ease,border-color .13s ease!important;
+ border:1px solid #607572!important;border-radius:5px!important;
+ background:#2d4248!important;color:#f0e2c3!important;
+ text-align:center!important;line-height:1!important;font:800 24px/1 Arial,Helvetica,sans-serif!important;
+ cursor:pointer!important;touch-action:manipulation;
+}
+html body.pl-play-page .modal .modal-card button.modal-close:hover{
+ background:#4d6369!important;color:#fff2d6!important;
+}
+html body.pl-play-page .modal .modal-card button.modal-close:focus-visible{
+ outline:3px solid #efd3a1!important;outline-offset:3px!important;
+}
+body.pl-play-page .modal .modal-card{
+ padding-top:max(28px,50px)!important;
+}
+.pl-focus-prompt[hidden]{display:none!important}
+.pl-focus-prompt{
+ position:fixed;inset:0;z-index:40100;
+ display:grid;place-items:center;padding:18px;
+ background:#061217bc;
+ backdrop-filter:blur(5px);
+}
+.pl-focus-prompt-card{
+ width:min(430px,100%);padding:23px 25px;
+ border:2px solid #75847b;border-radius:9px;
+ background:#20373f;color:#e7dec9;
+ box-shadow:0 9px 0 #10242c,0 20px 40px #030a10be;
+}
+.pl-focus-kicker{font:850 10px/1.3 Arial,Helvetica,sans-serif;letter-spacing:.12em;color:#d4bd91}
+.pl-focus-prompt-card h2{font-size:clamp(19px,3vw,27px);line-height:1.2;margin:8px 0}
+.pl-focus-prompt-card p{font-size:12px;line-height:1.55;color:#bbc9c0}
+.pl-focus-prompt-status{min-height:0!important;margin:0!important;color:#f0ce91!important}
+.pl-focus-prompt-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.pl-focus-prompt-actions button{
+ appearance:none;min-height:42px;flex:1 1 145px;padding:9px 12px;
+ border-radius:4px;cursor:pointer;font:850 12px Arial,Helvetica,sans-serif;
+}
+.pl-focus-enter{background:#e4d0a7;border:1px solid #f1e6c5;color:#213941}
+.pl-focus-stay{background:#2c4750;border:1px solid #82918a;color:#f0e4c9}
+.pl-focus-prompt-actions button:focus-visible{outline:3px solid #efd7a3;outline-offset:2px}
+@media(max-width:760px){
+ body.pl-focus-playing #gameScreen .pl-workspace-main{padding:4px 6px!important;gap:4px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud{padding:4px 6px!important;gap:4px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .game-head{
+  display:flex!important;min-height:25px!important;gap:5px!important;
+ }
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat{padding:4px 5px!important;min-height:31px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat small{font-size:7px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat strong{
+  font-size:11px!important;
+ }
+ body.pl-focus-playing #gameScreen .pl-workspace-section-head{min-height:32px!important;padding:3px 7px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-section-title{font-size:15px!important}
+}
+@media(max-width:390px){
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat:nth-child(3){display:none!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .timer-box small{display:none}
+}
+@media(max-height:500px){
+ body.pl-focus-playing #gameScreen .pl-workspace-hud .game-hud .stat{min-height:26px!important}
+ body.pl-focus-playing #gameScreen .pl-workspace-section-head{min-height:28px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .pl-focus-prompt *{animation:none!important;transition:none!important}
+}
+html.pl-reduced-motion .pl-focus-prompt *{animation:none!important;transition:none!important}
