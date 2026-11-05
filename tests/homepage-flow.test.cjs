@@ -113,7 +113,7 @@ test('Firebase account save enables Continue after authenticated cloud discovery
  }});
  h.fb.login();
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(h.nodes.get('homeContinue').disabled,false);
+ assert.equal(h.nodes.get('homeContinue').disabled,false,JSON.stringify({diagnostics:h.win.ProfitLandsHomepage.diagnostics(),saveStatus:h.nodes.get('homeSaveStatus').textContent,accountStatus:h.nodes.get('homeAccountStatus').textContent,identity:h.nodes.get('homeIdentity').textContent}));
  assert.equal(h.nodes.get('homeAccountBadge').textContent,'SIGNED IN');
  assert.match(h.nodes.get('homeSaveStatus').textContent,/Cloud empire ready/);
  assert.match(h.nodes.get('homeIdentity').textContent,/Example Player/);
