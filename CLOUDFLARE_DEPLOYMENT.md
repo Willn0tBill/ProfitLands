@@ -2,7 +2,7 @@
 
 ## Current architecture
 
-ProfitLands is a static HTML/CSS/JS game. **Cloudflare hosts the public website only**. Firebase remains the independent authentication, private cloud-save, and (when enabled) multiplayer backend. Do not delete Firebase rules, databases, Cloud Functions, or the existing `profitlands-world1` Cloudflare Worker.
+ProfitLands is a static HTML/CSS/JS game. Cloudflare hosts its public website via the `profitlands` Worker, and runs the separate World 1 multiplayer backend via the `profitlands-world1` Worker with a D1 Free database. Firebase remains the independent account authentication and private singleplayer cloud-save service. Do not delete Firebase rules, databases, Cloud Functions, or the existing `profitlands-world1` Cloudflare Worker.
 
 The Cloudflare account already has a Worker named `profitlands` connected to this GitHub repository. **Use the existing Worker instead of creating a duplicate Pages project**. The separate `profitlands-world1` Worker is not part of this static-site deployment.
 
@@ -10,7 +10,7 @@ The Cloudflare account already has a Worker named `profitlands` connected to thi
 
 - Host frontend HTML, CSS, and JS as Cloudflare Workers Static Assets. Static-asset requests are free and unlimited within current platform limits.
 - Keep all paid products, billing upgrades, and paid resources disabled.
-- Do not enable Firebase Blaze just to make the multiplayer Cloud Function work. A free static deployment does **not** activate or repair multiplayer.
+- Do not enable Firebase Blaze; multiplayer uses the separate free `cloudflare/` Worker + D1. Updating the static frontend does **not** deploy the multiplayer backend.
 
 ## Build
 
@@ -58,7 +58,7 @@ This needs a browser OAuth authorization. **Do not share API tokens or passwords
 
 If the game is served on `profitlands.winotbill.workers.dev`, add that **exact domain** to Firebase Console → Authentication → Settings → Authorized domains. Then test sign-in, sign-out, guest games and cloud saves. Existing browser-local saves are origin-specific and do not automatically follow the user to a different domain. Verify backup/recovery before switching the primary domain.
 
-The Firebase `worldApi` multiplayer Cloud Function has separate billing/deployment requirements. Do not deploy or enable it under a zero-dollar-budget constraint.
+World 1 does **not** use the old Firebase `worldApi` Cloud Function. Deploy `cloudflare/` separately using `cloudflare/deploy-free-world1.ps1` after the account owner approves Wrangler login, then confirm `/health` returns `ok: true` and `worldId: world1` before enabling the public game client. Cloudflare Workers Free and D1 Free have daily usage limits; exceeding them can stop multiplayer until the limits reset, without requiring an upgrade.
 
 ## Smoke tests
 

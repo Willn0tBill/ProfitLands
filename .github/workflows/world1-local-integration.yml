@@ -1,0 +1,41 @@
+name: ProfitLands World 1 Local Integration
+
+on:
+  pull_request:
+    paths:
+      - 'cloudflare/**'
+      - 'firebase-world-adapter.js'
+      - 'world1-config.js'
+      - 'tests/cloudflare-world.test.mjs'
+      - 'tests/world-adapter-retry.test.cjs'
+      - '.github/workflows/world1-local-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/**'
+      - 'firebase-world-adapter.js'
+      - 'world1-config.js'
+      - 'tests/cloudflare-world.test.mjs'
+      - 'tests/world-adapter-retry.test.cjs'
+      - '.github/workflows/world1-local-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-world1:
+    name: Real Worker + D1 smoke test (no Cloudflare login)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install local Cloudflare build tool
+        run: npm --prefix cloudflare install --no-audit --no-fund
+      - name: Run server and client behavior tests
+        run: node --test tests/cloudflare-world.test.mjs tests/world-adapter-retry.test.cjs
+      - name: Start actual Cloudflare Worker with clean D1 and verify API
+        run: npm --prefix cloudflare run smoke:local

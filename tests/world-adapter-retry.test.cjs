@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 let globalNonce=0;
 
-function setup(failOnce=false,storage=null,{configured=true}={}){
+function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false}={}){
  const store=storage||new Map();
  const sent=[],events=[],callbacks={};
  let current={uid:'alpha',getIdToken:async()=> 'signed-alpha'};
@@ -17,7 +17,10 @@ function setup(failOnce=false,storage=null,{configured=true}={}){
   assert.equal(options.method,'POST');
   const payload=JSON.parse(options.body);
   sent.push(payload);
-  if(payload.action==='health')return answer({ok:true,worldId:'world1',chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
+  if(payload.action==='health'){
+   if(healthIsPlaceholder)return {ok:true,status:200,json:async()=>{throw Error('Hello World is not JSON')}};
+   return answer({ok:true,worldId:'world1',chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
+  }
   assert.match(options.headers.Authorization,/^Bearer signed-/,'uses Firebase ID token, not a client cash value');
   if(payload.action==='register')return answer({player:{uid:current.uid}});
   if(['requestAttack','buyBusiness'].includes(payload.action)&&failure>0){
@@ -59,6 +62,28 @@ test('client connects only with a matching authenticated account and a configure
  const notReady=setup(false,null,{configured:false});
  assert.equal(notReady.api.isConfigured(),false);
  await assert.rejects(notReady.api.connect(),/has not been deployed/);
+});
+test('a configured URL is not a ready server when Cloudflare still returns Hello World',async()=>{
+ const h=setup(false,null,{healthIsPlaceholder:true});
+ assert.equal(h.api.isConfigured(),true);
+ assert.equal(await h.api.probe(),false);
+ assert.equal(h.sent.filter(x=>x.action==='health').length,1);
+ assert.equal(h.sent.some(x=>x.action==='register'),false);
+ await assert.rejects(h.api.connect(),/not responding correctly|not serving World 1/);
+ assert.equal(h.api.isConnected(),false);
+ assert.equal(h.sent.some(x=>x.action==='register'),false);
+});
+test('ready probe checks server health once per interval, without Firebase identity data',async()=>{
+ const h=setup();
+ assert.equal(await h.api.probe(),true);
+ assert.equal(await h.api.probe(),true);
+ const probes=h.sent.filter(x=>x.action==='health');
+ assert.equal(probes.length,1,'repeat renders should not flood free Worker requests');
+ assert.equal(Object.hasOwn(probes[0],'token'),false);
+ assert.equal(Object.hasOwn(probes[0],'cash'),false);
+ const missing=setup(false,null,{configured:false});
+ assert.equal(await missing.api.probe(),false);
+ assert.equal(missing.sent.length,0);
 });
 test('ambiguous PvP transport errors reuse the same ID and do not disconnect',async()=>{
  const h=setup(true);await h.api.connect();

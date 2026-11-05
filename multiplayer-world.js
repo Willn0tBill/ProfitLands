@@ -21,15 +21,36 @@ const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
  const root=page();if(!root)return;
- const deployed=online()?.isConfigured?.()===true;
- const explanation=deployed?'Sign in and connect to the free World 1 server. Online businesses and cash are separate from singleplayer.':'Free multiplayer server setup is not finished yet. Deploy the Cloudflare Worker and set its public address in world1-config.js; no Firebase Blaze upgrade is required.';
- root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (deployed?'Join the online tycoon world':'World 1 setup required') +'</h3><p>'+explanation+'</p><button type="button" id="worldConnect" class="pl-online-connect" '+(deployed?'':'disabled')+'>'+(deployed?'Connect to World 1':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
- const button=$('worldConnect');if(button)button.onclick=async()=>{
+ const configured=online()?.isConfigured?.()===true;
+ const initial=configured?'Checking whether World 1 is online…':'World 1 server setup is not finished. The separate free Cloudflare Worker and D1 database must be deployed first; Firebase Blaze is not needed.';
+ root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (configured?'World 1 connection':'World 1 setup required') +'</h3><p id="worldAvailability">'+initial+'</p><button type="button" id="worldConnect" class="pl-online-connect" disabled>'+(configured?'Checking server…':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
+ const button=$('worldConnect'),status=$('worldAvailability');
+ if(!button||!configured)return;
+ const current=()=>active()&&page()===root&&$('worldConnect')===button;
+ const connect=async()=>{
   button.disabled=true;button.textContent='Connecting…';
   try{await online()?.connect?.();if(connected()){render();return}throw Error('Online server is unreachable. Please verify deployment.')}
-  catch(e){$('worldConnectError').textContent=String(e?.message||'Cannot join World 1.').slice(0,220);button.disabled=false;button.textContent='Try connecting again';
-   if(/sign in/i.test(String(e?.message||'')))window.profitlandsFirebase?.signIn?.()}
+  catch(e){
+   if(!current())return;
+   $('worldConnectError').textContent=String(e?.message||'Cannot join World 1.').slice(0,220);
+   button.disabled=false;button.textContent='Try connecting again';
+   if(/sign in/i.test(String(e?.message||'')))window.profitlandsFirebase?.signIn?.();
+  }
  };
+ const check=async(force=false)=>{
+  button.disabled=true;button.textContent='Checking server…';
+  let ready=false;
+  try{ready=await online()?.probe?.(force)===true}catch(e){}
+  if(!current())return;
+  if(ready){
+   status.textContent='World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
+   button.textContent='Connect to World 1';button.disabled=false;button.onclick=connect;
+  }else{
+   status.textContent='World 1 is not serving its multiplayer API yet. The game and your local save still work. You can retry the server check.';
+   button.textContent='Retry server check';button.disabled=false;button.onclick=()=>check(true);
+  }
+ };
+ check();
 }
 function renderRules(){
  return '<div class="pl-online-info"><h4>How the shared world will work</h4><p>All players enter one persistent world. Rankings use verified in-game money: daily and weekly net-worth growth, plus all-time current net worth. No clan win points.</p><p>PvP is opt-in, costs in-game cash, has cooldowns and shields, and temporarily lowers a rival company\'s income. No one-click permanent empire deletion.</p><p>Chat will be shared across this world, with reporting, blocking, server rate limits and moderation before public launch.</p></div>';

@@ -8,7 +8,7 @@ import pvp from './pvp-rules.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
-const ORIGINS=new Set(['https://willn0tbill.github.io']);
+const ORIGINS=new Set(['https://willn0tbill.github.io','https://profitlands.winotbill.workers.dev']);
 const WORLD_ID=core.WORLD_ID;
 const CHAT_ENABLED=false; // Report/block/moderation must exist before enabling.
 const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
@@ -188,7 +188,12 @@ function checkPlayerCount(state){
   err('resource-exhausted','World 1 alpha is full.',503);
 }
 async function dispatch(action,uid,body,db){
- if(action==='health')return {ok:true,worldId:WORLD_ID,chatEnabled:CHAT_ENABLED,version:2,catalog:core.BUSINESS_TYPES};
+ if(action==='health'){
+  if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
+  try{await rawWorld(db)}
+  catch(e){err('unavailable','World 1 database schema is not ready.',503)}
+  return {ok:true,worldId:WORLD_ID,chatEnabled:CHAT_ENABLED,version:2,catalog:core.BUSINESS_TYPES};
+ }
  if(action==='getChat')return [];
  if(action==='sendChat'||action==='reportMessage')
   err('failed-precondition','World chat is disabled pending moderation.',409);
