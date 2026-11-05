@@ -1,0 +1,256 @@
+/* ProfitLands District Development — purposeful, handcrafted progression.
+ * Landmarks are cosmetic results of real company growth, never economy rewards.
+ */
+#gameScreen .pl-district-board{
+ display:grid;gap:13px;margin:0 0 18px;
+ padding:16px 18px 17px;border:2px solid #536d6c;
+ border-radius:9px;background:#1c3239;
+ box-shadow:0 5px 0 #0d1e25,0 12px 20px #07141c4a;
+ color:#d9e0d4;
+}
+#gameScreen .pl-district-board-header{
+ display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+}
+#gameScreen .pl-district-board-title{
+ display:grid;gap:4px;
+}
+#gameScreen .pl-district-eyebrow{
+ color:#bba987;font:850 10px/1.3 Arial,Helvetica,sans-serif;
+ letter-spacing:.1em;
+}
+#gameScreen .pl-district-board-title h3{
+ color:#f1e4c6;font:900 clamp(16px,2vw,21px)/1.25 Arial,Helvetica,sans-serif;
+ letter-spacing:-.02em;margin:0;
+}
+#gameScreen .pl-district-tier{
+ border:1px solid #73857e;background:#293f44;
+ color:#e0c79d;border-radius:4px;
+ padding:7px 9px;font:850 10px/1 Arial,Helvetica,sans-serif;
+ letter-spacing:.08em;white-space:nowrap;
+}
+#gameScreen .pl-district-desc{
+ color:#b9c6c0;font-size:12px;line-height:1.5;margin:0;
+}
+#gameScreen .pl-district-track{
+ height:9px;overflow:hidden;border:1px solid #5f7771;border-radius:3px;
+ background:#10262d;box-shadow:inset 0 1px 2px #06171d;
+}
+#gameScreen .pl-district-track-fill{
+ display:block;height:100%;width:0;
+ background:repeating-linear-gradient(90deg,#b4c4a2 0 13px,#91ac9a 13px 15px);
+ transition:width .5s cubic-bezier(.2,.8,.3,1);
+}
+#gameScreen .pl-district-milestone-list{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;
+}
+#gameScreen .pl-district-milestone{
+ position:relative;min-width:0;display:grid;gap:5px;align-content:start;
+ padding:10px 10px 9px 14px;
+ border:1px solid #4b6464;border-radius:5px;background:#223740;
+ opacity:.64;
+}
+#gameScreen .pl-district-milestone:before{
+ content:"";position:absolute;left:6px;top:10px;bottom:10px;
+ width:3px;border-radius:1px;background:#596f6b;
+}
+#gameScreen .pl-district-milestone strong{
+ color:#d2d6c8;font:850 11px/1.25 Arial,Helvetica,sans-serif;
+}
+#gameScreen .pl-district-milestone small{
+ color:#a5b7b0;font:500 10px/1.35 Arial,Helvetica,sans-serif;
+}
+#gameScreen .pl-district-milestone.is-current{
+ background:#354841;border-color:#bdb18a;opacity:1;
+}
+#gameScreen .pl-district-milestone.is-current:before{background:#ecd3a1}
+#gameScreen .pl-district-milestone.is-unlocked{
+ background:#30483d;border-color:#74997f;opacity:1;
+}
+#gameScreen .pl-district-milestone.is-unlocked:before{background:#aaca9c}
+#gameScreen .pl-district-milestone.is-unlocked strong:after{
+ content:" ✓";color:#c0dfa8;
+}
+#gameScreen .pl-district-actions{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:12px;flex-wrap:wrap;padding-top:10px;
+ border-top:1px solid #4d686a;
+}
+#gameScreen .pl-district-next-goal{
+ color:#e3d4b6;font:750 12px/1.35 Arial,Helvetica,sans-serif;
+ font-variant-numeric:tabular-nums;
+}
+#gameScreen .pl-district-next-button{
+ min-height:38px;cursor:pointer;
+ color:#223840;background:#e0d0af;
+ border:1px solid #f8e5ba;border-radius:5px;
+ box-shadow:3px 3px 0 #0c1920;
+ padding:9px 13px;font:850 12px/1.2 Arial,Helvetica,sans-serif;
+ transition:transform .15s ease,box-shadow .15s ease;
+}
+#gameScreen .pl-district-next-button:hover{
+ transform:translate(-1px,-1px);box-shadow:4px 4px 0 #0c1920;
+}
+#gameScreen .pl-district-next-button:focus-visible{
+ outline:3px solid #f6e1ab;outline-offset:3px;
+}
+#gameScreen .pl-district-board.pl-district-celebrate{
+ animation:plDistrictAchievement .9s ease-out both;
+}
+@keyframes plDistrictAchievement{
+ 0%,100%{border-color:#536d6c}
+ 30%{border-color:#ecd69c}
+}
+#gameScreen .pl-city-stage.pl-district-unlocked{
+ animation:plDistrictUnlock 1.05s ease-out both;
+}
+@keyframes plDistrictUnlock{
+ 0%,100%{filter:brightness(1)}
+ 28%{filter:brightness(1.18)}
+}
+/* Art pieces are layered behind clickable businesses and above the hillside.
+   No glow particles, image downloads or extra canvas rendering. */
+#gameScreen .pl-district-landmarks{
+ position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;
+}
+#gameScreen .pl-district-landmark{
+ position:absolute;bottom:47px;opacity:0;
+ transform:translateY(14px) scale(.88);
+ transition:opacity .4s ease,transform .5s cubic-bezier(.16,.9,.3,1);
+}
+#gameScreen .pl-district-tier-1 .pl-district-garden,
+#gameScreen .pl-district-tier-2 .pl-district-garden,
+#gameScreen .pl-district-tier-3 .pl-district-garden,
+#gameScreen .pl-district-tier-4 .pl-district-garden,
+#gameScreen .pl-district-tier-2 .pl-district-market,
+#gameScreen .pl-district-tier-3 .pl-district-market,
+#gameScreen .pl-district-tier-4 .pl-district-market,
+#gameScreen .pl-district-tier-3 .pl-district-plaza,
+#gameScreen .pl-district-tier-4 .pl-district-plaza,
+#gameScreen .pl-district-tier-4 .pl-district-transit{
+ opacity:1;transform:translateY(0) scale(1);
+}
+#gameScreen .pl-district-garden{
+ left:2%;width:105px;height:65px;
+}
+#gameScreen .pl-district-garden:after{
+ content:"";position:absolute;bottom:0;left:7px;right:0;height:11px;
+ border-radius:50% 50% 0 0;background:#5c8167;
+}
+#gameScreen .pl-district-tree{
+ position:absolute;bottom:6px;left:16px;width:34px;height:41px;
+ background:#6b8a64;border:2px solid #476c58;
+ border-radius:55% 45% 36% 44%;
+ box-shadow:inset -8px -5px #4d6c57;
+}
+#gameScreen .pl-district-tree:after{
+ content:"";position:absolute;left:14px;top:35px;width:6px;height:22px;
+ background:#695b4c;border:1px solid #4f4d46;
+}
+#gameScreen .pl-district-tree.pl-district-small{
+ left:52px;bottom:5px;transform:scale(.7);
+}
+#gameScreen .pl-district-bench{
+ position:absolute;bottom:4px;right:7px;width:25px;height:9px;
+ background:#b08a67;border:2px solid #604e46;
+}
+#gameScreen .pl-district-bench:after{
+ content:"";position:absolute;bottom:-10px;left:2px;right:2px;height:8px;
+ border-left:3px solid #5a5550;border-right:3px solid #5a5550;
+}
+#gameScreen .pl-district-market{
+ right:3%;width:85px;height:66px;
+}
+#gameScreen .pl-district-stall{
+ position:absolute;bottom:4px;left:1px;width:37px;height:31px;
+ border:2px solid #536166;background:linear-gradient(#8faba6 0 22px,#6a736c 22px);
+}
+#gameScreen .pl-district-stall:before{
+ content:"";position:absolute;top:-11px;left:-4px;right:-4px;height:12px;
+ background:repeating-linear-gradient(90deg,#e3c5a2 0 10px,#b77968 10px 20px);
+ transform:skewX(-10deg);border:1px solid #906f61;
+}
+#gameScreen .pl-district-stall:nth-child(2){
+ left:41px;background:linear-gradient(#aa9f7b 0 22px,#747b70 22px);
+}
+#gameScreen .pl-district-sign{
+ position:absolute;bottom:0;right:-8px;width:5px;height:56px;
+ background:#576765;
+}
+#gameScreen .pl-district-sign:after{
+ content:"MARKET";position:absolute;left:-30px;top:1px;
+ width:43px;padding:3px 0;text-align:center;
+ font:800 7px/1 Arial,Helvetica,sans-serif;color:#f3e0c2;
+ background:#5f6663;border:1px solid #484e4a;
+}
+#gameScreen .pl-district-plaza{
+ left:calc(50% - 47px);width:94px;height:54px;
+}
+#gameScreen .pl-district-fountain{
+ position:absolute;bottom:4px;left:28px;width:39px;height:20px;
+ background:#8fb8b6;border:3px solid #596f75;border-radius:50% 50% 9px 9px;
+}
+#gameScreen .pl-district-fountain:before{
+ content:"";position:absolute;bottom:17px;left:15px;width:5px;height:24px;
+ border-radius:6px 6px 0 0;background:#8ebcc8;
+}
+#gameScreen .pl-district-paving{
+ position:absolute;bottom:-2px;left:2px;right:2px;height:8px;
+ border-radius:50%;background:#cdb7a0;
+}
+#gameScreen .pl-district-flag{
+ position:absolute;bottom:8px;left:7px;width:3px;height:47px;
+ background:#707e77;
+}
+#gameScreen .pl-district-flag:after{
+ content:"";position:absolute;top:0;left:3px;width:21px;height:12px;
+ background:#be876e;clip-path:polygon(0 0,100% 0,76% 50%,100% 100%,0 100%);
+}
+#gameScreen .pl-district-transit{
+ right:14%;width:86px;height:60px;
+}
+#gameScreen .pl-district-shelter{
+ position:absolute;bottom:2px;left:4px;width:58px;height:35px;
+ border:3px solid #52696b;background:#b4c6b792;
+}
+#gameScreen .pl-district-shelter:before{
+ content:"";position:absolute;top:-13px;left:-6px;width:65px;height:11px;
+ background:#687d7d;border:1px solid #3d5859;
+ transform:skew(-10deg);
+}
+#gameScreen .pl-district-route{
+ position:absolute;bottom:0;right:8px;width:5px;height:56px;
+ background:#566f69;
+}
+#gameScreen .pl-district-route:before{
+ content:"T";position:absolute;top:0;left:-8px;
+ width:21px;height:21px;display:grid;place-items:center;
+ border-radius:2px;background:#e1d3b4;border:2px solid #596e6d;
+ color:#365157;font:900 11px/1 Arial,Helvetica,sans-serif;
+}
+#gameScreen .pl-district-lamp{display:none}
+@media(max-width:650px){
+ #gameScreen .pl-district-board{padding:13px 12px}
+ #gameScreen .pl-district-milestone-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #gameScreen .pl-district-milestone{padding:9px 8px 9px 13px}
+ #gameScreen .pl-district-garden{left:-25px;transform-origin:left bottom}
+ #gameScreen .pl-district-market{right:-14px;transform-origin:right bottom}
+ #gameScreen .pl-district-transit{right:8%;transform-origin:right bottom}
+ #gameScreen .pl-district-plaza{left:calc(50% - 38px);transform-origin:center bottom}
+ #gameScreen .pl-district-landmark{
+  scale:.75;transform-origin:bottom center;
+ }
+ #gameScreen .pl-district-actions{align-items:stretch}
+ #gameScreen .pl-district-next-button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-district-board *,#gameScreen .pl-district-landmark,
+ #gameScreen .pl-city-stage.pl-district-unlocked{
+  animation:none!important;transition:none!important;
+ }
+}
+html.pl-reduced-motion #gameScreen .pl-district-board *,
+html.pl-reduced-motion #gameScreen .pl-district-landmark,
+html.pl-reduced-motion #gameScreen .pl-city-stage.pl-district-unlocked{
+ animation:none!important;transition:none!important;
+}
+body.pl-online-world #gameScreen .pl-district-board{display:none!important}
