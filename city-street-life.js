@@ -78,7 +78,9 @@ function decorateBuilding(button,kind,ms){
  later(()=>button.classList.remove(name),ms);
 }
 function spawnCustomer(shops=visualData()){
- if(!allowed()||!layer||actors.size>=MAX_CUSTOMERS+MAX_DELIVERIES||!shops.length)return false;
+ if(!allowed()||!layer||!shops.length)return false;
+ const customers=[...actors].filter(actor=>actor.classList.contains('pl-street-customer')).length;
+ if(customers>=(lowPower()?1:MAX_CUSTOMERS))return false;
  const shop=pickShop(shops,customerNumber++);
  const building=findBuilding(shop.businessIndex),point=scenePoint(building);
  if(!point)return false;
@@ -147,7 +149,14 @@ function onPortfolioChange(shops){
  if(initializedPortfolio&&window.state?.businesses?.length>=lastCount){
   for(const shop of shops){
    const before=previous.get(shop.businessIndex),now=next.get(shop.businessIndex);
-   if(!before)continue;
+   if(!before){
+    if(lastCount<window.state.businesses.length){
+     const fresh=findBuilding(shop.businessIndex);
+     fresh?.classList.add('pl-city-new-open');
+     later(()=>fresh?.classList.remove('pl-city-new-open'),1650);
+    }
+    continue;
+   }
    if(now.level>before.level||now.locations>before.locations){
     const building=findBuilding(shop.businessIndex);
     if(!building)continue;
@@ -167,7 +176,7 @@ function clearActors(){
  for(const timeout of timeouts)clearTimeout(timeout);
  timeouts.clear();
  for(const node of buildings?.children||[]){
-  node.classList?.remove('pl-city-serving','pl-city-receiving','pl-city-renovating');
+  node.classList?.remove('pl-city-serving','pl-city-receiving','pl-city-renovating','pl-city-new-open');
  }
 }
 function tick(){
