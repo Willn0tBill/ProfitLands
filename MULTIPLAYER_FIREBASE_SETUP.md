@@ -99,8 +99,12 @@ node --test
 From the cloudflare/ directory:
 
 ~~~powershell
+npm install
 npm test
+npm run smoke:local
 ~~~
+
+The local smoke test starts the actual Wrangler Worker with a fresh D1 SQL database and verifies healthy API routes, cross-origin browser requests, refusal of unsigned registrations and rejection of unrelated origins. It needs no Cloudflare account, paid services or Firebase secrets. GitHub Actions runs the same checks automatically. The game displays verified World 1 availability and a retry button rather than treating the default `Hello World!` placeholder as an online multiplayer service.
 
 Cloudflare checks all paid game actions with server-held state and transaction receipts. A versioned single D1 row provides atomic compare-and-swap updates to purchases and both sides of PvP actions. The backend verifies Firebase JWT signatures using Google's published public keys. There are no Firebase Admin keys in this repository.
 
