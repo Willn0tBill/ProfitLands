@@ -11,7 +11,7 @@ Free plans have daily usage limits; exceeding those limits can temporarily stop 
 Open https://console.firebase.google.com/project/wtvstudios-5b40f/overview
 
 - Authentication → Sign-in method: enable **Email/Password**.
-- Authentication → Settings → Authorized domains: add **willn0tbill.github.io**.
+- Authentication → Settings → Authorized domains: keep **willn0tbill.github.io** and add **profitlands.winotbill.workers.dev**.
 - Keep your existing Firestore rules restrictive. Do not make the database public.
 - Stay on **Spark**; do not enable Cloud Functions billing for World 1.
 
@@ -23,7 +23,9 @@ You do not need to manually create a Worker if you deploy it through the command
 
 ## 3. Deploy from PowerShell
 
-Install Node.js 22+ and Git. In Windows PowerShell:
+On the owner's Windows PC, run `cloudflare/deploy-free-world1.ps1` from the cloned repository. This script opens the official Cloudflare OAuth window for the account owner to approve, reuses an existing D1 database when possible, initializes the SQL schema without deleting saved rows, deploys only `profitlands-world1`, and checks the real health endpoint. **The server is not deployed by deploying the static game frontend.**
+
+Manual alternative: install Node.js 22+ and Git. In Windows PowerShell:
 
 ~~~powershell
 git clone https://github.com/Willn0tBill/ProfitLands.git
@@ -64,7 +66,7 @@ Edit the repository's **world1-config.js** to set this line to the public URL th
 window.PROFITLANDS_WORLD1_ENDPOINT='https://profitlands-world1.YOUR-SUBDOMAIN.workers.dev';
 ~~~
 
-Commit that public configuration edit to GitHub. Wait for GitHub Pages deployment to succeed. The browser adapter deliberately accepts only a secure URL for the expected profitlands-world1 Worker name, preventing accidental Firebase ID token disclosure to arbitrary servers.
+Merge the verified frontend configuration after the real Worker passes its health test. Wait for the Cloudflare static-site build to succeed. The browser adapter deliberately accepts only a secure URL for the expected profitlands-world1 Worker name, preventing accidental Firebase ID token disclosure to arbitrary servers.
 
 Check your server by opening:
 
@@ -74,14 +76,14 @@ https://profitlands-world1.YOUR-SUBDOMAIN.workers.dev/health
 
 Expected JSON contains **ok: true**, **worldId: world1** and **chatEnabled: false**.
 
-Open https://willn0tbill.github.io/ProfitLands/ and sign in. Choose **Set Up New Empire → World 1 Multiplayer → Start New Empire → World → Connect to World 1**. Buy a Coffee Shop, select **Refresh World**, and check that the server-side balance and business list update. Online money is completely separate from local singleplayer progress.
+Open https://profitlands.winotbill.workers.dev/ and sign in. Choose **Set Up New Empire → World 1 Multiplayer → Start New Empire → World → Connect to World 1**. Buy a Coffee Shop, select **Refresh World**, and check that the server-side balance and business list update. Online money is completely separate from local singleplayer progress.
 
 ## Troubleshooting
 
 - **Server not configured:** the public URL is still blank in world1-config.js, invalid, or not published to GitHub Pages.
 - **401 / account error:** verify Firebase Email/Password login and the authorized GitHub Pages domain. The Worker verifies signed Firebase ID tokens.
 - **503:** confirm the D1 binding is named **DB**, that schema.sql ran against the **remote** database, and that you have not exceeded a free usage limit. Inspect Cloudflare Worker logs.
-- **403:** Cloudflare allows only the GitHub Pages site and localhost development origins; never make the API public-write to work around this.
+- **403:** The Worker allows `willn0tbill.github.io`, `profitlands.winotbill.workers.dev`, and localhost development origins; never disable origin checks to make login work.
 - **World chat:** deliberately disabled until moderation and reporting exist.
 - **PvP:** opt-in with new-player protection, cash costs, shields, and cooldowns. Firebase clan memberships do not yet sync to Cloudflare, so do not assume automatic same-clan exemptions.
 - **Old World 1 state:** Firebase Cloud Functions world records are not automatically migrated into D1. New players begin with the standard online starting cash.
