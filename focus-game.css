@@ -199,3 +199,34 @@ body.pl-play-page .modal .modal-card{
  .pl-focus-prompt *{animation:none!important;transition:none!important}
 }
 html.pl-reduced-motion .pl-focus-prompt *{animation:none!important;transition:none!important}
+
+
+/* The /play/ entry is visibly a setup form, not a second homepage. */
+body.pl-play-page #homeScreen .pl-new-empire-intro{
+ margin:0 0 18px;padding:22px 24px;
+ border:2px solid #607674;border-radius:8px;background:#203941;
+ box-shadow:0 5px 0 #0e232b;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro h2{
+ margin:7px 0 8px;font-size:clamp(25px,3vw,34px);
+ line-height:1.12;letter-spacing:-.035em;color:#f0deba;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro p{
+ max-width:760px;margin:0;color:#bccdc4;font-size:12px;line-height:1.6;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro a{
+ color:#e4d09f;text-underline-offset:3px;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro .pl-setup-back{
+ display:inline-flex;margin-bottom:13px;color:#e4d19d;
+ border-bottom:1px solid #72877b;text-decoration:none;font-weight:800;font-size:11px;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro .pl-setup-back:hover{
+ color:#f5e6c2;
+}
+body.pl-play-page #homeScreen .pl-new-empire-intro .eyebrow{
+ display:block;color:#bda986;letter-spacing:.13em;
+}
+@media(max-width:600px){
+ body.pl-play-page #homeScreen .pl-new-empire-intro{padding:16px 14px}
+}
