@@ -21,7 +21,9 @@ const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
  const root=page();if(!root)return;
- root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>Join the online tycoon world</h3><p>World 1 requires a live, authenticated server connection. Your local singleplayer save is separate.</p><button type="button" id="worldConnect" class="pl-online-connect">Connect to World 1</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
+ const deployed=online()?.isConfigured?.()===true;
+ const explanation=deployed?'Sign in and connect to the free World 1 server. Online businesses and cash are separate from singleplayer.':'Free multiplayer server setup is not finished yet. Deploy the Cloudflare Worker and set its public address in world1-config.js; no Firebase Blaze upgrade is required.';
+ root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (deployed?'Join the online tycoon world':'World 1 setup required') +'</h3><p>'+explanation+'</p><button type="button" id="worldConnect" class="pl-online-connect" '+(deployed?'':'disabled')+'>'+(deployed?'Connect to World 1':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
  const button=$('worldConnect');if(button)button.onclick=async()=>{
   button.disabled=true;button.textContent='Connecting…';
   try{await online()?.connect?.();if(connected()){render();return}throw Error('Online server is unreachable. Please verify deployment.')}

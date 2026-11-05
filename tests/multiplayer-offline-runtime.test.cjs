@@ -45,8 +45,9 @@ test('singleplayer does not show multiplayer chat or World 1 features',()=>{
 test('local multiplayer preview visibly reports no server and disables sending messages',()=>{
  const h=harness('multi'),before=JSON.stringify(h.state);
  assert.equal(h.window.ProfitLandsWorld.render(),true);
- assert.match(h.nodes.worldContent.innerHTML,/Join the online tycoon world/);
- assert.match(h.nodes.worldContent.innerHTML,/Your local singleplayer save is separate/);
+ assert.match(h.nodes.worldContent.innerHTML,/World 1 setup required/);
+ assert.match(h.nodes.worldContent.innerHTML,/Cloudflare Worker/);
+ assert.match(h.nodes.worldContent.innerHTML,/Server not configured/);
  assert.equal(h.nodes.worldChatDock.hidden,false);
  assert.equal(h.nodes.worldChatInput.disabled,true);
  assert.equal(h.nodes.worldChatSend.disabled,true);
@@ -74,10 +75,10 @@ test('chat can open in multiplayer preview but cannot send messages',()=>{
  for(const handler of h.nodes.worldChatClose.events.click)handler();
  assert.equal(h.nodes.worldChatPanel.hidden,true);
 });
-test('Firebase server is isolated and client cannot locally award PvP cash',()=>{
+test('Cloudflare server is isolated and client cannot locally award PvP cash',()=>{
  const repo=fs.readdirSync(root);
- assert.equal(repo.includes('functions'),true,'authoritative server source now exists');
- assert.equal(fs.existsSync(require('node:path').join(root,'functions','index.js')),true);
+ assert.equal(repo.includes('cloudflare'),true,'free authoritative server source now exists');
+ assert.equal(fs.existsSync(require('node:path').join(root,'cloudflare','src','index.mjs')),true);
  assert.doesNotMatch(code,/state\.cash\s*(\+\+|--|[+\-*/]?=)/);
  assert.match(code,/window\.ProfitLandsOnline/);
  assert.match(code,/isConnected\?\.\(\)===true/);

@@ -1,0 +1,11 @@
+name = "profitlands-world1"
+main = "src/index.mjs"
+compatibility_date = "2026-11-05"
+workers_dev = true
+
+# Replace the placeholder ID with your existing D1 database UUID.
+# Retrieve it from Cloudflare Dashboard -> D1 -> profitlands-world1.
+[[d1_databases]]
+binding = "DB"
+database_name = "profitlands-world1"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
