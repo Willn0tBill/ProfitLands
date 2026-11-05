@@ -6,6 +6,11 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build-cloudflare.mjs",
-    "build:cloudflare": "node scripts/build-cloudflare.mjs"
+    "build:cloudflare": "node scripts/build-cloudflare.mjs",
+    "postinstall": "node scripts/build-cloudflare.mjs",
+    "deploy": "npm run build:cloudflare && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
   }
 }
