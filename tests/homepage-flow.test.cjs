@@ -58,7 +58,7 @@ function setup({local=null,owner=null,withFirebase=false,cloudState=null}={}){
    ...docFor(id),
    collection:()=>({doc:docFor})
   })})};
-  fb={apps:[],initializeApp:()=>({auth:()=>auth,firestore:()=>firestore})};
+  fb={apps:[],auth:()=>auth,firestore:()=>firestore,initializeApp:()=>({auth:()=>auth,firestore:()=>firestore})};
   // Separate test access to Firebase auth observer.
   fb.login=()=>observer?.(user);
  }
