@@ -190,6 +190,8 @@ function checkPlayerCount(state){
 async function dispatch(action,uid,body,db){
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
+  try{await rawWorld(db)}
+  catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId:WORLD_ID,chatEnabled:CHAT_ENABLED,version:2,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat')return [];
