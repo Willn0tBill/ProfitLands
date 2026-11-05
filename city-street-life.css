@@ -1,0 +1,212 @@
+/* ProfitLands / Street Life
+ * Small hand-crafted town sprites. The real economy drives traffic intensity.
+ * CSS transforms do the movement; no canvas loop, external sprites, or layout writes.
+ */
+#gameScreen .pl-street-life{
+ position:absolute;inset:0;z-index:8;overflow:hidden;pointer-events:none;
+ contain:layout style paint;
+}
+#gameScreen .pl-street-actor{
+ position:absolute;left:var(--street-start,-20px);
+ pointer-events:none;will-change:transform;
+ animation-fill-mode:both;
+}
+#gameScreen .pl-street-customer{
+ bottom:49px;width:13px;height:27px;
+ animation:plStreetVisit 7.2s linear both;
+ filter:drop-shadow(1px 2px 0 #20303a77);
+}
+#gameScreen .pl-street-person-head{
+ position:absolute;top:1px;left:3px;width:8px;height:9px;
+ border-radius:50% 50% 45% 45%;
+ border:1px solid #6a5246;
+ background:#d9aa83;
+}
+#gameScreen .pl-street-person-body{
+ position:absolute;top:11px;left:2px;width:11px;height:11px;
+ border-radius:4px 4px 2px 2px;
+ border:1px solid #384a50;
+ background:#d1a46b;
+}
+#gameScreen .pl-street-person-legs{
+ position:absolute;bottom:0;left:4px;width:8px;height:7px;
+ border-left:3px solid #36434b;border-right:3px solid #36434b;
+ animation:plStreetFootsteps .36s ease-in-out infinite alternate;
+}
+#gameScreen .pl-street-customer-1 .pl-street-person-body{background:#87aaa1}
+#gameScreen .pl-street-customer-1 .pl-street-person-head{background:#a47c5f}
+#gameScreen .pl-street-customer-2 .pl-street-person-body{background:#bd7770}
+#gameScreen .pl-street-customer-2 .pl-street-person-head{background:#e4bd96}
+#gameScreen .pl-street-customer-0 .pl-street-person-body{background:#be9d70}
+#gameScreen .pl-street-delivery{
+ bottom:12px;width:89px;height:37px;
+ animation:plStreetDelivery 9.5s linear both;
+ filter:drop-shadow(2px 3px 0 #1b282fc0);
+}
+#gameScreen .pl-street-delivery:before{
+ content:"";position:absolute;left:0;bottom:6px;width:62px;height:27px;
+ border:2px solid #33464e;border-radius:3px 3px 2px 2px;
+ background:#b7a47e;
+ box-shadow:inset 0 4px #d9c7a3;
+}
+#gameScreen .pl-street-delivery:after{
+ content:"SUPPLY";position:absolute;bottom:17px;left:10px;
+ font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:900;
+ letter-spacing:.06em;color:#35474e;
+}
+#gameScreen .pl-street-truck-cab{
+ position:absolute;right:0;bottom:6px;width:27px;height:23px;
+ border:2px solid #304752;border-radius:6px 5px 2px 0;
+ background:#8faeaa;
+}
+#gameScreen .pl-street-truck-window{
+ position:absolute;right:7px;bottom:17px;width:13px;height:9px;
+ background:#e2e4d1;border:1px solid #47616a;
+ border-radius:2px 2px 0 0;
+}
+#gameScreen .pl-street-truck-wheel{
+ position:absolute;bottom:1px;width:13px;height:13px;
+ border-radius:50%;background:#25313a;
+ border:3px solid #73807c;
+ box-shadow:inset 0 0 0 2px #1d3039;
+}
+#gameScreen .pl-street-wheel-front{right:6px}
+#gameScreen .pl-street-wheel-back{left:12px}
+#gameScreen .pl-street-west{scale:-1 1}
+#gameScreen .pl-street-cargo{
+ position:absolute;bottom:52px;width:16px;height:16px;
+ background:linear-gradient(135deg,#d0b184,#957452);
+ border:2px solid #5b5143;border-radius:2px;
+ box-shadow:2px 2px 0 #324046;
+ animation:plStreetCargo 2.85s ease-in-out both;
+}
+#gameScreen .pl-street-cargo:before{
+ content:"";position:absolute;left:5px;top:0;bottom:0;
+ width:3px;background:#e4d0a6a8;
+}
+#gameScreen .pl-city-building.pl-city-serving::after,
+#gameScreen .pl-city-building.pl-city-receiving::after,
+#gameScreen .pl-city-building.pl-city-renovating::after{
+ position:absolute;bottom:calc(100% + 10px);left:50%;
+ transform:translateX(-50%);
+ padding:4px 6px;border-radius:3px;
+ border:1px solid #394e4f;background:#efe0be;
+ color:#34484d;white-space:nowrap;
+ font:800 8px/1 Arial,Helvetica,sans-serif;
+ letter-spacing:.05em;
+ box-shadow:2px 2px 0 #1a2c3388;
+ z-index:12;pointer-events:none;
+ animation:plStreetShopLabel .24s ease-out both;
+}
+#gameScreen .pl-city-building.pl-city-serving::after{content:"CUSTOMERS"}
+#gameScreen .pl-city-building.pl-city-receiving::after{
+ content:"DELIVERY";background:#bed6c6
+}
+#gameScreen .pl-city-building.pl-city-renovating::after{
+ content:"UPGRADED";background:#f4cfa4
+}
+#gameScreen .pl-city-building.pl-city-renovating::before{
+ content:"";position:absolute;inset:-3px;z-index:9;pointer-events:none;
+ background:repeating-linear-gradient(135deg,
+  transparent 0 9px,#e5c69899 9px 12px,transparent 12px 18px);
+ border:2px solid #f1ca92;
+ animation:plStreetBuild 1.9s ease-out both;
+}
+#gameScreen .pl-city-building.pl-city-serving .pl-city-storefront{
+ background:#526b5d!important;
+}
+#gameScreen .pl-city-building.pl-city-receiving .pl-city-storefront{
+ background:#718c7d!important;
+}
+@keyframes plStreetVisit{
+ 0%{opacity:0;transform:translate3d(0,0,0)}
+ 5%{opacity:1}
+ 37%,65%{opacity:1;transform:translate3d(var(--street-to,0px),0,0)}
+ 100%{opacity:0;transform:translate3d(var(--street-exit,0px),0,0)}
+}
+@keyframes plStreetDelivery{
+ 0%{opacity:0;transform:translate3d(0,0,0)}
+ 5%{opacity:1}
+ 38%,70%{opacity:1;transform:translate3d(var(--street-to,0px),0,0)}
+ 100%{opacity:0;transform:translate3d(var(--street-exit,0px),0,0)}
+}
+@keyframes plStreetFootsteps{
+ from{transform:skewX(-12deg)}to{transform:skewX(12deg)}
+}
+@keyframes plStreetCargo{
+ 0%{opacity:0;transform:translateY(-10px) scale(.8)}
+ 20%,75%{opacity:1;transform:translateY(0) scale(1)}
+ 100%{opacity:0;transform:translateY(8px) scale(.85)}
+}
+@keyframes plStreetShopLabel{
+ from{opacity:0;transform:translate(-50%,5px)}
+ to{opacity:1;transform:translate(-50%,0)}
+}
+@keyframes plStreetBuild{
+ 0%{opacity:.9;clip-path:inset(100% 0 0)}
+ 33%{clip-path:inset(0 0 0);opacity:.75}
+ 100%{opacity:0;clip-path:inset(0 0 0)}
+}
+/* Make the sprites visible on compact layouts without expanding the stage. */
+@media(max-width:650px){
+ #gameScreen .pl-street-customer{bottom:49px}
+ #gameScreen .pl-street-delivery{bottom:12px}
+ #gameScreen .pl-city-building.pl-city-serving::after,
+ #gameScreen .pl-city-building.pl-city-receiving::after,
+ #gameScreen .pl-city-building.pl-city-renovating::after{
+  font-size:7px;padding:3px 4px;
+ }
+}
+/* The motion controls must win, even over old !important animations. */
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-street-actor,
+ #gameScreen .pl-street-actor *,
+ #gameScreen .pl-street-cargo,
+ #gameScreen .pl-city-building.pl-city-serving::after,
+ #gameScreen .pl-city-building.pl-city-receiving::after,
+ #gameScreen .pl-city-building.pl-city-renovating::before,
+ #gameScreen .pl-city-building.pl-city-renovating::after{
+  animation:none!important;transition:none!important
+ }
+ #gameScreen .pl-street-life{display:none!important}
+}
+html.pl-reduced-motion #gameScreen .pl-street-life{display:none!important}
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-serving::after,
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-receiving::after,
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-renovating::before,
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-renovating::after{
+ animation:none!important;
+}
+body.pl-online-world #gameScreen .pl-street-life{display:none!important}
+
+
+/* A newly purchased shop raises its sign rather than appearing without feedback. */
+#gameScreen .pl-city-building.pl-city-new-open::after{
+ content:"NOW OPEN";position:absolute;
+ bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);
+ border:1px solid #405a56;border-radius:3px;
+ padding:4px 6px;color:#253d3b;background:#d6e3be;
+ box-shadow:2px 2px 0 #1a2c3388;white-space:nowrap;
+ font:800 8px/1 Arial,Helvetica,sans-serif;letter-spacing:.04em;
+ animation:plStreetShopLabel .3s ease-out both;
+ pointer-events:none;
+}
+#gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+ animation:plStreetStoreOpen 1.6s ease-out both;
+}
+@keyframes plStreetStoreOpen{
+ 0%{filter:brightness(1)}
+ 25%{filter:brightness(1.85)}
+ 100%{filter:brightness(1)}
+}
+html.pl-motion-lite #gameScreen .pl-street-customer .pl-street-person-legs{animation:none}
+@media(prefers-reduced-motion:reduce){
+ #gameScreen .pl-city-building.pl-city-new-open::after,
+ #gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+  animation:none!important;
+ }
+}
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-new-open::after,
+html.pl-reduced-motion #gameScreen .pl-city-building.pl-city-new-open .pl-city-storefront{
+ animation:none!important;
+}
