@@ -126,5 +126,8 @@ finally{
   if(server.exitCode===null)try{server.kill('SIGKILL')}catch{}
  }
  await rm(tempConfig,{force:true});
- await rm(tmp,{recursive:true,force:true});
+ // Windows Workerd releases SQLite/observability handles shortly after exit.
+ // A locked disposable QA directory is not an API or gameplay test failure.
+ try{await rm(tmp,{recursive:true,force:true,maxRetries:12,retryDelay:350})}
+ catch(error){console.warn('Temporary QA directory could not be fully cleaned:',tmp,error.code||error.message)}
 }
