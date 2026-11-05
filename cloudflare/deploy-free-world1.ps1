@@ -57,35 +57,7 @@ try {
   if($found.Count -ne 1){throw 'Could not identify the World 1 D1 database.'}
   $id=''
   if($found[0].PSObject.Properties.Name -contains 'uuid'){$id=[string]$found[0].uuid}
-  if((-not $id -or $id -notmatch '^[0-9a-fA-F-]{36}
-  if($id -notmatch '^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$'){
-    throw 'The D1 database did not return a valid UUID.'
-  }
-  $old=[IO.File]::ReadAllText($config)
-  $pattern='(?m)^database_id\s*=\s*"[^"]*"\s*$'
-  if(-not [regex]::IsMatch($old,$pattern)){throw 'D1 config database_id entry not found.'}
-  $new=[regex]::Replace($old,$pattern,('database_id = "'+$id+'"'))
-  if($old -ne $new){
-    [IO.File]::Copy($config,($config+'.before-world1-deploy.bak'),$true)
-    [IO.File]::WriteAllText($config,$new,([System.Text.UTF8Encoding]::new($false)))
-    Write-Host 'Bound the real D1 UUID; previous local configuration was backed up.'
-  }
-  Write-Host 'Initializing D1 schema without deleting existing game data...'
-  & $npx -y $wranglerVersion d1 execute $database --remote --file $schema --yes
-  if($LASTEXITCODE -ne 0){throw 'D1 schema initialization failed. Multiplayer not deployed.'}
-  Write-Host 'Deploying only the existing profitlands-world1 Worker...'
-  & $npx -y $wranglerVersion deploy --config $config
-  if($LASTEXITCODE -ne 0){throw 'Worker deployment failed. The website remains unchanged.'}
-  $response=Invoke-WebRequest -Uri ($workerUrl+'/health') -Headers @{Origin=$gameOrigin} -UseBasicParsing -TimeoutSec 25
-  $data=ConvertFrom-Json -InputObject $response.Content
-  if([int]$response.StatusCode -ne 200 -or $data.ok -ne $true -or $data.worldId -ne 'world1' -or
-    $response.Headers['Access-Control-Allow-Origin'] -ne $gameOrigin){
-      throw 'World 1 health check failed or CORS is not enabled. Do not enable client connections.'
-  }
-  Write-Host ('WORLD1_DEPLOYED_AND_HEALTHY '+$workerUrl)
-  Write-Host 'Next: merge the verified ProfitLands frontend config PR and test with two signed-in accounts.'
-}finally{Pop-Location}
-) -and ($found[0].PSObject.Properties.Name -contains 'id')){
+  if((-not $id -or $id -notmatch '^[0-9a-fA-F-]{36}$') -and ($found[0].PSObject.Properties.Name -contains 'id')){
     $id=[string]$found[0].id
   }
   if($id -notmatch '^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$'){
@@ -97,7 +69,7 @@ try {
   $new=[regex]::Replace($old,$pattern,('database_id = "'+$id+'"'))
   if($old -ne $new){
     [IO.File]::Copy($config,($config+'.before-world1-deploy.bak'),$true)
-    [IO.File]::WriteAllText($config,$new,(New-Object System.Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText($config,$new,([System.Text.UTF8Encoding]::new($false)))
     Write-Host 'Bound the real D1 UUID; previous local configuration was backed up.'
   }
   Write-Host 'Initializing D1 schema without deleting existing game data...'
