@@ -1,30 +1,50 @@
-# ProfitLands — Cloudflare setup
+# ProfitLands — Cloudflare Free deployment
 
-The public game is plain HTML/CSS/JavaScript. Cloudflare can host the frontend without rewriting it. **Firebase remains the account, save, and multiplayer backend.** Do not delete its rules, Cloud Functions, or authentication setup.
+## Current architecture
 
-## Build and check
+ProfitLands is a static HTML/CSS/JS game. **Cloudflare hosts the public website only**. Firebase remains the independent authentication, private cloud-save, and (when enabled) multiplayer backend. Do not delete Firebase rules, databases, Cloud Functions, or the existing `profitlands-world1` Cloudflare Worker.
 
-Use Node.js 20 or newer:
+The Cloudflare account already has a Worker named `profitlands` connected to this GitHub repository. **Use the existing Worker instead of creating a duplicate Pages project**. The separate `profitlands-world1` Worker is not part of this static-site deployment.
+
+## Free plan constraints
+
+- Host frontend HTML, CSS, and JS as Cloudflare Workers Static Assets. Static-asset requests are free and unlimited within current platform limits.
+- Keep all paid products, billing upgrades, and paid resources disabled.
+- Do not enable Firebase Blaze just to make the multiplayer Cloud Function work. A free static deployment does **not** activate or repair multiplayer.
+
+## Build
+
+Requires Node.js 20+:
 
 ```sh
+npm install
 npm run build:cloudflare
 ```
 
-This creates `dist/` with the website only (including `/play/`, `/preview/` and `/settings/`). It deliberately leaves out `functions/`, `tests/`, `.github/`, docs, local configuration and development files. Do not select the repository root as a public output directory.
+The `postinstall` script also generates the `dist/` folder automatically to help existing Cloudflare Workers Builds installations where the Build Command is left empty. `dist/` contains only public website assets, including the entry points `/play/`, `/preview/`, and `/settings/`. The `functions/` backend, tests, GitHub automation files, and sensitive local files are not copied.
 
-## Option A — Cloudflare Pages with GitHub (recommended for automatic updates)
+You can verify the Workers configuration without uploading:
 
-1. In the Cloudflare dashboard, go to **Workers & Pages → Create application → Pages → Connect to Git**.
-2. Authorize the GitHub integration for `Willn0tBill/ProfitLands`.
-3. Set production branch to `main` after reviewing and merging this setup change.
-4. Set the framework preset to **None**, the build command to `npm run build:cloudflare`, and the build output directory to `dist`.
-5. Deploy. Visit the assigned `*.pages.dev` domain and test the homepage, `/play/`, `/preview/`, and `/settings/`.
+```sh
+npx wrangler deploy --dry-run
+```
 
-Cloudflare Pages can automatically redeploy whenever `main` changes. The Cloudflare dashboard connection requires an account authorization; no secrets should go in GitHub.
+## Deploy from existing Git integration (preferred)
 
-## Option B — Workers Static Assets via Wrangler
+In the Cloudflare dashboard open **Workers & Pages → profitlands → Settings → Builds**, and verify:
 
-Cloudflare's supported Workers Static Assets flow is also configured in `wrangler.jsonc`.
+- Git repository: `Willn0tBill/ProfitLands`
+- Production branch: `main`
+- Root directory: repository root
+- Build command: `npm run build:cloudflare`
+- Deploy command: `npx wrangler deploy`
+- Wrangler name in `wrangler.jsonc`: `profitlands`
+
+Cloudflare Workers Builds may fail with a missing output directory or an incorrect root/configuration. The build's detailed logs, not GitHub's summary check, are the authority for the failure reason. Do not change the `profitlands-world1` settings, database bindings, or deployment.
+
+Once the Cloudflare build succeeds, open the Worker URL and verify the homepage and game subpages.
+
+## Deploy from the authenticated CLI (alternative)
 
 ```sh
 npm run build:cloudflare
@@ -32,30 +52,24 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-Approve the OAuth browser flow when prompted. The first successful deploy provides a Workers URL. Use this path instead of Pages if you specifically prefer Workers. **Do not deploy both by accident** and assume they are automatically synced.
+This needs a browser OAuth authorization. **Do not share API tokens or passwords.** The Cloudflare account owner approves the login in their browser. Deploying with Wrangler should target only the existing `profitlands` Worker, not `profitlands-world1`.
 
-## Firebase after changing the game domain
+## Firebase login on the new domain
 
-If you use Firebase sign-in on the new domain, open Firebase Console → Authentication → Settings → Authorized domains, and add the exact Cloudflare hostname. Verify sign-in, sign-out and cloud saves from that hostname. Firebase config values in browser code are public project identifiers, not service-account credentials; server credentials must never be in the browser or deployment output.
+If the game is served on `profitlands.winotbill.workers.dev`, add that **exact domain** to Firebase Console → Authentication → Settings → Authorized domains. Then test sign-in, sign-out, guest games and cloud saves. Existing browser-local saves are origin-specific and do not automatically follow the user to a different domain. Verify backup/recovery before switching the primary domain.
 
-Firebase's `worldApi` multiplayer Cloud Function is **not** hosted or activated by Cloudflare. Deploying the static website will not make it work: review `WORLD1_DEPLOYMENT.md`, the Firebase rules, and Cloud Function deployment prerequisites. Avoid enabling paid Firebase services or billing without separate authorization.
+The Firebase `worldApi` multiplayer Cloud Function has separate billing/deployment requirements. Do not deploy or enable it under a zero-dollar-budget constraint.
 
-## Prelaunch smoke checks
+## Smoke tests
 
-- Homepage loads and **Continue Your Empire** checks the current hostname's local storage.
-- `/play/?new=1` starts without replacing an existing save unexpectedly.
-- All CSS and JS resources load without 404 errors.
-- Guest singleplayer works; Firebase authentication and cloud-save behavior are tested separately.
-- Review the free-tier limits in your Cloudflare account and confirm no paid resources are enabled.
+1. Check `/`, `/play/`, `/preview/`, and `/settings/` all return HTML.
+2. Verify every referenced stylesheet and script loads (no 404s).
+3. Test new game, continuing a game, and guest local storage.
+4. Test Firebase auth and cloud saves only after domain authorization.
+5. Confirm no paid Cloudflare/Firebase resources were turned on.
 
-## Codex agent integration (local PC)
+## Local Codex integration
 
-Cloudflare's official agent instructions: https://developers.cloudflare.com/agent-setup/prompt.md
+The official Cloudflare agent instructions are at https://developers.cloudflare.com/agent-setup/prompt.md. Cloudflare skills are installed locally under Codex skills, and the Cloudflare MCP server is registered at `https://mcp.cloudflare.com/mcp`. An account-owner OAuth login is required to use the MCP; restarting Codex loads the skills.
 
-Install the official Cloudflare skills and add the remote MCP server for Codex. In Codex's MCP configuration the server URL is:
-
-```text
-https://mcp.cloudflare.com/mcp
-```
-
-Complete Cloudflare OAuth authorization in the browser. Restart Codex so it loads the updated skill and MCP configuration. The optional `cf` beta CLI is not needed for this deployment.
+The optional Cloudflare `cf` beta CLI is not required.
