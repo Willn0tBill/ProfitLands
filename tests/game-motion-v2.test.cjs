@@ -168,7 +168,7 @@ test('gameplay pointer press creates an actual touch ripple and safely removes i
 test('new animation assets are cache-busted and visibly stronger than the old 6px transitions',()=>{
  const html=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.match(html,/game-motion-v2\.css\?v=motion03/);
- assert.match(html,/game-motion-v2\.js\?v=motion03/);
+ assert.match(html,/game-motion-v2\.js\?v=motion04/);
  assert.match(css,/plMotionViewSlide/);
  assert.match(css,/translate3d\(23px,0,0\)/);
  assert.match(css,/plMotionPanelSlide/);
