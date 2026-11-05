@@ -96,8 +96,13 @@ test('web app integration is authenticated and never sends client cash or scorin
  assert.match(server,/tx\.create\(eventRef/);
  assert.match(server,/getLeaderboard/);
  assert.match(server,/CHAT_ENABLED=false/);
- assert.match(adapter,/firebase\.app\(\)\.functions\('us-west1'\)/);
- assert.match(adapter,/httpsCallable\('worldApi'\)/);
+ assert.match(adapter,/getIdToken\(/);
+ assert.match(adapter,/PROFITLANDS_WORLD1_ENDPOINT/);
+ assert.doesNotMatch(adapter,/httpsCallable\(/);
+ const cloud=fs.readFileSync(path.join(__dirname,'..','cloudflare','src','index.mjs'),'utf8');
+ assert.match(cloud,/verifyFirebase/);
+ assert.match(cloud,/transaction\(db/);
+ assert.match(cloud,/requestAttack/);
  assert.doesNotMatch(adapter,/state\.cash\s*[+\-*/]?=/);
  assert.doesNotMatch(adapter,/getLeaderboard:.*localStorage/);
 });
