@@ -4,16 +4,25 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const TYPES={
- coffee:{label:'Coffee Shop',icon:'☕',kind:'cafe',height:89},
- restaurant:{label:'Restaurant',icon:'🍔',kind:'food',height:103},
- gamestore:{label:'Game Store',icon:'🎮',kind:'retail',height:112},
- hotel:{label:'Hotel',icon:'🏨',kind:'hotel',height:146},
- dealership:{label:'Car Dealership',icon:'🚗',kind:'retail',height:105},
- factory:{label:'Factory',icon:'🏭',kind:'factory',height:120},
- software:{label:'Software Company',icon:'💻',kind:'tech',height:160},
- logistics:{label:'Logistics Company',icon:'📦',kind:'factory',height:132}
+ coffee:{label:'Coffee Shop',icon:'CAFÉ',kind:'cafe',height:89},
+ restaurant:{label:'Restaurant',icon:'DINER',kind:'food',height:103},
+ gamestore:{label:'Game Store',icon:'GAMES',kind:'retail',height:112},
+ hotel:{label:'Hotel',icon:'HOTEL',kind:'hotel',height:146},
+ dealership:{label:'Car Dealership',icon:'MOTORS',kind:'retail',height:105},
+ factory:{label:'Factory',icon:'WORKS',kind:'factory',height:120},
+ software:{label:'Software Company',icon:'TECH',kind:'tech',height:160},
+ logistics:{label:'Logistics Company',icon:'DEPOT',kind:'factory',height:132}
 };
 const MAX_VISIBLE=9;
+const DAY_LENGTHS={fast:300,standard:900,long:3600,persistent:86400};
+function phaseFor(state){
+ if(!state?.started)return 'day';
+ const duration=DAY_LENGTHS[state.mode]||DAY_LENGTHS.standard;
+ const remaining=Number(state.timeLeft);
+ if(!Number.isFinite(remaining)||remaining<0)return 'day';
+ const fraction=Math.max(0,Math.min(1,remaining/duration));
+ return fraction<.22?'night':fraction<.44?'dusk':'day';
+}
 let panel=null,overview=null,lastSignature='',interval=null,renderCount=0;
 function nonnegativeInt(value,fallback=0){
  const n=Number(value);
@@ -21,18 +30,19 @@ function nonnegativeInt(value,fallback=0){
 }
 function modelFor(state){
  const all=Array.isArray(state?.businesses)?state.businesses:[];
+ const start=Math.max(0,all.length-MAX_VISIBLE);
  const buildings=all.slice(-MAX_VISIBLE).map((business,index)=>{
-  const def=TYPES[business?.type]||{label:'Business',icon:'◆',kind:'office',height:106};
+  const def=TYPES[business?.type]||{label:'Business',icon:'OFFICE',kind:'office',height:106};
   const level=Math.min(30,nonnegativeInt(business?.level,1)||1);
   const sites=Array.isArray(business?.locations)?business.locations.length:
    nonnegativeInt(business?.chainCount,0)+1;
   const locations=Math.min(25,sites||1);
   return {label:def.label,icon:def.icon,kind:def.kind,
    height:Math.min(188,def.height+(level-1)*8+Math.min(32,(locations-1)*5)),
-   level,locations,index};
+   level,locations,index,businessIndex:start+index};
  });
  return {count:all.length,buildings,day:nonnegativeInt(state?.day,1)||1,
-  totalLevels:all.reduce((sum,b)=>sum+(nonnegativeInt(b?.level,1)||1),0)};
+  totalLevels:all.reduce((sum,b)=>sum+(nonnegativeInt(b?.level,1)||1),0),phase:phaseFor(state)};
 }
 function signature(model){
  return [model.count,model.buildings.map(b=>[b.kind,b.icon,b.height,b.level,b.locations].join('-')).join('|')].join(':');
@@ -44,7 +54,12 @@ function make(tag,className,text){
  return el;
 }
 function createBuilding(data,ghost=false){
- const element=make('div','pl-city-building '+(ghost?'pl-city-building-ghost':'pl-city-'+data.kind));
+ const element=make(ghost?'div':'button','pl-city-building '+(ghost?'pl-city-building-ghost':'pl-city-'+data.kind));
+ if(!ghost){
+  element.type='button';
+  element.dataset.businessIndex=String(data.businessIndex);
+  element.setAttribute('aria-label','Manage '+data.label+', level '+data.level);
+ }
  element.style.setProperty('--city-height',data.height+'px');
  element.style.setProperty('--city-order',String(data.index));
  element.title=ghost?'Future business location':data.label+' · Level '+data.level;
@@ -70,9 +85,12 @@ function render(state){
  if(tickerCount)tickerCount.textContent=model.count+' ACTIVE '+(model.count===1?'BUSINESS':'BUSINESSES');
  if(levels)levels.textContent=model.totalLevels.toLocaleString();
  if(day)day.textContent='DAY '+model.day;
+ const phase=$('plCityPhase');if(phase)phase.textContent=model.phase.toUpperCase();
+ panel.classList.toggle('pl-city-phase-night',model.phase==='night');
+ panel.classList.toggle('pl-city-phase-dusk',model.phase==='dusk');
  if(hint)hint.textContent=model.count?
-   'Your skyline grows as you buy and upgrade businesses.':
-   'Your first shop will light up this district.';
+   'Select a building to manage it. Upgrades change the skyline.':
+   'Your first shop will fill an empty lot.';
  const realFlow=$('dailyIncome')?.textContent?.trim();
  if(flow)flow.textContent=realFlow||'—';
  const key=signature(model);
@@ -115,7 +133,7 @@ function mount(){
  panel=make('section','pl-city-panel pl-city-empty');
  panel.id='plLivingCity';
  panel.setAttribute('aria-label','Live animated empire city');
- panel.innerHTML="\n<header class=\"pl-city-head\"><div class=\"pl-city-head-copy\">\n  <div class=\"pl-city-kicker\"><span class=\"pl-city-live-dot\"></span> LIVE EMPIRE <span id=\"plCityDay\" class=\"pl-city-day\">DAY 1</span></div>\n  <h3>Watch your empire come alive.</h3>\n  <p id=\"plCityHint\">Your first shop will light up this district.</p>\n </div><button type=\"button\" id=\"plCityManage\" class=\"pl-city-manage\">Explore businesses <span aria-hidden=\"true\">↗</span></button></header>\n<div class=\"pl-city-stage\" aria-hidden=\"true\">\n <div class=\"pl-city-stars\"></div><div class=\"pl-city-sun\"></div>\n <div class=\"pl-city-cloud pl-city-cloud-a\"></div><div class=\"pl-city-cloud pl-city-cloud-b\"></div>\n <div class=\"pl-city-distant\"></div><div class=\"pl-city-hill\"></div>\n <div class=\"pl-city-buildings\" id=\"plCityBuildings\"></div>\n <div class=\"pl-city-lamp pl-city-lamp-a\"></div><div class=\"pl-city-lamp pl-city-lamp-b\"></div>\n <div class=\"pl-city-road\"><div class=\"pl-city-lanes\"></div>\n <div class=\"pl-city-car pl-city-car-a\"><i></i></div>\n <div class=\"pl-city-car pl-city-car-b\"><i></i></div>\n <div class=\"pl-city-van\"><i></i></div></div>\n <div class=\"pl-city-horizon-light\"></div>\n <span class=\"pl-city-more\" id=\"plCityMore\" hidden></span>\n</div>\n<footer class=\"pl-city-footer\">\n <div><span>ACTIVE BUSINESSES</span><strong id=\"plCityBusinessCount\">0</strong></div>\n <div><span>COMBINED LEVELS</span><strong id=\"plCityUpgradeCount\">0</strong></div>\n <div><span>CURRENT INCOME</span><strong id=\"plCityFlow\">—</strong></div>\n <span class=\"pl-city-live-label\"><i></i> CITY IN MOTION</span>\n</footer>";
+ panel.innerHTML="\n<header class=\"pl-city-head\"><div class=\"pl-city-head-copy\">\n  <div class=\"pl-city-kicker\"><span class=\"pl-city-live-dot\"></span> YOUR BUSINESS DISTRICT <span id=\"plCityDay\" class=\"pl-city-day\">DAY 1</span> <span id=\"plCityPhase\" class=\"pl-city-phase\">DAY</span></div>\n  <h3>Your city, your businesses.</h3>\n  <p id=\"plCityHint\">Your first shop will fill an empty lot.</p>\n </div><button type=\"button\" id=\"plCityManage\" class=\"pl-city-manage\">View businesses <span aria-label=\"Interactive business district\">↗</span></button></header>\n<div class=\"pl-city-stage\" aria-hidden=\"true\">\n <div class=\"pl-city-stars\" aria-hidden=\"true\"></div><div class=\"pl-city-sun\" aria-hidden=\"true\"></div>\n <div class=\"pl-city-cloud pl-city-cloud-a\"></div><div class=\"pl-city-cloud pl-city-cloud-b\"></div>\n <div class=\"pl-city-distant\"></div><div class=\"pl-city-hill\"></div>\n <div class=\"pl-city-buildings\" id=\"plCityBuildings\" role=\"group\" aria-label=\"Select a building to manage a business\"></div>\n <div class=\"pl-city-pedestrian pl-city-pedestrian-a\" aria-hidden=\"true\"></div><div class=\"pl-city-pedestrian pl-city-pedestrian-b\" aria-hidden=\"true\"></div><div class=\"pl-city-lamp pl-city-lamp-a\"></div><div class=\"pl-city-lamp pl-city-lamp-b\"></div>\n <div class=\"pl-city-road\"><div class=\"pl-city-lanes\"></div>\n <div class=\"pl-city-car pl-city-car-a\"><i></i></div>\n <div class=\"pl-city-car pl-city-car-b\"><i></i></div>\n <div class=\"pl-city-van\"><i></i></div></div>\n <div class=\"pl-city-horizon-light\"></div>\n <span class=\"pl-city-more\" id=\"plCityMore\" hidden></span>\n</div>\n<footer class=\"pl-city-footer\">\n <div><span>ACTIVE BUSINESSES</span><strong id=\"plCityBusinessCount\">0</strong></div>\n <div><span>COMBINED LEVELS</span><strong id=\"plCityUpgradeCount\">0</strong></div>\n <div><span>CURRENT INCOME</span><strong id=\"plCityFlow\">—</strong></div>\n <span class=\"pl-city-live-label\"><i></i> DISTRICT VIEW</span>\n</footer>";
  overview.prepend(panel);
  const heading=document.querySelector('#gameScreen .pl-workspace-section-head');
  if(heading&&typeof heading.insertAdjacentElement==='function'&&!$('plCityTicker')){
@@ -127,6 +145,15 @@ function mount(){
    '<strong id="plCityTickerCount">0 ACTIVE BUSINESSES</strong>';
   heading.insertAdjacentElement('afterend',ticker);
  }
+ const buildings=$('plCityBuildings');
+ buildings?.addEventListener('click',event=>{
+  const button=event.target?.closest?.('button[data-business-index]');
+  if(!button)return;
+  const index=Number(button.dataset.businessIndex);
+  if(!Number.isSafeInteger(index)||index<0||index>=window.state?.businesses?.length)return;
+  // Use the game's existing management workflow, not a duplicate purchase UI.
+  window.openManage?.(index);
+ });
  $('plCityManage')?.addEventListener('click',()=>{
   window.ProfitLandsWorkspace?.show?.('businesses');
   if(!Array.isArray(window.state?.businesses)||window.state.businesses.length===0)
@@ -153,7 +180,7 @@ function init(){
  }
 }
 window.ProfitLandsLivingCity={
- mount,refresh:()=>sync(true),modelFor,
+ mount,refresh:()=>sync(true),modelFor,phaseFor,
  diagnostics:()=>({mounted:!!panel,renderCount,active:!!active(),interval:!!interval})
 };
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
