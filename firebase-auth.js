@@ -145,9 +145,9 @@
     const saved=window.profitlandsLastCloudSave;
     const localRaw=(()=>{try{return localStorage.getItem('profitlands-v2')}catch(e){return null}})();
     let localState=null;try{localState=localRaw?JSON.parse(localRaw):null}catch(e){}
-    const hasProgress=st=>!!st&&(Number(st.day)>1||Number(st.cash)!==1000||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
+    const hasProgress=st=>!!st&&(st.started===true||Number(st.day)>1||(Array.isArray(st.businesses)&&st.businesses.length>0)||Number(st.property)>0||Object.values(st.stocks||{}).some(h=>Number(h?.shares)>0));
     const owner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
-    const safeLocal=owner&&currentUser&&owner!==currentUser.uid?null:localState;
+    const safeLocal=owner&&owner!==currentUser?.uid?null:localState;
     const data=saved?.hasSave?saved:(hasProgress(safeLocal)?{...safeLocal,hasSave:true,localOnly:true}:null);
     if(!data){box?.remove();return}
     if(!box){box=document.createElement('div');box.id='profitlandsResumeCard';box.className='panel';const target=home.querySelector('.home-content')||home;target.insertBefore(box,target.firstChild)}
@@ -189,6 +189,10 @@
       box.innerHTML=`<button class="account-chip" id="plAccount">${esc(p.playerName||'Account')}</button>`;
       $('plAccount').onclick=settings;
       if(note)note.textContent='Your progress will be saved to your ProfitLands account.';
+    }
+    // The actual local/cloud resume card is ready for /play/?resume=1.
+    if(typeof window.dispatchEvent==='function'&&typeof Event==='function'){
+      window.dispatchEvent(new Event('profitlands:resume-ready'));
     }
   }
   function install(){
