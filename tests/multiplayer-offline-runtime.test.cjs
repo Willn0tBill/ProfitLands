@@ -83,7 +83,7 @@ test('Cloudflare server is isolated and client cannot locally award PvP cash',()
  assert.match(code,/window\.ProfitLandsOnline/);
  assert.match(code,/isConnected\?\.\(\)===true/);
  const pages=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
- assert.match(pages,/each region has independent in-game money/);
+ assert.match(pages,/Each region has independent in-game money/);
 });
 
 test('connected Firebase identity is shown without a second sign-in request',async()=>{
