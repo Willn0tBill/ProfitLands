@@ -208,7 +208,7 @@
   function install(){
     // Install this before Firebase sends the first asynchronous Auth callback.
     window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh,
-     getCurrentUser:()=>currentUser,waitForAuth:()=>initialAuth};
+     getCurrentUser:()=>currentUser,waitForAuth:()=>initialAuth,isAuthReady:()=>initialAuthResolved};
     styles();
     if(!configured){
       authChanged(null);
