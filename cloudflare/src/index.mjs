@@ -249,7 +249,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  // Emergency kill switch must protect writes as well as the health-advertised UI.
  if(!chatAvailable(env)&&[
   'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser',
-  'unblockChatUser','getChatReports','moderateChat'
+  'unblockChatUser'
  ].includes(action))err('failed-precondition','Regional chat is temporarily disabled.',409);
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
