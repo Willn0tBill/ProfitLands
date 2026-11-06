@@ -96,7 +96,7 @@ const message=text=>{const status=$('worldStatus');if(status)status.textContent=
 function showUnavailable(){
  const root=page();if(!root)return;
  const configured=online()?.isConfigured?.()===true;
- const initial=configured?'Checking '+region().region+' server…':'World 1 server setup is not finished. The free Cloudflare Worker and D1 database must be deployed first.';
+ const initial=configured?(regionId()==='world1'?'Checking whether World 1 is online…':'Checking '+region().region+' server…'):'World 1 server setup is not finished. The free Cloudflare Worker and D1 database must be deployed first.';
  root.innerHTML=regionSelector()+'<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (configured?esc(region().label)+' connection':'World 1 setup required') +'</h3><p id="worldAvailability">'+initial+'</p><button type="button" id="worldConnect" class="pl-online-connect" disabled>'+(configured?'Checking server…':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
  bindRegionSelector(root);
  const button=$('worldConnect'),status=$('worldAvailability');
