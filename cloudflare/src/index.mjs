@@ -26,7 +26,9 @@ function worldFor(id){
 // Limited text chat beta: server-moderated, rate-limited, region-scoped and
 // automatically concealed after independent reports. Never display HTML.
 const CHAT_ENABLED=true;
-const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true';
+// Require a trusted moderator account before opening a public chat.
+const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true'&&
+ String(env?.CHAT_MODERATOR_UIDS||'').split(',').some(uid=>UID.test(uid.trim()));
 const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
 const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
