@@ -244,4 +244,108 @@ test('the Cloudflare rules match the established Firebase server economics and a
  assert.equal(core.MAX_PLAYERS,64);
  assert.ok(rules.ATTACKS.length>=3);
 });
+
+function regionalDbMock(){
+ const rows=new Map();
+ let reads=0,writes=0;
+ return {
+  get reads(){return reads},get writes(){return writes},
+  read:id=>rows.has(id)?JSON.parse(rows.get(id).payload):null,
+  prepare(sql){
+   let args=[];
+   return {
+    bind(...values){args=values;return this},
+    async first(){
+     assert.match(sql,/^SELECT version, payload FROM world_state/);
+     reads++;
+     return rows.has(args[0])?{...rows.get(args[0])}:null;
+    },
+    async run(){
+     writes++;
+     if(sql.startsWith('INSERT OR IGNORE')){
+      if(!rows.has(args[0]))rows.set(args[0],{version:0,payload:args[1]});
+      return {meta:{changes:1}};
+     }
+     if(sql.startsWith('UPDATE world_state')){
+      const row=rows.get(args[1]);
+      if(!row||row.version!==args[2])return {meta:{changes:0}};
+      rows.set(args[1],{version:row.version+1,payload:args[0]});
+      return {meta:{changes:1}};
+     }
+     throw Error('Unexpected SQL '+sql);
+    }
+   };
+  }
+ };
+}
+test('three world ledgers preserve Americas data and isolate purchases, leaderboard, receipts and PvP',async()=>{
+ const db=regionalDbMock();
+ const before=(await post(db,'register','user-one')).body;
+ assert.equal(before.worldId,'world1');
+ assert.equal(before.player.worldId,'world1');
+ const buyAmerica=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(11)});
+ assert.equal(buyAmerica.status,200);
+ assert.equal(buyAmerica.body.player.cash,1000);
+ const americasBefore=db.read('world1');
+ const europeJoin=(await post(db,'register','user-one',{worldId:'world-europe'})).body;
+ const asiaJoin=(await post(db,'register','user-one',{worldId:'world-asia'})).body;
+ assert.equal(europeJoin.player.cash,1500);
+ assert.equal(asiaJoin.player.cash,1500);
+ assert.equal(europeJoin.player.worldId,'world-europe');
+ assert.equal(asiaJoin.player.worldId,'world-asia');
+ const euBuy=await post(db,'buyBusiness','user-one',{worldId:'world-europe',businessId:'coffee',requestId:rid(11)});
+ assert.equal(euBuy.status,200,'the same payment request ID is independent across ledgers');
+ assert.equal(euBuy.body.player.cash,1000);
+ const asia=(await post(db,'me','user-one',{worldId:'world-asia'})).body;
+ assert.equal(asia.player.cash,1500);
+ assert.equal(asia.player.businesses.length,0);
+ const america=(await post(db,'me','user-one')).body;
+ assert.equal(america.player.cash,1000);
+ assert.equal(america.player.businesses.length,1);
+ assert.deepEqual(db.read('world1'),americasBefore,'joining other regions never changes old Americas state');
+ const euRanks=await post(db,'getLeaderboard','user-one',{worldId:'world-europe',period:'all'});
+ const asiaRanks=await post(db,'getLeaderboard','user-one',{worldId:'world-asia',period:'all'});
+ assert.equal(euRanks.body[0].score,1500);
+ assert.equal(asiaRanks.body[0].score,1500);
+ await post(db,'register','europe-only',{worldId:'world-europe'});
+ const attacker=await post(db,'requestAttack','user-one',{targetUid:'europe-only',
+  attackId:'supplier',requestId:rid(12)});
+ assert.equal(attacker.status,409,'an Americas account cannot target a player only in Europe');
+ assert.equal(db.read('world1').players['europe-only'],undefined);
+});
+test('region IDs are strictly whitelisted, health exposes three worlds, cap is 64 per region',async()=>{
+ const db=regionalDbMock();
+ const health=await post(db,'health',null,{worldId:'world-europe'});
+ assert.equal(health.status,200);
+ assert.equal(health.body.region,'Europe');
+ assert.equal(health.body.worldId,'world-europe');
+ assert.equal(health.body.maxPlayers,64);
+ assert.deepEqual(health.body.worlds.map(w=>w.region),['Americas','Europe','Asia']);
+ assert.equal((await post(db,'health',null)).body.worldId,'world1','legacy clients default to Americas');
+ const getEurope=await worker.fetch(new Request(base+'/health?worldId=world-europe'),{DB:db});
+ assert.equal((await getEurope.json()).worldId,'world-europe');
+ const before=db.read('world1');
+ for(const id of ['bad-region','world1/../../','constructor','',null,0]){
+  const bad=await post(db,'health',null,{worldId:id});
+  assert.equal(bad.status,400);
+  assert.equal(bad.body.error.code,'invalid-argument');
+ }
+ assert.deepEqual(db.read('world1'),before,'invalid regions cannot mutate production data');
+ for(let i=0;i<64;i++){
+  const join=await post(db,'register','asia-cap-'+i,{worldId:'world-asia'});
+  assert.equal(join.status,200,'Asia player '+i);
+ }
+ const overflow=await post(db,'register','asia-cap-64',{worldId:'world-asia'});
+ assert.equal(overflow.status,503);
+ assert.equal(overflow.body.error.code,'resource-exhausted');
+ assert.match(overflow.body.error.message,/Asia/);
+ const europeOpen=await post(db,'register','europe-new',{worldId:'world-europe'});
+ assert.equal(europeOpen.status,200,'the European cap is independent from Asia');
+ const americaOpen=await post(db,'register','america-new');
+ assert.equal(americaOpen.status,200,'legacy Americas accepts its own new members');
+ assert.equal(db.read('world-asia')&&Object.keys(db.read('world-asia').players).length,64);
+ assert.equal(Object.keys(db.read('world-europe').players).length,1);
+ assert.equal(Object.keys(db.read('world1').players).length,1);
+});
+
 test.after(()=>{globalThis.fetch=realFetch});
