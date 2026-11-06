@@ -172,7 +172,7 @@ function nonce(){
 async function paid(action,data={}){
  requireSession();
  const caller=user.uid,requestWorld=selectedWorld;
- const fingerprint=JSON.stringify([caller,action,data]);
+ const fingerprint=JSON.stringify(requestWorld==='world1'?[caller,action,data]:[caller,action,data,requestWorld]);
  const storageKey='profitlands-'+requestWorld+'-pending:'+fingerprint;
  let rid=pendingMutations.get(fingerprint);
  if(!rid){
