@@ -105,7 +105,7 @@ test('public health works without user identity but protected actions need signe
  const db=dbMock();
  const health=await post(db,'health',null);
  assert.equal(health.status,200);assert.equal(health.body.worldId,'world1');
- assert.equal(health.body.chatEnabled,false);
+ assert.equal(health.body.chatEnabled,true);
  assert.ok(health.body.catalog.length>=8);
  assert.equal(health.headers.get('Access-Control-Allow-Origin'),webOrigin);
  const noAuth=await post(db,'register',null);
@@ -224,7 +224,7 @@ test('Cloudflare adapter and config are loaded, no Firebase Functions billing de
  const wrangler=readFileSync(join(root,'cloudflare/wrangler.toml'),'utf8');
  const schema=readFileSync(join(root,'cloudflare/schema.sql'),'utf8');
  assert.ok(html.indexOf('world1-config.js')<html.indexOf('firebase-world-adapter.js'));
- assert.match(html,/firebase-world-adapter\.js\?v=regions01/);
+ assert.match(html,/firebase-world-adapter\.js\?v=standardchat01/);
  assert.doesNotMatch(html,/firebase-functions-compat\.js/);
  assert.doesNotMatch(adapter,/httpsCallable\(|\.functions\(/);
  assert.match(adapter,/getIdToken\(/);
