@@ -225,7 +225,7 @@ async function changeEmpire(action,value){
   await Promise.all([loadEmpire(),loadLeaderboard()]);
   return true;
  }catch(e){message('Purchase rejected: '+String(e?.message||'Please retry.').slice(0,140));return false}
- finally{busy=false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 async function loadLeaderboard(){
  if(!connected())return false;
@@ -245,23 +245,25 @@ async function loadPlayers(){
   if(stamp!==playersStamp||!connected())return false;
   players=Array.isArray(next)?next:[];
   renderPlayers();
+  updateButtons();
   return true;
  }catch(e){if(stamp===playersStamp){message('Could not load players.');players=[];renderPlayers()}return false}
 }
 async function attack(id){
  if(!connected()||busy||!targetUid||!rules()?.ATTACKS.some(x=>x.id===id))return false;
+ if(ownPlayer?.pvpEnabled!==true){message('Enable your own PvP participation before attacking.');return false}
  const target=players.find(p=>p.uid===targetUid);
  if(!target||target.pvpEnabled!==true){message('Choose a player who has enabled PvP.');return false}
  const rule=rules().ATTACKS.find(x=>x.id===id);
  if(!window.confirm?.('Spend verified in-game cash to use '+rule.name+' against '+(target.displayName||'this rival')+'? The final cost will be checked by the server.'))return false;
- busy=true;updateButtons();
+ busy=true;updateButtons();pvpStatus();
  try{
   await online().requestAttack({targetUid,attackId:id});
   message('Attack submitted and validated by the world server.');
   await Promise.all([loadLeaderboard(),loadPlayers(),loadEmpire()]);
   return true;
  }catch(e){message('Attack rejected by the server: '+(e?.message||'Please retry.'));return false}
- finally{busy=false;updateButtons()}
+ finally{busy=false;updateButtons();pvpStatus()}
 }
 async function defend(){
  if(!connected()||busy)return false;
@@ -269,14 +271,21 @@ async function defend(){
  busy=true;
  try{await online().requestDefense();message('Protection activated by the world server.');await loadEmpire();return true}
  catch(e){message('Protection unavailable: '+(e?.message||'Please retry.'));return false}
- finally{busy=false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 async function togglePvP(){
  if(!connected()||busy)return false;
- busy=true;
- try{await online().togglePvP();message('PvP preference updated on the world server.');return true}
- catch(e){message('Could not update PvP preference.');return false}
- finally{busy=false}
+ busy=true;pvpStatus();updateButtons();
+ try{
+  const result=await online().togglePvP();
+  if(result?.player)ownPlayer=result.player;
+  pvpStatus();updateButtons();
+  message('PvP is now '+(ownPlayer?.pvpEnabled?'enabled. Rivals can challenge your empire.':'disabled.')+' Verified by World 1.');
+  await loadEmpire();
+  return true;
+ }
+ catch(e){message('Could not update PvP preference: '+String(e?.message||'Please retry.').slice(0,130));return false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 function updateChat(){
  const dock=$('worldChatDock');if(!dock)return;
@@ -325,8 +334,19 @@ async function refreshChat(){
 function render(){
  if(!page())return false;
  if(!active()){page().innerHTML='<p class="pl-online-note">Multiplayer features appear only in multiplayer mode.</p>';updateChat();return false}
- if(!connected())showUnavailable();
- else{renderOnline();loadEmpire();loadLeaderboard();loadPlayers();refreshChat()}
+ if(!connected()){
+  // Do not leave a previous account's balance or rivals visible.
+  ownPlayer=null;players=[];targetUid='';
+  showUnavailable();
+ }else if(!$('worldStore')){
+  // Connect emits a serverupdate and also calls render. Mount the online
+  // panel only once instead of fetching the same data twice.
+  renderOnline();
+  Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]).then(results=>{
+   if(connected()&&results.every(Boolean)&&$('worldStore'))syncLabel();
+  }).catch(()=>{});
+  refreshChat();
+ }
  updateChat();return true;
 }
 function init(){
@@ -342,6 +362,8 @@ function init(){
   $('worldChatPanel').hidden=true;$('worldChatToggle')?.setAttribute('aria-expanded','false');
  });
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
+ // Opt-in auto-sync does not run when the tab is hidden or another view is open.
+ if(typeof window.setInterval==='function')window.setInterval(autoSyncTick,15000);
  window.addEventListener('profitlands:viewchange',event=>{updateChat();if(event.detail?.view==='world')render()});
  window.addEventListener('profitlands:serverupdate',()=>{if(window.ProfitLandsWorkspace?.active?.()==='world')render();else updateChat()});
  // A restored session changes connection instructions without needing another sign-in.
@@ -350,6 +372,7 @@ function init(){
  });
  updateChat();
 }
-window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period};
+window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period,
+ refresh:refreshWorld,autoSyncIfDue:autoSyncTick,autoSyncEnabled:()=>autoSyncEnabled};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
