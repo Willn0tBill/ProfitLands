@@ -188,7 +188,25 @@ function startTimer(){
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2000)}
 function closeModal(id){$(id).classList.add('hidden')}
 document.querySelectorAll('.mode-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.mode=card.dataset.mode}));
-document.querySelectorAll('.type-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));card.classList.add('selected');state.playType=card.dataset.type;$('multiNotice').classList.toggle('hidden',state.playType!=='multi');window.ProfitLandsWorkspace?.syncMode?.()}));
+// Regional multiplayer has one server-defined economy. The solo mode, difficulty
+// and country selectors must not imply that they change online rules.
+function syncMultiplayerSetup(){
+ const multi=state.playType==='multi';
+ $('homeScreen')?.classList.toggle('pl-multi-setup',multi);
+ $('multiNotice')?.classList.toggle('hidden',!multi);
+ const button=$('startGame');
+ if(button)button.innerHTML=multi?'Enter Regional Multiplayer <span>→</span>':'Create My Empire <span>→</span>';
+ // Show the familiar Standard default while keeping a returning solo player's
+ // selected options intact; never overwrite or save their singleplayer setup.
+ document.querySelectorAll('.mode-card').forEach(x=>x.classList.toggle('selected',x.dataset.mode===(multi?'standard':state.mode)));
+ const notice=$('multiplayerPreset');
+ if(notice)notice.hidden=!multi;
+}
+document.querySelectorAll('.type-card').forEach(card=>card.addEventListener('click',()=>{
+ document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));
+ card.classList.add('selected');state.playType=card.dataset.type;
+ syncMultiplayerSetup();window.ProfitLandsWorkspace?.syncMode?.();
+}));
 function openOnlineWorld(){
   // Multiplayer uses its own Firestore ledger. Never reset or save local singleplayer data.
   state.started=false;
@@ -248,6 +266,7 @@ $('gameScreen').classList.remove('active');
 $('homeScreen').classList.add('active');
 const selected=document.querySelector(`[data-mode="${state.mode}"]`);if(selected){document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));selected.classList.add('selected')}
 const type=document.querySelector(`[data-type="${state.playType}"]`);if(type){document.querySelectorAll('.type-card').forEach(x=>x.classList.remove('selected'));type.classList.add('selected')}
+syncMultiplayerSetup();
 render();
 
 
