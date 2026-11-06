@@ -14,6 +14,23 @@ const playing=()=>window.state?.playType==='multi'&&
 const currentUser=()=>{
  try{return window.firebase?.auth?.().currentUser||null}catch(e){return null}
 };
+// Firebase auth may still be restoring a session from this browser's storage
+// when the player clicks Connect. Never treat a pending restore as a logout.
+async function restoredUser(){
+ const existing=currentUser();
+ if(existing)return existing;
+ const ready=window.profitlandsFirebase?.waitForAuth?.();
+ if(ready&&typeof ready.then==='function'){
+  let timer;
+  try{
+   await Promise.race([
+    ready,
+    new Promise(resolve=>{timer=setTimeout(resolve,7000)})
+   ]);
+  }finally{clearTimeout(timer)}
+ }
+ return currentUser();
+}
 const endpoint=()=>{
  const raw=String(window.PROFITLANDS_WORLD1_ENDPOINT||'').trim();
  try{
@@ -89,8 +106,8 @@ async function connect(){
  connecting=(async()=>{
   const token=epoch;
   try{
-   const signed=currentUser();
-   if(!signed)throw Error('Please sign in from the homepage or account menu first.');
+   const signed=await restoredUser();
+   if(!signed)throw Error('Please sign in to your ProfitLands account on this page to join World 1.');
    if(!playing())throw Error('Open Multiplayer before connecting to World 1.');
    const health=await call('health');
    if(!health?.ok||health.worldId!=='world1'||!Array.isArray(health.catalog))throw Error('The Cloudflare server is not serving World 1.');
