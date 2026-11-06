@@ -242,6 +242,9 @@ test('player company listings are private to a region, fairly priced, and atomic
  assert.equal(db.read('world1').players.seller.cash,1500);
  assert.equal(db.read('world1').players.buyer.businesses.length,1);
  assert.equal(db.read('world1').players.buyer.cash,1000);
+ const buyerContract=await dispatch('enterpriseAction','buyer',
+  {operation:'claimContract',requestId:'b'.repeat(32)},db,'world1');
+ assert.equal(buyerContract.reward,250);
  assert.equal((await dispatch('getListings','buyer',{},db,'world1')).length,0);
  const replay=await dispatch('buyListedCompany','buyer',{
   sellerUid:'seller',index:0,maxPrice:500,requestId:'3'.repeat(32)},db,'world1');

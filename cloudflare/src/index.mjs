@@ -424,6 +424,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     delete transferred.listing;
     seller.businesses.splice(body.index,1);
     p.businesses.push(transferred);
+    enterprise.recordDailyAction(p);
     p.dayGain=buyerDay+core.worth(p)-buyerBefore;
     p.weekGain=buyerWeek+core.worth(p)-buyerBefore;
     seller.dayGain=sellerDay+core.worth(seller)-sellerBefore;
