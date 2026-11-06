@@ -3,6 +3,7 @@
  * This code extends an existing player's ledger without importing local saves.
  */
 import core from './world-core.mjs';
+import cityContracts from './world-city-contracts.mjs';
 
 const MAX_COMPANIES=core.MAX_BUSINESSES;
 const MAX_SITES_PER_COMPANY=16;
@@ -23,7 +24,9 @@ const RESEARCH=Object.freeze([
 const COUNTRY_IDS=new Set(core.COUNTRIES.map(x=>x.id));
 const DEFAULTS=()=>({
  country:'us',stocks:{},majorCompanies:[],loanDebt:0,loanPrincipal:0,
+ loanIssuedAt:0,loanDueAt:0,repaymentAuto:false,
  properties:[],warehouse:0,warehouseStock:0,trucks:0,research:[],
+ cityContract:null,lastCityRewardAt:0,cityCompleted:0,
  lastContractDay:'',contractsCompleted:0,routes:[],metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
 });
 const error=(code)=>({ok:false,error:code});
@@ -117,6 +120,9 @@ function summary(p,now=Date.now()){
   researchCatalog:RESEARCH,majorCatalog:core.MAJOR_CORPORATIONS.map(x=>({...x,profitPerMinute:x.rev-x.expense})),
   countryCatalog:core.COUNTRIES.map(({id,name,region,taxRate,loanRate,inflationPct})=>({id,name,region,taxRate,loanRate,inflationPct})),
   fiscalRate:core.COUNTRIES.find(c=>c.id===s.country)?.taxRate??.255,
+  loanStatus:s.loanDebt>0?(s.loanDueAt>0?(now>=s.loanDueAt?'Overdue':'Due'):'Legacy loan'):'Clear',
+  cityContracts:cityContracts.summary(p,now),
+  worldEvent:core.worldEvent(now,p.worldId||core.WORLD_ID),
   companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
 }
 function trade(p,t,qty,mode,now){
@@ -152,6 +158,8 @@ function apply(player,operation,args={},now=Date.now()){
  const chosen=company(p,index);
  const b=chosen?.b,t=chosen?.t;
  const qty=args.quantity;
+ if(operation==='acceptCityContract')return cityContracts.accept(p,args.contractId,now);
+ if(operation==='claimCityContract')return cityContracts.claim(p,now);
  if(operation==='buyMajorCorporation'){
   const corp=core.MAJOR_CORPORATIONS.find(x=>x.id===args.corporationId);
   if(!corp)return error('unknown_corporation');
@@ -302,12 +310,18 @@ function apply(player,operation,args={},now=Date.now()){
   e.fiscal.totalTaxPaid=Math.min(core.MAX_CASH,(e.fiscal.totalTaxPaid||0)+payment);
   return {ok:true,player:p,cost:payment};
  }
+ if(operation==='setAutoDebtRepayment'){
+  if(e.loanDebt<=0||typeof args.enabled!=='boolean')return error('no_loan');
+  e.repaymentAuto=args.enabled;
+  return {ok:true,player:p,cost:0};
+ }
  if(operation==='borrowLoan'){
   if(e.loanDebt>0)return error('loan_outstanding');
   if(![5000,50000,500000].includes(args.amount))return error('invalid_loan');
   const outstanding=Math.ceil(args.amount*1.1);
   if(outstanding>core.MAX_CASH-e.loanDebt)return error('loan_limit');
   e.loanDebt=outstanding;e.loanPrincipal=args.amount;
+  e.loanIssuedAt=now;e.loanDueAt=now+30*86400000;e.repaymentAuto=false;
   core.credit(p,args.amount);
   return {ok:true,player:p,cost:0,debt:outstanding};
  }
@@ -317,7 +331,7 @@ function apply(player,operation,args={},now=Date.now()){
   if(!positiveInt(payment,core.MAX_CASH))return error('invalid_repayment');
   if(!spend(p,payment))return error('insufficient_cash');
   e.loanDebt-=payment;
-  if(e.loanDebt===0)e.loanPrincipal=0;
+  if(e.loanDebt===0){e.loanPrincipal=0;e.loanDueAt=0;e.repaymentAuto=false}
   return {ok:true,player:p,cost:payment};
  }
  if(operation==='buyProperty'){
@@ -343,5 +357,9 @@ function apply(player,operation,args={},now=Date.now()){
  }
  return error('unknown_operation');
 }
-export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,removeCompanyRoutes,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,recordDailyAction,apply};
-export default {ensure,removeCompanyRoutes,summary,apply,recordDailyAction,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};
+function recordCityAction(p,operation,now){
+ ensure(p);
+ return cityContracts.record(p,operation,now);
+}
+export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,removeCompanyRoutes,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,recordDailyAction,recordCityAction,apply};
+export default {ensure,removeCompanyRoutes,summary,apply,recordDailyAction,recordCityAction,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};

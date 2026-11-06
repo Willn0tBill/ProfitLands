@@ -44,10 +44,38 @@
     !site.autoRestock&&!(s.research||[]).includes('automation'),'Requires automation research to enable')+
    '</div>';
  };
+ const cityWorkOrders=s=>{
+  const c=s.cityContracts||{},active=c.active;
+  let content='<h4>City work orders</h4>'+
+   '<p class="pl-online-note">Accept one contract, then complete a new paid server-verified action. Progress from before acceptance never counts. One reward per UTC day.</p>';
+  if(active){
+   content+='<div class="pl-advanced-metrics">'+
+    summary('Accepted',active.title)+summary('Progress',active.progress? '1 / 1':'0 / 1')+
+    summary('Reward',fmt(active.reward))+'</div>';
+   if(active.status==='claimed')content+='<p class="pl-online-note">Today\'s city contract was paid. More work orders become available next UTC day.</p>';
+   else content+='<div class="pl-advanced-grid">'+
+    btn('claimCityContract','Claim '+fmt(active.reward),{},!c.canClaim,
+      active.progress?'Verified work completed':'Complete '+active.detail+' first')+'</div>';
+  }else if((c.offers||[]).length){
+   content+='<div class="pl-advanced-grid">'+c.offers.map(x=>
+    btn('acceptCityContract',x.title,{contractId:x.id},false,
+     x.detail+' Reward '+fmt(x.reward))).join('')+'</div>';
+  }else{
+   const remaining=Math.ceil(Number(c.cooldownMs||0)/60000);
+   content+='<p class="pl-online-note">'+
+    esc(remaining>0?'Next city contract available in about '+remaining+' minute(s).':
+      'No available work orders right now.')+'</p>';
+  }
+  content+='<div class="pl-advanced-metrics">'+summary('City contracts completed',c.completed||0)+'</div>';
+  return content;
+ };
  const sections={
   operations:(p,s)=>{
-   const b=p.businesses[chosenCompany];
-   return '<p class="pl-online-note">Manage real online companies, staff, marketing and locations. All purchases are verified by the regional server.</p>'+
+   const event=s.worldEvent;
+   return (event?'<article class="pl-advanced-market"><div><strong>Regional market: '+esc(event.title)+
+    '</strong><small>'+esc(event.detail)+' Current demand effects end at '+
+    esc(new Date(event.endsAt).toLocaleString())+'</small></div></article>':'')+
+    '<p class="pl-online-note">Manage real online companies, staff, marketing and locations. All purchases are verified by the regional server.</p>'+
     baseActions(p,s,chosenCompany);
   },
   supply:(p,s)=>{
@@ -122,6 +150,9 @@
     '<h4>Other players\' companies for sale</h4><div id="plCompanyListings" class="pl-advanced-list" role="status">Loading verified listings…</div>';
   },
   finance:(p,s)=>'<div class="pl-advanced-metrics">'+summary('Outstanding loan',fmt(s.loanDebt||0))+
+   summary('Loan status',s.loanStatus||'Clear')+
+   summary('Loan due',s.loanDueAt?new Date(s.loanDueAt).toLocaleDateString():'No deadline')+
+   summary('Automatic repayment',s.repaymentAuto?'On':'Off')+
    summary('Properties',(s.properties||[]).length)+summary('World cash',fmt(p.cash))+
    summary('Fiscal year',s.fiscal?.year||1)+summary('Taxable operating profit',fmt(s.fiscal?.taxableProfit||0))+
    summary('Tax rate',((s.fiscalRate||0)*100).toFixed(1)+'%')+
@@ -132,13 +163,15 @@
    btn('borrowLoan','Borrow $50,000',{amount:50000},!!s.loanDebt,'One loan at a time')+
    btn('borrowLoan','Borrow $500,000',{amount:500000},!!s.loanDebt,'One loan at a time')+
    btn('repayLoan','Repay up to $5,000',{amount:5000},!(s.loanDebt>0),'Repayment reduces outstanding debt')+
+   btn('setAutoDebtRepayment',s.repaymentAuto?'Stop optional auto repayment':'Auto-repay 15% of income',
+    {enabled:!s.repaymentAuto},!(s.loanDebt>0),'Overdue new loans automatically repay 40% of future income')+
    btn('payTax','Pay up to $5,000 tax',{amount:5000},!(s.fiscal?.taxDue>0)||p.cash<1,'Pay a verified tax bill')+
    btn('payTax','Pay remaining tax',{amount:Math.min(s.fiscal?.taxDue||0,p.cash)},
     !(s.fiscal?.taxDue>0)||p.cash<1,'Tax liability cannot be paid twice')+
    btn('buyProperty','Buy $10k property',{amount:10000},p.cash<10000,'Build your asset portfolio')+
    btn('buyProperty','Buy $100k property',{amount:100000},p.cash<100000,'Generates rental income')+
    btn('buyProperty','Buy $1m property',{amount:1000000},p.cash<1000000,'Generates rental income')+'</div>'+
-   '<p class="pl-online-note">Online corporate income tax is assessed once per 365 real UTC days on tracked operating profit. Unpaid bills remain liabilities; repayment is explicit. Singleplayer uses accelerated game days.</p>',
+   '<p class="pl-online-note">New loans are due 30 real days after borrowing. Players may automatically repay 15% of future earned income; overdue new loans repay 40% until cleared. Existing old loans keep their original no-deadline rules. Payments reduce debt without creating or destroying net worth. Taxes are assessed once per 365 real UTC days on tracked operating profit.</p>',
   corporations:(p,s)=>{
    const holdings=Array.isArray(s.majorCompanies)?s.majorCompanies:[];
    const catalog=Array.isArray(s.majorCatalog)?s.majorCatalog:[];
@@ -174,6 +207,7 @@
     s.lastContractDay===new Date().toISOString().slice(0,10)||
     s.lastQualifyingActionDay!==new Date().toISOString().slice(0,10),
     'Complete a paid business, hiring or trade action today')+'</div>'+
+    cityWorkOrders(s)+
     '<p class="pl-online-note">Online achievement ranks are computed from server-owned activity, matching the 131,072 possible industry/track/tier combinations. Merging them with your singleplayer account trophies is still an independent task.</p>'+ 
     '<div class="pl-advanced-company"><label for="plCountrySelector">Home country</label><select id="plCountrySelector" '+(p.businesses.length?'disabled':'')+'>'+
     (s.countryCatalog||[]).map(c=>

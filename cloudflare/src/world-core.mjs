@@ -20,6 +20,26 @@ const BUSINESS_TYPES=Object.freeze([
  {id:'logistics',name:'Logistics Company',cost:10000000,baseProfit:513757}
 ]);
 const byId=id=>BUSINESS_TYPES.find(b=>b.id===id)||null;
+// The daily regional economy is derived solely from trusted UTC time/region.
+// No client-supplied randomness, multiplier, or event progress is accepted.
+// Scenario #1 is the legacy baseline, preserving already-earned historical
+// settlements; all players in the same region see the same event on each day.
+const WORLD_EVENTS=Object.freeze([
+ {id:'travel_boom',title:'Travel Demand Jumps',detail:'Hotel and transport demand is stronger today.',effects:{hotel:1.12,logistics:1.05}},
+ {id:'stable_market',title:'Stable Trading Day',detail:'Business demand is steady across the region.',effects:{}},
+ {id:'consumer_boom',title:'Consumer Spending Surges',detail:'Shoppers and diners are spending more today.',effects:{coffee:1.08,restaurant:1.08,gamestore:1.08}},
+ {id:'technology_boom',title:'Technology Sector Rallies',detail:'Software companies are seeing stronger demand.',effects:{software:1.12}},
+ {id:'shipping_delay',title:'Supply Routes Disrupted',detail:'Manufacturing and logistics face a temporary slowdown.',effects:{factory:.93,logistics:.91}},
+ {id:'consumer_slowdown',title:'Consumer Spending Slows',detail:'Retail demand is slightly softer today.',effects:{coffee:.95,restaurant:.95,gamestore:.95,dealership:.96}}
+]);
+function worldEvent(at=Date.now(),worldId=WORLD_ID){
+ const time=Number.isSafeInteger(at)&&at>=0?at:Date.now();
+ const day=Math.floor(time/86400000);
+ const regionOffset=worldId==='world-europe'?2:worldId==='world-asia'?4:0;
+ const event=WORLD_EVENTS[(day+regionOffset)%WORLD_EVENTS.length];
+ return {id:event.id,title:event.title,detail:event.detail,effects:event.effects,
+  day:dayKey(time),endsAt:(day+1)*86400000};
+}
 // Same per-minute revenue/expense baselines as singleplayer app.js.
 const BUSINESS_ECONOMICS=Object.freeze({
  coffee:{revenue:114,expense:48},restaurant:{revenue:416,expense:190},
@@ -44,7 +64,7 @@ const MAJOR_CORPORATIONS=Object.freeze([
  {id:'regional',name:'Regional Corporation',req:10000000,price:8000000,rev:280000,expense:190000},
  {id:'national',name:'National Corporation',req:100000000,price:80000000,rev:2800000,expense:2000000},
  {id:'global',name:'Global Corporation',req:1000000000,price:800000000,rev:30000000,expense:22000000},
- {id:'conglomerate',name:'Conglomerate',req:10000000000,price:8000000000,rev:32000000,expense:25000000},
+ {id:'conglomerate',name:'Conglomerate',req:10000000000,price:8000000000,rev:320000000,expense:250000000},
  {id:'mega',name:'Mega Corporation',req:100000000000,price:80000000000,rev:3500000000,expense:2900000000},
  {id:'empire',name:'Global Empire',req:1000000000000,price:850000000000,rev:40000000000,expense:35000000000}
 ]);
@@ -72,6 +92,7 @@ const clone=p=>({...p,
   routes:Array.isArray(p.enterprise.routes)?p.enterprise.routes.map(r=>({...r})):undefined,
   route:p.enterprise.route?{...p.enterprise.route}:undefined,
   fiscal:p.enterprise.fiscal?{...p.enterprise.fiscal}:undefined,
+  cityContract:p.enterprise.cityContract?{...p.enterprise.cityContract}:undefined,
   badgeCounters:p.enterprise.badgeCounters?Object.fromEntries(
    Object.entries(p.enterprise.badgeCounters).map(([id,counters])=>[id,{...counters}])):undefined,
   metrics:{...(p.enterprise.metrics||{})}}:undefined
@@ -118,8 +139,9 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
  }
  return Math.max(0,Math.min(MAX_CASH,Math.round(value)));
 }
-function perSecond(p){
+function perSecond(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  let income=0;
+ const event=worldEvent(at,p.worldId||WORLD_ID);
  const e=p.enterprise;
  const profile=COUNTRIES.find(x=>x.id===e?.country)||US_COUNTRY;
  for(const business of p.businesses||[]){
@@ -137,7 +159,9 @@ function perSecond(p){
   const base=Math.floor(margin*(1+(business.level-1)*.22)/60);
   const enhanced=workers>0||sites>1||business.manager||marketing>0||efficiency>0||
    training!==1||profile.id!=='us';
-  income+=enhanced?Math.max(0,Math.ceil(base*mult-workers*.005)):base;
+  const rawIncome=enhanced?Math.max(0,Math.ceil(base*mult-workers*.005)):base;
+  const effect=event.effects[def.id]||1;
+  income+=effect===1?rawIncome:Math.max(0,Math.round(rawIncome*effect));
  }
  for(const price of e?.properties||[])if(Number.isFinite(price))income+=Math.floor(price/180000);
  for(const holding of e?.majorCompanies||[]){
@@ -202,6 +226,22 @@ function periodRoll(p,at){
  if(p.dayKey!==nextDay){p.dayKey=nextDay;p.dayGain=0}
  if(p.weekKey!==nextWeek){p.weekKey=nextWeek;p.weekGain=0}
 }
+function repayOperatingIncome(p,earned,at){
+ const e=p.enterprise;
+ if(!e||!Number.isSafeInteger(e.loanDebt)||e.loanDebt<=0||earned<=0)return 0;
+ const overdue=Number.isSafeInteger(e.loanDueAt)&&e.loanDueAt>0&&at>=e.loanDueAt;
+ if(!overdue&&e.repaymentAuto!==true)return 0;
+ const payment=Math.min(e.loanDebt,p.cash,
+  Math.floor(earned*(overdue?.4:.15)));
+ if(payment<=0)return 0;
+ const before=worth(p,at);
+ p.cash-=payment;
+ e.loanDebt-=payment;
+ if(e.loanDebt===0){e.loanPrincipal=0;e.loanDueAt=0;e.repaymentAuto=false}
+ const change=worth(p,at)-before;
+ p.dayGain+=change;p.weekGain+=change;
+ return payment;
+}
 function credit(p,amount){
  const before=worth(p);
  const add=Math.max(0,Math.min(MAX_CASH-p.cash,Math.floor(amount)));
@@ -240,13 +280,15 @@ function settle(player,now){
   const d=new Date(cursor),midnight=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1);
   const nextMonday=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+((8-d.getUTCDay())%7||7));
   const penaltyBoundary=Number(p.activePenaltyUntil||0)*1000;
+  const loanBoundary=Number(p.enterprise?.loanDueAt||0);
   const nextQuote=(Math.floor(cursor/900000)+1)*900000;
   const due=p.enterprise?.fiscal?.nextTaxAt;
   const next=Math.min(now,midnight,nextMonday,nextQuote,
-   due>cursor?due:Infinity,penaltyBoundary>cursor?penaltyBoundary:Infinity);
+   due>cursor?due:Infinity,penaltyBoundary>cursor?penaltyBoundary:Infinity,
+   loanBoundary>cursor?loanBoundary:Infinity);
   const durationMs=Math.max(0,next-cursor);
   if(durationMs>0){
-   const rate=perSecond(p);
+   const rate=perSecond(p,cursor);
    const penalty=Number(p.activePenaltyUntil||0)*1000>cursor
     ?Math.max(0,Math.min(30,Math.round(Number(p.activePenalty||0)*100))):0;
    // Thousandths of a dollar avoid round-down losses on repeated settlements.
@@ -263,6 +305,7 @@ function settle(player,now){
    if(earned>0){
     const actual=credit(p,earned);
     passiveEarned+=actual;recordOperatingProfit(p,actual);
+    repayOperatingIncome(p,actual,next);
    }
   }
   // Earnings before UTC boundaries belong to the old period; a quote change
@@ -304,6 +347,7 @@ function settle(player,now){
       addBadgeCounter(p,b.type,'sales',units);
       addBadgeCounter(p,b.type,'earnings',actual);
       recordOperatingProfit(p,actual);
+      repayOperatingIncome(p,actual,now);
      }
      if(site.autoRestock&&e.research?.includes('automation')&&site.stock<20){
       const quantity=Math.min(100,5000-site.stock);
@@ -382,6 +426,6 @@ function score(player,period,now){
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_BUSINESSES,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
  ensureFiscal,recordOperatingProfit,closeFiscalYear,
- byId,dayKey,weekKey,cleanName,valueOf,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
+ byId,dayKey,weekKey,cleanName,valueOf,worldEvent,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
 
 export default module.exports;

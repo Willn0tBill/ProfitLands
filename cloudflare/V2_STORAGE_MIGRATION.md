@@ -39,14 +39,17 @@ The public Worker still uses the legacy `world_state` rows until a separate, aut
 - Simultaneous transactions: an atomic guard causes stale operations to retry against the latest committed player data.
 - D1 batch failure during purchase/acquisition: the **whole batch** rolls back, including both accounts, the receipt and regional version.
 - V2 individual player records retain a bounded 1.8-MB safety guard; receipt expiry is 72 hours. Free Cloudflare plans still have daily quotas.
-- Production deployment and signed-in device tests were **not** performed in the development branch. Full solo/multiplayer feature parity remains incomplete (e.g. bankruptcy recovery, world events, advanced city contracts and progression).
+- Production deployment and signed-in device tests were **not** performed in the development branch. Basic city work orders, six daily regional economic scenarios and automatic loan repayment are implemented, but complete solo/multiplayer feature parity remains incomplete (e.g. bankruptcy liquidation, the full world-event catalog, multi-stage city contracts and progression).
 
 ## Local verification
 
 ```powershell
 node --test tests/world-v2-storage.test.mjs
 node --test
+npm --prefix cloudflare install
+npm --prefix cloudflare run smoke:local
+npm --prefix cloudflare run smoke:v2
 npm run build:cloudflare
 ```
 
-The V2 tests use Node 22+/24's SQLite engine and execute real transactions, including deliberately failed atomic batches and stale migrations. The legacy path retains its existing regression suite. Real Cloudflare D1 and two-account browser acceptance testing is still required before production cutover.
+The V2 tests use Node 22+/24's SQLite engine and execute real transactions, including deliberately failed atomic batches and stale migrations. The legacy path retains its existing regression suite. Both Cloudflare Worker modes passed isolated **real local D1 health/auth/CORS smoke tests** using Wrangler. Real Cloudflare-hosted D1 with two authenticated browser accounts and production-quota testing are still required before production cutover.

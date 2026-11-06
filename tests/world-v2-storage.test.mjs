@@ -270,3 +270,55 @@ test('independent economic writes avoid regional contention; chat and admissions
   assert.equal(db.get('SELECT version FROM world_players WHERE world_id=? AND uid=?','world1','charlie').version,0);
  }finally{db.close()}
 });
+
+test('normalized accounts preserve city work order progress, regional events and idempotent rewards',async()=>{
+ const db=new D1Sqlite();
+ try{
+  await dispatch('register','work-order',{},db,'world1');
+  await migrateExistingRegion(db,'world1');
+  const offer=await dispatch('enterpriseAction','work-order',{
+   operation:'acceptCityContract',contractId:'open',requestId:'7'.repeat(32)},db,'world1',env);
+  assert.equal(offer.player.enterprise.cityContracts.active.progress,0);
+  const bought=await dispatch('buyBusiness','work-order',{
+   businessId:'coffee',requestId:'8'.repeat(32)},db,'world1',env);
+  assert.equal(bought.player.enterprise.cityContracts.active.progress,1);
+  const done=await dispatch('enterpriseAction','work-order',{
+   operation:'claimCityContract',requestId:'9'.repeat(32)},db,'world1',env);
+  assert.equal(done.reward,75);
+  const reconnected=await dispatch('me','work-order',{},db,'world1',env);
+  assert.equal(reconnected.player.enterprise.cityContracts.active.status,'claimed');
+  assert.equal(typeof reconnected.player.enterprise.worldEvent.id,'string');
+  const replay=await dispatch('enterpriseAction','work-order',{
+   operation:'claimCityContract',requestId:'9'.repeat(32)},db,'world1',env);
+  assert.equal(replay.replayed,true);
+  assert.equal(replay.player.cash,done.player.cash);
+  assert.equal((await readNormalized(db,'world1')).state.players['work-order'].enterprise.cityCompleted,1);
+ }finally{db.close()}
+});
+
+test('normalized account stores loan due dates and safe opt-in recovery across reconnects',async()=>{
+ const db=new D1Sqlite();
+ try{
+  await dispatch('register','borrower',{},db,'world1');
+  await migrateExistingRegion(db,'world1');
+  const loan=await dispatch('enterpriseAction','borrower',{
+   operation:'borrowLoan',amount:5000,requestId:'1'.repeat(32)},db,'world1',env);
+  assert.equal(loan.player.enterprise.loanDebt,5500);
+  assert.ok(loan.player.enterprise.loanDueAt>Date.now());
+  const enable=await dispatch('enterpriseAction','borrower',{
+   operation:'setAutoDebtRepayment',enabled:true,requestId:'2'.repeat(32)},
+   db,'world1',env);
+  assert.equal(enable.player.enterprise.repaymentAuto,true);
+  assert.equal(enable.player.enterprise.loanDebt,5500);
+  const snapshot=(await readNormalized(db,'world1')).state.players.borrower;
+  assert.equal(snapshot.enterprise.repaymentAuto,true);
+  const reconnect=await dispatch('me','borrower',{},db,'world1',env);
+  assert.equal(reconnect.player.enterprise.repaymentAuto,true);
+  assert.equal(reconnect.player.enterprise.loanStatus,'Due');
+  const retry=await dispatch('enterpriseAction','borrower',{
+   operation:'setAutoDebtRepayment',enabled:true,requestId:'2'.repeat(32)},
+   db,'world1',env);
+  assert.equal(retry.replayed,true);
+  assert.equal(retry.player.enterprise.loanDebt,5500);
+ }finally{db.close()}
+});

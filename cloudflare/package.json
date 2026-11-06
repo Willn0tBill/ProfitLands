@@ -7,7 +7,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "node --test ../tests/cloudflare-world.test.mjs",
-    "smoke:local": "node scripts/smoke-local.mjs"
+    "smoke:local": "node scripts/smoke-local.mjs",
+    "smoke:v2": "node scripts/smoke-v2-local.mjs"
   },
   "devDependencies": {
     "wrangler": "4.158.0"

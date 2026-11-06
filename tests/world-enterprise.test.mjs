@@ -449,7 +449,7 @@ test('all seven classic corporation tiers have their singleplayer prices and bas
  const expected=[
   ['local',1000000,850000,12000],['regional',10000000,8000000,90000],
   ['national',100000000,80000000,800000],['global',1000000000,800000000,8000000],
-  ['conglomerate',10000000000,8000000000,7000000],
+  ['conglomerate',10000000000,8000000000,70000000],
   ['mega',100000000000,80000000000,600000000],
   ['empire',1000000000000,850000000000,5000000000]
  ];
@@ -543,7 +543,8 @@ test('country revenue and cost factors affect online businesses using singleplay
   return core.buyBusiness(p,'software',t).player;
  };
  const us=make('us'),ae=make('ae'),ng=make('ng');
- assert.equal(core.perSecond(us),Math.floor(26733/60));
+ assert.equal(core.perSecond(us),Math.round(Math.floor(26733/60)*
+  (core.worldEvent(t,'world1').effects.software||1)));
  assert.notEqual(core.perSecond(ae),core.perSecond(us));
  assert.notEqual(core.perSecond(ng),core.perSecond(us));
  assert.equal(core.perSecond(ae),cjsCore.perSecond(ae));
@@ -670,4 +671,148 @@ test('regional world accepts more than 64 independent accounts',async()=>{
  assert.equal(Object.keys(db.read('world-europe').players).length,70);
  const health=await dispatch('health',null,{},db,'world-europe');
  assert.equal(health.maxPlayers,128);
+});
+
+test('online city contracts require a new paid action after acceptance',()=>{
+ let p=player();
+ const day=t;
+ const available=enterprise.summary(p,day).cityContracts.offers;
+ assert.ok(available.some(x=>x.id==='promote'));
+ let accepted=enterprise.apply(p,'acceptCityContract',{contractId:'promote'},day);
+ assert.equal(accepted.ok,true);
+ p=accepted.player;
+ assert.equal(enterprise.apply(p,'claimCityContract',{},day).error,'city_contract_incomplete');
+ assert.equal(enterprise.recordCityAction(p,'setPrice',day),false,
+  'free settings cannot count as completed city work');
+ assert.equal(enterprise.summary(p,day).cityContracts.active.progress,0);
+ const action=enterprise.apply(p,'runMarketing',{index:0},day);
+ assert.equal(action.ok,true);
+ assert.equal(enterprise.recordCityAction(action.player,'runMarketing',day),true);
+ assert.equal(enterprise.recordCityAction(action.player,'runMarketing',day),false);
+ const before=action.player.cash;
+ const rewarded=enterprise.apply(action.player,'claimCityContract',{},day);
+ assert.equal(rewarded.ok,true);
+ assert.equal(rewarded.reward,55);
+ assert.equal(rewarded.player.cash,before+55);
+ assert.equal(enterprise.summary(rewarded.player,day).cityContracts.completed,1);
+ assert.equal(enterprise.apply(rewarded.player,'claimCityContract',{},day).error,'city_contract_incomplete');
+ assert.equal(enterprise.apply(rewarded.player,'acceptCityContract',{contractId:'open'},day).error,
+  'city_contract_already_accepted');
+ const nextDay=day+86400000;
+ assert.ok(enterprise.summary(rewarded.player,nextDay).cityContracts.offers.length>0);
+});
+test('city contracts do not count purchases made before accepting the work order',async()=>{
+ const db=database(),uid='city-a';
+ await dispatch('register',uid,{},db,'world1');
+ const buy=await dispatch('buyBusiness',uid,{businessId:'coffee',requestId:'1'.repeat(32)},db,'world1');
+ const offered=await dispatch('enterpriseAction',uid,{
+  operation:'acceptCityContract',contractId:'open',requestId:'2'.repeat(32)},db,'world1');
+ assert.equal(offered.player.enterprise.cityContracts.active.progress,0);
+ await assert.rejects(dispatch('enterpriseAction',uid,{
+  operation:'claimCityContract',requestId:'3'.repeat(32)},db,'world1'),/city_contract_incomplete/);
+ const next=await dispatch('buyBusiness',uid,{
+  businessId:'coffee',requestId:'4'.repeat(32)},db,'world1');
+ assert.equal(next.player.enterprise.cityContracts.active.progress,1);
+ const rewarded=await dispatch('enterpriseAction',uid,{
+  operation:'claimCityContract',requestId:'5'.repeat(32)},db,'world1');
+ assert.equal(rewarded.reward,75);
+ assert.equal(rewarded.player.businesses.length,2);
+ const cash=rewarded.player.cash;
+ const replay=await dispatch('enterpriseAction',uid,{
+  operation:'claimCityContract',requestId:'5'.repeat(32)},db,'world1');
+ assert.equal(replay.replayed,true);
+ assert.equal(replay.player.cash,cash);
+ assert.equal(db.read('world1').players[uid].cash,cash);
+ assert.equal(db.read('world1').players[uid].enterprise.cityCompleted,1);
+});
+test('city contracts survive cloning and do not transfer on company acquisition',()=>{
+ let p=player();
+ let accepted=enterprise.apply(p,'acceptCityContract',{contractId:'upgrade'},t).player;
+ let copied=core.settle(accepted,t);
+ copied.enterprise.cityContract.progress=1;
+ assert.equal(accepted.enterprise.cityContract.progress,0,'city contract must be deep cloned');
+ assert.equal(copied.enterprise.cityContract.progress,1);
+});
+
+test('server-derived regional events change the intended sectors and never trust client event data',()=>{
+ const steady=Date.UTC(2026,10,4,12),shipping=Date.UTC(2026,10,7,12);
+ assert.equal(core.worldEvent(steady,'world1').id,'stable_market');
+ assert.equal(core.worldEvent(shipping,'world1').id,'shipping_delay');
+ assert.notEqual(core.worldEvent(shipping,'world1').id,core.worldEvent(shipping,'world-europe').id);
+ assert.equal(core.worldEvent(shipping,'world1').day,'2026-11-07');
+ assert.equal(core.worldEvent(shipping,'world1').endsAt,Date.UTC(2026,10,8));
+ const p=core.fresh('events','Economic Events',steady);
+ p.businesses=[{type:'factory',level:8}];
+ const baseline=core.perSecond(p,steady);
+ const disrupted=core.perSecond(p,shipping);
+ assert.ok(disrupted<baseline,'shipping disruption must reduce factory profit');
+ assert.equal(disrupted,cjsCore.perSecond(p,shipping),'Firebase and Cloudflare core must match');
+ p.enterprise={worldEvent:{id:'consumer_boom',effects:{factory:1000000}}};
+ assert.equal(core.perSecond(p,shipping),disrupted,'client-stored event objects cannot forge earnings');
+});
+test('regional events settle accurately across midnight and cannot be farmed by refreshing',()=>{
+ const start=Date.UTC(2026,10,4,23,55);
+ const end=Date.UTC(2026,10,5,0,15);
+ const midnight=Date.UTC(2026,10,5);
+ const original=core.fresh('day-events','Daily Events',start);
+ original.businesses=[{type:'restaurant',level:16}];
+ const once=core.settle(original,end);
+ const split=core.settle(core.settle(original,midnight),end);
+ assert.equal(once.cash,split.cash,'a mid-day refresh cannot increase market-event earnings');
+ assert.equal(once.dayGain,split.dayGain,'daily rankings must honor the midnight boundary');
+ assert.equal(core.settle(once,end).cash,once.cash,'repeated polling cannot pay an interval twice');
+ assert.deepEqual(original.businesses,[{type:'restaurant',level:16}]);
+});
+
+test('automatic loan recovery repays real earned cash without minting or changing net worth',()=>{
+ const p=player(100000);
+ const loan=enterprise.apply(p,'borrowLoan',{amount:5000},t);
+ assert.equal(loan.ok,true);
+ assert.equal(loan.player.enterprise.loanDueAt,t+30*86400000);
+ assert.equal(loan.player.enterprise.loanDebt,5500);
+ const auto=enterprise.apply(loan.player,'setAutoDebtRepayment',{enabled:true},t);
+ assert.equal(auto.ok,true);
+ assert.equal(auto.player.enterprise.repaymentAuto,true);
+ const plain={...auto.player,enterprise:{...auto.player.enterprise,repaymentAuto:false}};
+ const when=t+120000;
+ const without=core.settle(plain,when);
+ const withPlan=core.settle(auto.player,when);
+ const repayment=without.cash-withPlan.cash;
+ assert.ok(repayment>0);
+ assert.equal(without.enterprise.loanDebt-withPlan.enterprise.loanDebt,repayment);
+ assert.equal(core.worth(withPlan,when),core.worth(without,when));
+ assert.equal(withPlan.dayGain,without.dayGain,'loan transfers must not artificially lower rankings');
+ assert.equal(core.settle(withPlan,when).cash,withPlan.cash,'polling cannot take the payment twice');
+ assert.deepEqual(core.settle(auto.player,when),cjsCore.settle(auto.player,when));
+});
+test('new loans become overdue after 30 real days, while legacy balances are grandfathered',()=>{
+ const p=player(100000),loan=enterprise.apply(p,'borrowLoan',{amount:5000},t);
+ const due=loan.player.enterprise.loanDueAt;
+ const old={...loan.player,enterprise:{...loan.player.enterprise}};
+ delete old.enterprise.loanDueAt;
+ const before=core.settle({...loan.player,lastSettledAt:due-60000},due-1000);
+ const after=core.settle({...loan.player,lastSettledAt:due-60000},due+60000);
+ assert.equal(before.enterprise.loanDebt,5500,'not overdue before the deadline');
+ assert.ok(after.enterprise.loanDebt<5500,'overdue loan takes up to 40% of earned income');
+ const oldAfter=core.settle({...old,lastSettledAt:due-60000},due+60000);
+ assert.equal(oldAfter.enterprise.loanDebt,5500,'legacy loans with no due date remain unchanged');
+ assert.equal(enterprise.summary(after,due+60000).loanStatus,'Overdue');
+ assert.equal(enterprise.summary(oldAfter,due+60000).loanStatus,'Legacy loan');
+});
+test('auto repayment controls require an actual outstanding loan and cannot be forged',async()=>{
+ const db=database(),who='loan-recovery';
+ await dispatch('register',who,{},db,'world1');
+ await assert.rejects(dispatch('enterpriseAction',who,{
+  operation:'setAutoDebtRepayment',enabled:true,requestId:'1'.repeat(32)},db,'world1'),
+ /no_loan/);
+ const borrowed=await dispatch('enterpriseAction',who,{
+  operation:'borrowLoan',amount:5000,requestId:'2'.repeat(32)},db,'world1');
+ assert.equal(borrowed.player.enterprise.loanDebt,5500);
+ const enabled=await dispatch('enterpriseAction',who,{
+  operation:'setAutoDebtRepayment',enabled:true,requestId:'3'.repeat(32)},db,'world1');
+ assert.equal(enabled.player.enterprise.repaymentAuto,true);
+ const replay=await dispatch('enterpriseAction',who,{
+  operation:'setAutoDebtRepayment',enabled:true,requestId:'3'.repeat(32)},db,'world1');
+ assert.equal(replay.replayed,true);
+ assert.equal(replay.player.enterprise.loanDebt,5500);
 });

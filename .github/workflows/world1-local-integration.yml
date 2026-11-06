@@ -45,3 +45,5 @@ jobs:
         run: node --test tests/cloudflare-world.test.mjs tests/world-adapter-retry.test.cjs tests/world-enterprise.test.mjs tests/world-v2-storage.test.mjs tests/chat-filter.test.mjs tests/region-chat.test.mjs
       - name: Start actual Cloudflare Worker with clean D1 and verify API
         run: npm --prefix cloudflare run smoke:local
+      - name: Start normalized V2 Worker with local D1 and verify migration safety
+        run: npm --prefix cloudflare run smoke:v2

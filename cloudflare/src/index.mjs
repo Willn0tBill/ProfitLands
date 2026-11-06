@@ -427,6 +427,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     if(!result.ok)err('failed-precondition',result.error||'Purchase rejected.',409);
     requireValid(result.player);
     enterprise.recordDailyAction(result.player);
+    enterprise.recordCityAction(result.player,action,at);
     if(action==='upgradeBusiness'){
      const sector=result.player.businesses?.[body.index]?.type;
      if(sector)achievements.record(result.player,sector,'upgrades',1);
@@ -481,20 +482,23 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     'openBranch','upgradeBranch','restockBranch','setAutoRestock','setPrice',
     'warehouseOrder','deliverWarehouseStock','setSupplyRoute','clearSupplyRoute','buyWarehouse',
     'buyTruck','buyResearch','buyShares','sellShares','borrowLoan','repayLoan',
+    'setAutoDebtRepayment',
     'listCompany','cancelCompanyListing',
-    'buyProperty','setCountry','claimContract','buyMajorCorporation','payTax']);
+    'buyProperty','setCountry','claimContract','buyMajorCorporation','payTax',
+    'acceptCityContract','claimCityContract']);
    if(!allowed.has(body.operation))err('invalid-argument','Unknown enterprise operation.');
    const args={
     index:body.index,site:body.site,quantity:body.quantity,enabled:body.enabled,
     percent:body.percent,price:body.price,
     stockId:body.stockId,amount:body.amount,researchId:body.researchId,country:body.country,
-     corporationId:body.corporationId
+     corporationId:body.corporationId,contractId:body.contractId
    };
    return paid(state,uid,body,action,{operation:body.operation,args},()=>{
     const worthBefore=core.worth(p);
     const result=enterprise.apply(p,body.operation,args,at);
     if(!result.ok)err('failed-precondition','Online operation blocked: '+result.error,409);
     const next=result.player;
+    enterprise.recordCityAction(next,body.operation,at);
     requireValid(next);
     const sector=next.businesses?.[args.index]?.type;
     if(sector){
