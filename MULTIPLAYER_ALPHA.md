@@ -1,6 +1,6 @@
-# ProfitLands World 1 — Multiplayer design / implementation status
+# ProfitLands — Three regional multiplayer worlds
 
-**State (November 6, 2026): World 1 Cloudflare Worker + D1 backend deployed; public health check returns `ok: true`, `worldId: world1`. Authenticated two-account gameplay and production load testing still require live acceptance checks.**
+**State (November 6, 2026): Americas, Europe and Asia run as three independent ledgers in the free Cloudflare `profitlands-world1` Worker and its existing D1 database. Each region supports up to 64 registered accounts (192 across the three), with separate cash, shops, rankings and PvP. The prior `world1` record is preserved as Americas. Authenticated two-account gameplay and production load testing still require live acceptance checks.**
 
 The browser now has a multiplayer-only World hub, money leaderboards, PvP action choices, and a bottom-right chat dock. No fake players, rankings, chat messages, payments or attacks are generated. The widgets stay offline while a trusted backend is unavailable.
 
@@ -8,7 +8,7 @@ The **existing Multiplayer Preview is a local simulation**. No local cash/save c
 
 ## World format
 
-- One persistent shared world (`world1`), with independent server-managed player empires and optional clans.
+- Three independent worlds: `world1` (Americas), `world-europe` (Europe) and `world-asia` (Asia). Each has its own state record in the existing D1 database and its own 64-account cap. The regions are currently logical game worlds, not geographically separate datacenters.
 - Solo saves and the local Preview never contribute to the multiplayer ledger.
 - All transactions use **in-game dollars only**; no real-world payments.
 - World ranking displays 20 verified players per period.
