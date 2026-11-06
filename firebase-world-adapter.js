@@ -222,6 +222,7 @@ window.ProfitLandsOnline={
  reportMessage:messageId=>chatEnabled?request('reportMessage',{messageId}):Promise.reject(Error('World chat is currently disabled.')),
  blockChatUser:targetUid=>chatEnabled?request('blockChatUser',{targetUid}):Promise.reject(Error('World chat is currently disabled.')),
  unblockChatUser:targetUid=>chatEnabled?request('unblockChatUser',{targetUid}):Promise.reject(Error('World chat is currently disabled.')),
+ getBlockedChatUsers:()=>chatEnabled?request('getBlockedChatUsers'):Promise.resolve([]),
  getChatReports:()=>request('getChatReports'),
  moderateChat:(messageId,decision)=>request('moderateChat',{messageId,decision})
 };
