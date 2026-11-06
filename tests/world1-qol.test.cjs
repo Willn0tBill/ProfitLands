@@ -115,18 +115,19 @@ test('World 1 renders wallet once and does not double-query server on repeat ren
  h.window.ProfitLandsWorld.render();await h.settle();
  assert.deepEqual(h.counts,{me:1,board:1,players:1},'connection event must not fetch the same records twice');
 });
-test('market prices and upgrades reflect the server wallet and 40-shop cap',async()=>{
+test('market prices and upgrades reflect the server wallet and 80-business cap',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
  const getBuy=id=>h.buttons('worldStore','world-buy').find(b=>b.dataset.worldBuy===id);
  assert.equal(getBuy('coffee').disabled,false,'$1500 can purchase a $500 coffee shop');
  assert.equal(getBuy('hotel').disabled,true,'$1500 cannot purchase a $25,000 hotel');
  assert.match(h.element('worldStore').innerHTML,/Need \$23,500 more/);
  h.setPlayer({uid:'qa-player',cash:100000,netWorth:100000,pvpEnabled:false,
-  protectedUntil:0,nextAttackAt:0,businesses:Array.from({length:40},()=>({type:'coffee',level:1}))});
+  protectedUntil:0,nextAttackAt:0,enterprise:{companyCap:80,siteCap:16},
+  businesses:Array.from({length:80},()=>({type:'coffee',level:1}))});
  h.setTime(1_011_000); // manual refresh has a 10-second server quota guard
  await h.window.ProfitLandsWorld.refresh();await h.settle();
  assert.equal(getBuy('coffee').disabled,true);
- assert.match(h.element('worldStore').innerHTML,/40-shop alpha cap reached/);
+ assert.match(h.element('worldStore').innerHTML,/80-business limit reached/);
 });
 test('PvP is visibly off by default and updates only after a server-confirmed toggle',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();

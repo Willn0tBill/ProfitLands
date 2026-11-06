@@ -245,7 +245,7 @@ test('the Cloudflare rules match the established Firebase server economics and a
    "'use strict';\nconst COUNTRIES=require('./country-catalog.js');");
  assert.ok(aligned.includes(original),'Cloudflare and Firebase core logic must remain in sync');
  assert.ok(copied.includes(prior));
- assert.equal(core.MAX_PLAYERS,64);
+ assert.equal(core.MAX_PLAYERS,128);
  assert.ok(rules.ATTACKS.length>=3);
 });
 
@@ -317,13 +317,13 @@ test('three world ledgers preserve Americas data and isolate purchases, leaderbo
  assert.equal(attacker.status,409,'an Americas account cannot target a player only in Europe');
  assert.equal(db.read('world1').players['europe-only'],undefined);
 });
-test('region IDs are strictly whitelisted, health exposes three worlds, cap is 64 per region',async()=>{
+test('region IDs are strictly whitelisted, health exposes three worlds, cap is 128 per region',async()=>{
  const db=regionalDbMock();
  const health=await post(db,'health',null,{worldId:'world-europe'});
  assert.equal(health.status,200);
  assert.equal(health.body.region,'Europe');
  assert.equal(health.body.worldId,'world-europe');
- assert.equal(health.body.maxPlayers,64);
+ assert.equal(health.body.maxPlayers,128);
  assert.deepEqual(health.body.worlds.map(w=>w.region),['Americas','Europe','Asia']);
  assert.equal((await post(db,'health',null)).body.worldId,'world1','legacy clients default to Americas');
  const getEurope=await worker.fetch(new Request(base+'/health?worldId=world-europe'),{DB:db});
@@ -335,11 +335,11 @@ test('region IDs are strictly whitelisted, health exposes three worlds, cap is 6
   assert.equal(bad.body.error.code,'invalid-argument');
  }
  assert.deepEqual(db.read('world1'),before,'invalid regions cannot mutate production data');
- for(let i=0;i<64;i++){
+ for(let i=0;i<128;i++){
   const join=await post(db,'register','asia-cap-'+i,{worldId:'world-asia'});
   assert.equal(join.status,200,'Asia player '+i);
  }
- const overflow=await post(db,'register','asia-cap-64',{worldId:'world-asia'});
+ const overflow=await post(db,'register','asia-cap-128',{worldId:'world-asia'});
  assert.equal(overflow.status,503);
  assert.equal(overflow.body.error.code,'resource-exhausted');
  assert.match(overflow.body.error.message,/Asia/);
@@ -347,7 +347,7 @@ test('region IDs are strictly whitelisted, health exposes three worlds, cap is 6
  assert.equal(europeOpen.status,200,'the European cap is independent from Asia');
  const americaOpen=await post(db,'register','america-new');
  assert.equal(americaOpen.status,200,'legacy Americas accepts its own new members');
- assert.equal(db.read('world-asia')&&Object.keys(db.read('world-asia').players).length,64);
+ assert.equal(db.read('world-asia')&&Object.keys(db.read('world-asia').players).length,128);
  assert.equal(Object.keys(db.read('world-europe').players).length,1);
  assert.equal(Object.keys(db.read('world1').players).length,1);
 });

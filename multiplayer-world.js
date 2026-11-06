@@ -217,7 +217,8 @@ async function loadEmpire(){
   if(!player||!Array.isArray(player.businesses))throw Error('Invalid empire response');
   if(stamp!==empireStamp||!connected()||root!==$('worldStore'))return false;
   const catalog=online().getCatalog?.()||[];
-  const full=player.businesses.length>=40;
+  const cap=Number(player.enterprise?.companyCap)||40;
+  const full=player.businesses.length>=cap;
   const owned=player.businesses.map((business,index)=>{
    const def=catalog.find(x=>x.id===business.type);
    const name=def?.name||'Business';
@@ -232,14 +233,14 @@ async function loadEmpire(){
   }).join('');
   const market=catalog.map(b=>{
    const lacking=player.cash<b.cost,locked=full||lacking;
-   const reason=full?'40-shop alpha cap reached':lacking?'Need '+fmt(b.cost-player.cash)+' more':'Ready to buy';
+   const reason=full?cap+'-business limit reached':lacking?'Need '+fmt(b.cost-player.cash)+' more':'Ready to buy';
    return '<button type="button" data-world-buy="'+esc(b.id)+'" title="'+esc(reason)+'" '+(locked?'disabled':'')+'>'+
     '<span>'+esc(b.name)+'<small>'+esc(reason)+'</small></span><strong>'+fmt(b.cost)+'</strong></button>';
   }).join('');
   ownPlayer=player;
   root.innerHTML='<div class="pl-online-title"><h3>🏪 My Online Empire</h3><span>'+esc(region().label)+' · Server balance</span></div>'+
    '<div class="pl-online-wallet"><div><small>Cash</small><strong>'+fmt(player.cash)+'</strong></div><div><small>Net worth</small><strong>'+fmt(player.netWorth)+'</strong></div></div>'+
-   '<p class="pl-online-note">'+player.businesses.length+' / 40 alpha shops · Purchases are disabled when your verified balance is too low.</p>'+
+   '<p class="pl-online-note">'+player.businesses.length+' / '+cap+' online businesses · Purchases are disabled when your verified balance is too low.</p>'+
    '<h4>My shops</h4><div class="pl-online-scores">'+(owned||'<p class="pl-online-empty">Buy your first online shop to earn cash.</p>')+'</div>'+
    '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are separate from your local singleplayer save. Earnings settle on the server; use Refresh World to see new purchasing options.</p>';
   root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));

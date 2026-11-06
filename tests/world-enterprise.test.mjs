@@ -602,3 +602,72 @@ test('tax liability cannot be forged, paid twice or bypassed by switching countr
  assert.equal(paid.enterprise.fiscal.totalTaxPaid,2000);
  assert.equal(enterprise.apply(paid,'payTax',{amount:99999},t).error,'no_tax_due');
 });
+
+test('receipts persist compact metadata rather than duplicating full player snapshots',async()=>{
+ const db=database(),who='receipt-user';
+ await dispatch('register',who,{},db,'world1');
+ const requestId='a'.repeat(32);
+ const bought=await dispatch('buyBusiness',who,{businessId:'coffee',requestId},db,'world1');
+ const first=db.read('world1');
+ const receipt=first.receipts[who+':'+requestId];
+ assert.equal(receipt.result.player,undefined,'receipt must not copy account assets');
+ assert.equal(receipt.result.cost,500);
+ assert.ok(JSON.stringify(receipt).length<220);
+ const replay=await dispatch('buyBusiness',who,{businessId:'coffee',requestId},db,'world1');
+ assert.equal(replay.replayed,true);
+ assert.equal(replay.player.cash,bought.player.cash);
+ assert.equal(replay.player.worldId,'world1');
+ await dispatch('enterpriseAction',who,{
+  operation:'hireStaff',index:0,quantity:1,requestId:'b'.repeat(32)},db,'world1');
+ const fresh=await dispatch('buyBusiness',who,{businessId:'coffee',requestId},db,'world1');
+ assert.equal(fresh.replayed,true);
+ assert.equal(fresh.player.businesses[0].workers,1,
+  'replay should show current account state, not stale cached business data');
+ assert.equal(db.read('world1').players[who].businesses.length,1);
+});
+test('100 harmless world operations retain affordable receipt storage',async()=>{
+ const db=database(),who='receipt-stress';
+ await dispatch('register',who,{},db,'world-europe');
+ for(let i=0;i<100;i++){
+  const requestId=String(i+1).padStart(32,'0');
+  await dispatch('enterpriseAction',who,
+   {operation:'setCountry',country:'us',requestId},db,'world-europe');
+ }
+ const state=db.read('world-europe');
+ const receipts=Object.values(state.receipts);
+ assert.equal(receipts.length,100);
+ assert.ok(receipts.every(x=>!x.result.player));
+ assert.ok(JSON.stringify(state).length<35000,'receipts must not grow with full player payloads');
+});
+
+test('multiplayer supports 80 server-owned companies, not the old 40-company gate',()=>{
+ let p=core.fresh('larger-empire','Company Tester',t);
+ core.credit(p,1000000);
+ assert.equal(core.MAX_BUSINESSES,80);
+ for(let i=0;i<80;i++){
+  const result=core.buyBusiness(p,'coffee',t);
+  assert.equal(result.ok,true,'Company '+i);
+  p=result.player;
+ }
+ assert.equal(p.businesses.length,80);
+ assert.equal(core.buyBusiness(p,'coffee',t).error,'business_limit');
+});
+test('regional business branches expand to 16 with a server-enforced cap',()=>{
+ let p=player(1000000);
+ enterprise.ensure(p);
+ assert.equal(enterprise.summary(p,t).siteCap,16);
+ for(let i=1;i<16;i++)p=mutate(p,'openBranch',{index:0},t);
+ assert.equal(p.businesses[0].sites.length,16);
+ assert.equal(enterprise.apply(p,'openBranch',{index:0},t).error,'branch_limit');
+});
+test('regional world accepts more than 64 independent accounts',async()=>{
+ const db=database();
+ for(let i=0;i<70;i++){
+  const uid='capacity-'+i;
+  const res=await dispatch('register',uid,{},db,'world-europe');
+  assert.equal(res.created,true);
+ }
+ assert.equal(Object.keys(db.read('world-europe').players).length,70);
+ const health=await dispatch('health',null,{},db,'world-europe');
+ assert.equal(health.maxPlayers,128);
+});

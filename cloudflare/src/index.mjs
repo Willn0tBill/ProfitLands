@@ -7,6 +7,7 @@ import core from './world-core.mjs';
 import pvp from './pvp-rules.mjs';
 import enterprise from './world-enterprise.mjs';
 import achievements from './world-achievements.mjs';
+import {encodeLedger,decodeLedger} from './world-ledger.mjs';
 import {censorChat} from './chat-filter.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
@@ -143,7 +144,8 @@ async function rawWorld(db,init=false,worldId=WORLD_ID){
  }
  if(!row)return {version:null,state:blank()};
  let state;
- try{state=validateState(JSON.parse(row.payload))}catch(e){err('internal','World data could not be read.',500)}
+ try{state=validateState(await decodeLedger(row.payload))}
+ catch(e){err('internal','World data could not be read.',500)}
  return {version:Number(row.version),state};
 }
 async function transaction(db,change,worldId=WORLD_ID){
@@ -157,8 +159,13 @@ async function transaction(db,change,worldId=WORLD_ID){
    v&&Number.isFinite(v.at)&&at-v.at<RECEIPT_RETENTION_MS&&v.at<=at);
   if(current.length>MAX_RECEIPTS)current.sort((a,b)=>a[1].at-b[1].at).splice(0,current.length-MAX_RECEIPTS);
   state.receipts=Object.fromEntries(current);
-  const packed=JSON.stringify(state);
-  if(packed.length>900000)err('resource-exhausted','World 1 alpha has reached its storage cap.',503);
+  let packed;
+  try{packed=(await encodeLedger(state)).payload}
+  catch(e){
+   if(e?.message==='world_ledger_overflow')
+    err('resource-exhausted','The regional world storage limit was reached.',503);
+   throw e;
+  }
   const update=await db.prepare('UPDATE world_state SET version=version+1,payload=? WHERE id=? AND version=?')
    .bind(packed,worldId,version).run();
   if(update?.meta?.changes===1)return result;
@@ -196,17 +203,24 @@ function requestId(body){
   err('invalid-argument','Invalid payment request identifier.');
  return body.requestId;
 }
-function paid(state,uid,body,action,argument,apply,at){
+function paid(state,uid,body,action,argument,apply,at,worldId=WORLD_ID){
  const id=requestId(body),key=uid+':'+id;
  const old=state.receipts[key];
  const parameter=JSON.stringify(argument);
  if(old){
   if(old.action!==action||old.parameter!==parameter)
    err('invalid-argument','This request ID was used for another action.');
-  return {...old.result,replayed:true};
+  // New receipts store only payment metadata. Never store a complete player
+  // snapshot for every click; that quickly exhausts the D1 world-state row.
+  const result={...old.result,replayed:true};
+  if(!result.player&&state.players[uid])
+   result.player=display(core.settle(state.players[uid],at),worldId);
+  return result;
  }
  const response=apply();
- state.receipts[key]={at,action,parameter,result:response};
+ const receipt={...response};
+ delete receipt.player;
+ state.receipts[key]={at,action,parameter,result:receipt};
  return response;
 }
 function settleAll(state,at){
@@ -214,7 +228,7 @@ function settleAll(state,at){
 }
 function checkPlayerCount(state,worldId=WORLD_ID){
  if(Object.keys(state.players).length>=core.MAX_PLAYERS)
-  err('resource-exhausted',worldById(worldId).region+' world is full (64 players).',503);
+  err('resource-exhausted',worldById(worldId).region+' world is full ('+core.MAX_PLAYERS+' players).',503);
 }
 // All text must be plain, short and free of off-platform contact information.
 // This screening is defense-in-depth, not a substitute for active moderation.
@@ -397,11 +411,11 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     }
     state.players[uid]=result.player;
     return {player:display(result.player,worldId),cost:result.cost||0,replayed:false};
-   },at);
+   },at,worldId);
   }
   if(action==='buyListedCompany'){
    if(typeof body.sellerUid!=='string'||!UID.test(body.sellerUid)||body.sellerUid===uid||
-    !Number.isSafeInteger(body.index)||body.index<0||body.index>=40||
+    !Number.isSafeInteger(body.index)||body.index<0||body.index>=core.MAX_BUSINESSES||
     !Number.isSafeInteger(body.maxPrice)||body.maxPrice<1)
     err('invalid-argument','Choose a valid regional company listing.');
    const argument={sellerUid:body.sellerUid,index:body.index,maxPrice:body.maxPrice};
@@ -411,7 +425,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     if(!company||!listing||!Number.isSafeInteger(listing.price)||listing.price<100||
      listing.expiresAt<=at)err('failed-precondition','Company listing is no longer available.',409);
     if(listing.price>body.maxPrice)err('failed-precondition','Company asking price changed.',409);
-    if(p.businesses.length>=40)err('resource-exhausted','Your online company limit has been reached.',409);
+    if(p.businesses.length>=core.MAX_BUSINESSES)err('resource-exhausted','Your online company limit has been reached.',409);
     if(p.cash<listing.price||seller.cash>core.MAX_CASH-listing.price)
      err('failed-precondition','Transaction cannot be funded.',409);
     const buyerBefore=core.worth(p),sellerBefore=core.worth(seller);
@@ -436,7 +450,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     state.players[body.sellerUid]=seller;
     return {ok:true,replayed:false,cost:listing.price,player:display(p,worldId),
      acquired:{type:transferred.type,level:transferred.level}};
-   },at);
+   },at,worldId);
   }
   if(action==='enterpriseAction'){
    if(typeof body.operation!=='string'||body.operation.length>40)
@@ -475,7 +489,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     state.players[uid]=next;
     return {ok:true,replayed:false,operation:body.operation,
      cost:result.cost||0,reward:result.reward||0,player:display(next,worldId)};
-   },at);
+   },at,worldId);
   }
   if(action==='togglePvP'){
    if((p.lastPvPSwitchAt||0)>seconds-300)err('failed-precondition','Wait five minutes before switching PvP.',409);
@@ -491,7 +505,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     result.player.dayGain-=result.cost;result.player.weekGain-=result.cost;
     state.players[uid]=result.player;
     return {ok:true,replayed:false,event:result.event,player:display(result.player,worldId)};
-   },at);
+   },at,worldId);
   }
   if(action==='requestAttack'){
    if(typeof body.targetUid!=='string'||!UID.test(body.targetUid)||body.targetUid===uid)
@@ -511,7 +525,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     state.players[uid]=result.attacker;
     state.players[body.targetUid]=result.defender;
     return {ok:true,replayed:false,event:result.event,player:display(result.attacker,worldId)};
-   },at);
+   },at,worldId);
   }
   err('invalid-argument','Unknown world operation.');
  },worldId);

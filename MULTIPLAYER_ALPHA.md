@@ -2,6 +2,8 @@
 
 **State (November 6, 2026): Americas, Europe and Asia run as three independent ledgers in the free Cloudflare `profitlands-world1` Worker and its existing D1 database. Each region supports up to 64 registered accounts (192 across the three), with separate cash, shops, rankings and PvP. The prior `world1` record is preserved as Americas. Authenticated two-account gameplay and production load testing still require live acceptance checks.**
 
+**Unreleased integration branch update (Nov 6, 2026):** The tested candidate expands limits to 128 players/region, 80 companies/player and 16 branches/company; it also compacts replay receipts and compresses larger regional ledgers. These are **not deployed**. The public Worker health endpoint still reports version 4, 64 players/region and chat disabled. The old production D1 rows and accounts are unchanged. A normalized per-player D1 schema is still needed for true scale.
+
 The browser now has a multiplayer-only World hub, money leaderboards, PvP action choices, and a bottom-right chat dock. No fake players, rankings, chat messages, payments or attacks are generated. The widgets stay offline while a trusted backend is unavailable.
 
 The **existing Multiplayer Preview is a local simulation**. No local cash/save can earn leaderboard status or be accepted as a PvP attack.

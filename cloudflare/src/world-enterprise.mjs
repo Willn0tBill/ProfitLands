@@ -4,8 +4,8 @@
  */
 import core from './world-core.mjs';
 
-const MAX_COMPANIES=40;
-const MAX_SITES_PER_COMPANY=8;
+const MAX_COMPANIES=core.MAX_BUSINESSES;
+const MAX_SITES_PER_COMPANY=16;
 const MAX_WORKERS_PER_COMPANY=100;
 const STOCKS=Object.freeze([
  {id:'nova',name:'NovaTech',ticker:'NVT',price:4250},

@@ -2,7 +2,8 @@
 const COUNTRIES=require('./country-catalog.js');
 // Deterministic server-only alpha economy. The browser never supplies earnings, cash or worth.
 const WORLD_ID='world1';
-const MAX_PLAYERS=64;
+const MAX_PLAYERS=128;
+const MAX_BUSINESSES=80;
 const MAX_CASH=1_000_000_000_000;
 const MAX_OFFLINE_SECONDS=6*3600;
 const START_CASH=1500;
@@ -350,7 +351,7 @@ function settle(player,now){
 function buyBusiness(player,businessId,now){
  const p=settle(player,now),def=byId(businessId);
  if(!def)return {ok:false,error:'unknown_business'};
- if(p.businesses.length>=40)return {ok:false,error:'business_limit'};
+ if(p.businesses.length>=MAX_BUSINESSES)return {ok:false,error:'business_limit'};
  if(!debit(p,def.cost))return {ok:false,error:'insufficient_cash'};
  const before=worth(p);
  p.businesses.push({type:def.id,level:1});
@@ -377,6 +378,6 @@ function score(player,period,now){
  const p=settle(player,now);
  return period==='day'?p.dayGain:period==='week'?p.weekGain:p.netWorth;
 }
-module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
+module.exports={WORLD_ID,MAX_PLAYERS,MAX_BUSINESSES,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
  ensureFiscal,recordOperatingProfit,closeFiscalYear,
  byId,dayKey,weekKey,cleanName,valueOf,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};

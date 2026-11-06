@@ -31,7 +31,7 @@
    btn('appointManager','Appoint manager',{index:i},!!b.manager,'Boost business output')+
    btn('runMarketing','Marketing campaign',{index:i},false,'Raises customer demand')+
    btn('upgradeEfficiency','Improve efficiency',{index:i},false,'Raises net earnings')+
-   btn('openBranch','Open another location',{index:i},sites.length>=8,'Expands this company')+
+   btn('openBranch','Open another location',{index:i},sites.length>=(s.siteCap||8),'Expands this company')+
    '</div><div class="pl-advanced-company"><label for="plAdvancedSite">Manage location</label><select id="plAdvancedSite">'+siteOptions+
    '</select></div><div class="pl-advanced-metrics">'+summary('Level',site.level||1)+summary('Inventory',site.stock||0)+
    summary('Auto restock',site.autoRestock?'On':'Off')+'</div><div class="pl-advanced-grid">'+
@@ -211,7 +211,7 @@
    if(!other.length){root.textContent='There are no other player listings in this region yet.';return}
    root.innerHTML=other.slice(0,30).map(entry=>{
     const type=window.ProfitLandsOnline.getCatalog?.().find(x=>x.id===entry.type);
-    const canBuy=Number(entry.price)<=Number(player.cash)&&player.businesses.length<40;
+    const canBuy=Number(entry.price)<=Number(player.cash)&&player.businesses.length<(player.enterprise?.companyCap||40);
     return '<article class="pl-advanced-market"><div><strong>'+esc(type?.name||'Company')+
      ' · Lv '+esc(entry.level)+'</strong><small>Seller '+esc(entry.displayName||'Tycoon')+
      ' · '+esc(entry.sites||1)+' location(s)</small></div><div><strong>'+fmt(entry.price)+'</strong>'+
