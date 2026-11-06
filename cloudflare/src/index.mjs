@@ -423,6 +423,8 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
      company.sites.map(site=>({...site})):undefined};
     delete transferred.listing;
     seller.businesses.splice(body.index,1);
+    // An acquisition may shift seller-owned company indices; never reroute supplies.
+    enterprise.removeCompanyRoutes(seller,body.index);
     p.businesses.push(transferred);
     enterprise.recordDailyAction(p);
     p.dayGain=buyerDay+core.worth(p)-buyerBefore;

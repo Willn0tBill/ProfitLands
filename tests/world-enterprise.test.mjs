@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
+import {createRequire} from 'node:module';
 import core from '../cloudflare/src/world-core.mjs';
 import enterprise from '../cloudflare/src/world-enterprise.mjs';
 import {dispatch} from '../cloudflare/src/index.mjs';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
+const cjsCore=createRequire(import.meta.url)('../functions/world-core.js');
 
 const t=Date.UTC(2026,10,6,18,0,0);
 function player(cash=5000000){
@@ -23,6 +25,7 @@ function database(){
  const rows=new Map();
  return {
   read(id){const row=rows.get(id);return row?JSON.parse(row.payload):null},
+  set(id,state){const row=rows.get(id);rows.set(id,{version:(row?.version||0)+1,payload:JSON.stringify(state)})},
   prepare(sql){
    let args=[];
    return{
@@ -304,4 +307,140 @@ test('free configuration changes do not unlock a daily monetary reward',()=>{
  assert.equal(updated.ok,true);
  assert.equal(enterprise.apply(updated.player,'claimContract',{},t).error,
   'contract_requirements_not_met');
+});
+
+test('two supply routes use paid trucks and conserve warehouse goods over reconnects',()=>{
+ let p=player();
+ p=mutate(p,'buyWarehouse',{},t);
+ p=mutate(p,'buyTruck',{},t);
+ p=mutate(p,'buyResearch',{researchId:'logistics'},t);
+ p=mutate(p,'openBranch',{index:0},t);
+ p=mutate(p,'warehouseOrder',{quantity:200},t);
+ p=mutate(p,'setSupplyRoute',{index:0,site:0,quantity:15},t);
+ assert.equal(enterprise.apply(p,'setSupplyRoute',{index:0,site:1,quantity:10},t).error,'truck_capacity');
+ p=mutate(p,'buyTruck',{},t);
+ const before=p;
+ p=mutate(p,'setSupplyRoute',{index:0,site:1,quantity:10},t);
+ assert.equal(before.enterprise.routes.length,1,'a clone must not modify previously saved player data');
+ assert.equal(p.enterprise.routes.length,2);
+ const after=core.settle(p,t+120000);
+ assert.equal(after.businesses[0].sites[0].stock,30);
+ assert.equal(after.businesses[0].sites[1].stock,20);
+ assert.equal(after.enterprise.warehouseStock,150);
+ const repeated=core.settle(after,t+120000);
+ assert.equal(repeated.enterprise.warehouseStock,150);
+ const cleared=mutate(repeated,'clearSupplyRoute',{index:0,site:0},t+120000);
+ assert.equal(cleared.enterprise.routes.length,1);
+ const remaining=core.settle(cleared,t+180000);
+ assert.equal(remaining.businesses[0].sites[0].stock,29);
+ assert.equal(remaining.businesses[0].sites[1].stock,29);
+ assert.equal(remaining.enterprise.warehouseStock,140);
+});
+test('legacy single-route save migrates without dropping delivery',()=>{
+ let p=player();
+ p=mutate(p,'buyWarehouse',{},t);
+ p=mutate(p,'buyTruck',{},t);
+ p=mutate(p,'buyResearch',{researchId:'logistics'},t);
+ p=mutate(p,'warehouseOrder',{quantity:50},t);
+ p.enterprise.route={index:0,site:0,quantity:10};
+ p.enterprise.lastInventoryAt=t;
+ delete p.enterprise.routes;
+ const migrated=enterprise.summary(p,t);
+ assert.equal(migrated.routes.length,1);
+ assert.equal(p.enterprise.route,undefined);
+ const settled=core.settle(p,t+60000);
+ assert.equal(settled.enterprise.warehouseStock,40);
+ assert.equal(settled.businesses[0].sites[0].stock,10);
+});
+test('selling a business removes orphan supply routes and shifts surviving indices',async()=>{
+ const db=database();
+ for(const uid of ['seller','buyer'])await dispatch('register',uid,{},db,'world1');
+ for(let i=0;i<2;i++)await dispatch('buyBusiness','seller',{
+  businessId:'coffee',requestId:String(i+1).repeat(32)},db,'world1');
+ const snapshot=db.read('world1');
+ const seller=snapshot.players.seller;
+ enterprise.ensure(seller);
+ Object.assign(seller.enterprise,{warehouse:1,warehouseStock:100,trucks:2,
+  research:['logistics'],routes:[{index:0,site:0,quantity:10},{index:1,site:0,quantity:20}],
+  lastInventoryAt:Date.now()});
+ snapshot.players.seller=seller;
+ db.set('world1',snapshot);
+ await dispatch('enterpriseAction','seller',{
+  operation:'listCompany',index:0,price:500,requestId:'3'.repeat(32)},db,'world1');
+ await dispatch('buyListedCompany','buyer',{
+  sellerUid:'seller',index:0,maxPrice:500,requestId:'4'.repeat(32)},db,'world1');
+ const final=db.read('world1').players.seller;
+ assert.equal(final.businesses.length,1);
+ assert.deepEqual(final.enterprise.routes,[{index:0,site:0,quantity:20}]);
+ const delivery=core.settle(final,final.lastSettledAt+60000);
+ assert.equal(delivery.enterprise.warehouseStock,80);
+ assert.equal(delivery.businesses[0].sites[0].stock,20);
+});
+
+test('online stock holdings are marked to current server quotes and settle only once',()=>{
+ const at=t;
+ const base=core.fresh('market-user','Market Tester',at);
+ core.credit(base,100000);
+ const bought=enterprise.apply(base,'buyShares',{stockId:'nova',quantity:100},at);
+ assert.equal(bought.ok,true);
+ const p=bought.player;
+ assert.equal(core.stockPriceCents('nova',at),enterprise.stockPriceCents('nova',at));
+ const later=at+900000;
+ const change=core.worth(p,later)-core.worth(p,at);
+ assert.notEqual(change,0);
+ assert.equal(enterprise.assetValue(p,later)-enterprise.assetValue(p,at),change);
+ const settled=core.settle(p,later);
+ assert.equal(settled.netWorth,core.worth(p,at)+change);
+ assert.equal(settled.dayGain,p.dayGain+change);
+ assert.equal(settled.weekGain,p.weekGain+change);
+ const repeated=core.settle(settled,later);
+ assert.equal(repeated.dayGain,settled.dayGain);
+ assert.equal(repeated.weekGain,settled.weekGain);
+ assert.equal(repeated.netWorth,settled.netWorth);
+});
+test('frequent quote polling cannot create extra market gains or losses',()=>{
+ const p=core.fresh('quote-user','Market Tester',t);
+ core.credit(p,100000);
+ const bought=enterprise.apply(p,'buyShares',{stockId:'harbor',quantity:100},t).player;
+ const bulk=core.settle(bought,t+3600000);
+ let streamed=bought;
+ for(let now=t+60000;now<=t+3600000;now+=60000)streamed=core.settle(streamed,now);
+ assert.equal(streamed.netWorth,bulk.netWorth);
+ assert.equal(streamed.dayGain,bulk.dayGain);
+ assert.equal(streamed.weekGain,bulk.weekGain);
+});
+
+test('stock price movement at UTC Monday midnight belongs only to new week and day',()=>{
+ const sunday=Date.UTC(2026,10,8,23,45,0);
+ const p=core.fresh('midnight-user','Market Tester',sunday);
+ core.credit(p,100000);
+ const bought=enterprise.apply(p,'buyShares',{stockId:'skyline',quantity:100},sunday).player;
+ const monday=sunday+900000;
+ const delta=core.worth(bought,monday)-core.worth(bought,sunday);
+ assert.notEqual(delta,0);
+ const next=core.settle(bought,monday);
+ assert.equal(next.dayKey,'2026-11-09');
+ assert.equal(next.weekKey,'2026-11-09');
+ assert.equal(next.dayGain,delta);
+ assert.equal(next.weekGain,delta);
+});
+
+test('Functions and Cloudflare use matching online economy logic with isolated saved states',()=>{
+ const p=player();
+ enterprise.ensure(p);
+ p.enterprise.stocks.nova=20;
+ p.enterprise.badgeCounters={coffee:{earnings:25,cycles:2}};
+ p.enterprise.warehouse=1;
+ p.enterprise.warehouseStock=60;
+ p.enterprise.trucks=1;
+ p.enterprise.research=['logistics'];
+ p.enterprise.routes=[{index:0,site:0,quantity:8}];
+ p.enterprise.lastInventoryAt=t;
+ const frozen=structuredClone(p);
+ for(const at of [t+60000,t+900000,t+3600000]){
+  assert.equal(core.stockPriceCents('nova',at),cjsCore.stockPriceCents('nova',at));
+  assert.equal(core.worth(p,at),cjsCore.worth(p,at));
+  assert.deepEqual(core.settle(p,at),cjsCore.settle(p,at));
+ }
+ assert.deepEqual(p,frozen,'read-only settlements must not mutate cached player snapshots');
 });

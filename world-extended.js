@@ -58,7 +58,7 @@
    chosenSite=Math.min(chosenSite,sites.length-1);
    return '<div class="pl-advanced-metrics">'+summary('Warehouses',s.warehouse||0)+
     summary('Trucks',s.trucks||0)+summary('Warehouse inventory',s.warehouseStock||0)+
-    summary('Route',s.route?'Active':'None')+'</div>'+
+    summary('Routes',(s.routes||(s.route?[s.route]:[])).length+' / '+(s.trucks||0))+'</div>'+
     '<div class="pl-advanced-grid">'+btn('buyWarehouse','Buy warehouse',{},(s.warehouse||0)>=20,'Adds 1,000-unit capacity')+
     btn('buyTruck','Buy delivery truck',{},(s.trucks||0)>=100,'Unlocks warehouse deliveries')+
     btn('warehouseOrder','Purchase 100 warehouse stock',{quantity:100},
@@ -75,14 +75,29 @@
       btn('deliverWarehouseStock','Deliver 50 stock',{index:chosenCompany,site:chosenSite,quantity:50},
        !s.trucks||s.warehouseStock<50||sites[chosenSite].stock+50>5000,'Moves existing warehouse goods')+
       btn('setSupplyRoute','Auto-deliver 15/min',{index:chosenCompany,site:chosenSite,quantity:15},
-       !s.trucks||!(s.research||[]).includes('logistics'),'Needs Logistics research')+
-      btn('clearSupplyRoute','Stop automatic route',{},!s.route,'Leave inventory intact')+
+       !s.trucks||!(s.research||[]).includes('logistics')||
+       ((s.routes||(s.route?[s.route]:[])).length>=s.trucks&&
+        !(s.routes||(s.route?[s.route]:[])).some(r=>r.index===chosenCompany&&r.site===chosenSite)),
+       'One active route per paid truck')+
+      btn('clearSupplyRoute','Stop selected branch route',{index:chosenCompany,site:chosenSite},
+       !(s.routes||(s.route?[s.route]:[])).some(r=>r.index===chosenCompany&&r.site===chosenSite),
+       'Other routes continue delivering')+
+      btn('clearSupplyRoute','Stop all routes',{},
+       !(s.routes||(s.route?[s.route]:[])).length,'Leave warehouse inventory intact')+
      '</div>':'<p>Buy a company to configure deliveries.</p>')+
-    '<p class="pl-online-note">Inventory purchases, transfers and routes use verified online inventory and in-game cash. Deliveries never create free items.</p>';
+    '<p class="pl-online-note">Each route uses one purchased truck. Routes move real warehouse stock and never create free items.</p>'+
+    '<div class="pl-advanced-list">'+(s.routes||(s.route?[s.route]:[])).map(r=>
+     '<p>Active: Company '+esc(r.index+1)+' / Branch '+esc(r.site+1)+
+     ' · '+esc(r.quantity)+' stock/minute</p>').join('')+'</div>';
   },
   markets:(p,s)=>{
    const stocks=s.quotes||[];
-   return '<p class="pl-online-note">Regional market prices are calculated by the server. Shares and sales are owned by your online account, not a local save.</p>'+
+   const holdingsCents=stocks.reduce((sum,q)=>
+    sum+Number(s.stocks?.[q.id]||0)*Number(q.priceCents||0),0);
+   return '<div class="pl-advanced-metrics">'+
+    summary('Current holdings value',fmt(Math.floor(holdingsCents/100)))+
+    summary('Available cash',fmt(p.cash))+'</div>'+
+    '<p class="pl-online-note">Regional market prices are calculated by the server. Shares and sales are owned by your online account, not a local save.</p>'+
     '<div class="pl-advanced-list">'+stocks.map(t=>{
      const shares=Number(s.stocks?.[t.id]||0),price=Number(t.priceCents||0)/100;
      return '<article class="pl-advanced-market"><div><strong>'+esc(t.ticker)+' · '+esc(t.name)+'</strong>'+
@@ -123,8 +138,10 @@
     summary('Online trophies',(p.achievements?.earned||0)+' / 131,072')+'</div>'+
     '<div class="pl-advanced-grid">'+research.map(r=>btn('buyResearch',r.name,{researchId:r.id},
      (s.research||[]).includes(r.id)||p.cash<r.cost,'One-time research · '+fmt(r.cost))).join('')+
-    btn('claimContract','Claim daily city contract',{},s.lastContractDay===new Date().toISOString().slice(0,10),
-    'Requires an actual online business, hiring or trade action')+'</div>'+
+    btn('claimContract','Claim daily city contract',{},
+    s.lastContractDay===new Date().toISOString().slice(0,10)||
+    s.lastQualifyingActionDay!==new Date().toISOString().slice(0,10),
+    'Complete a paid business, hiring or trade action today')+'</div>'+
     '<p class="pl-online-note">Online achievement ranks are computed from server-owned activity, matching the 131,072 possible industry/track/tier combinations. Merging them with your singleplayer account trophies is still an independent task.</p>'+ 
     '<div class="pl-advanced-company"><label for="plCountrySelector">Home country</label><select id="plCountrySelector" '+(p.businesses.length?'disabled':'')+'>'+
     [['us','United States'],['ca','Canada'],['mx','Mexico'],['br','Brazil'],['gb','United Kingdom'],['de','Germany'],

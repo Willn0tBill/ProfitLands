@@ -24,7 +24,7 @@ const COUNTRY_IDS=new Set(['us','ca','mx','br','gb','de','fr','es','jp','cn','kr
 const DEFAULTS=()=>({
  country:'us',stocks:{},loanDebt:0,loanPrincipal:0,
  properties:[],warehouse:0,warehouseStock:0,trucks:0,research:[],
- lastContractDay:'',contractsCompleted:0,metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
+ lastContractDay:'',contractsCompleted:0,routes:[],metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
 });
 const error=(code)=>({ok:false,error:code});
 const positiveInt=(n,max)=>Number.isSafeInteger(n)&&n>=1&&n<=max;
@@ -37,6 +37,9 @@ function ensure(p){
  if(!s.stocks||typeof s.stocks!=='object')s.stocks={};
  if(!Array.isArray(s.properties))s.properties=[];
  if(!Array.isArray(s.research))s.research=[];
+ // Old saves held one route; retain it during the additive multi-route upgrade.
+ if(!Array.isArray(s.routes))s.routes=s.route?[s.route]:[];
+ delete s.route;
  if(!s.metrics||typeof s.metrics!=='object')s.metrics=DEFAULTS().metrics;
  for(const key of Object.keys(DEFAULTS().metrics)){
   if(!nonnegInt(s.metrics[key],1000000000))s.metrics[key]=0;
@@ -51,6 +54,12 @@ function ensure(p){
  }
  return s;
 }
+function removeCompanyRoutes(p,index){
+ const e=ensure(p);
+ e.routes=e.routes.filter(r=>r&&Number.isSafeInteger(r.index)&&
+  Number.isSafeInteger(r.site)&&r.index!==index)
+  .map(r=>({...r,index:r.index>index?r.index-1:r.index}));
+}
 function company(p,index){
  if(!nonnegInt(index,1000)||!p.businesses?.[index])return null;
  const b=p.businesses[index];
@@ -58,20 +67,15 @@ function company(p,index){
  return t?{b,t}:null;
 }
 function stockPriceCents(id,now=Date.now()){
- const t=stock(id);
- if(!t)return 0;
- const period=Math.floor(now/900000);
- const seed=t.id.split('').reduce((acc,c)=>acc+c.charCodeAt(0),0);
- const pct=((period*7+seed)%19)-9;
- return Math.max(100,Math.round(t.price*(100+pct)/100));
+ return stock(id)?core.stockPriceCents(id,now):0;
 }
-function assetValue(p){
+function assetValue(p,now=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  const s=p.enterprise;
  if(!s)return 0;
  let total=0;
  for(const entry of STOCKS){
   const shares=Number(s.stocks?.[entry.id]||0);
-  if(nonnegInt(shares,1000000))total+=Math.floor(shares*entry.price/100);
+  if(nonnegInt(shares,1000000))total+=Math.floor(shares*stockPriceCents(entry.id,now)/100);
  }
  for(const price of s.properties||[])if(Number.isSafeInteger(price)&&price>0)total+=price;
  total+=Math.max(0,Number(s.warehouse||0))*10000;
@@ -230,12 +234,21 @@ function apply(player,operation,args={},now=Date.now()){
   if(!positiveInt(e.trucks,100)||!chosen||!nonnegInt(args.site,MAX_SITES_PER_COMPANY-1)||
    !b.sites[args.site]||!positiveInt(qty,100)||!e.research.includes('logistics'))
    return error('route_unavailable');
-  e.route={index,site:args.site,quantity:qty};
+  const existing=e.routes.findIndex(r=>r.index===index&&r.site===args.site);
+  if(existing<0&&e.routes.length>=e.trucks)return error('truck_capacity');
+  const route={index,site:args.site,quantity:qty};
+  if(existing>=0)e.routes[existing]=route;
+  else e.routes.push(route);
   if(!Number.isFinite(e.lastInventoryAt))e.lastInventoryAt=now;
   return {ok:true,player:p,cost:0};
  }
  if(operation==='clearSupplyRoute'){
-  e.route=null;return {ok:true,player:p,cost:0};
+  if(args.index!==undefined||args.site!==undefined){
+   if(!nonnegInt(args.index,MAX_COMPANIES-1)||
+      !nonnegInt(args.site,MAX_SITES_PER_COMPANY-1))return error('invalid_route');
+   e.routes=e.routes.filter(r=>r.index!==args.index||r.site!==args.site);
+  }else e.routes=[];
+  return {ok:true,player:p,cost:0};
  }
  if(operation==='buyWarehouse'){
   if(!nonnegInt(e.warehouse,20)||e.warehouse>=20)return error('warehouse_limit');
@@ -298,5 +311,5 @@ function apply(player,operation,args={},now=Date.now()){
  }
  return error('unknown_operation');
 }
-export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,recordDailyAction,apply};
-export default {ensure,summary,apply,recordDailyAction,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};
+export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,removeCompanyRoutes,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,recordDailyAction,apply};
+export default {ensure,removeCompanyRoutes,summary,apply,recordDailyAction,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};

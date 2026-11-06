@@ -8,8 +8,8 @@ Updated: November 6, 2026
 - Three independent regional Cloudflare/D1 multiplayer worlds with server-validated sign-in, ledgers, purchases, 8 industry types, rankings, optional PvP, and player aliases.
 - Automated regional chat: server-side masking of common profanity and slurs into `***`, disguised spelling handling, temporary abuse mutes, spam limits, contact-detail blocking, report/block controls, optional privileged human review, and an emergency shutdown switch. Filter misses and false positives remain possible.
 - Firebase private **singleplayer** cloud saves: revision-checked Firestore transactions, device/cloud conflict prompts, local recovery copies, account-owner isolation, and an explicit fresh-account start when a prior account's local progress exists. Online multiplayer economies are persisted in Cloudflare D1, not in the Firebase solo `last-game` slot.
-- Expanded server-owned multiplayer economy with company staff, managers, marketing, efficiency, company branches, branch upgrades, inventory purchases and actual time-based sales, price adjustments, auto-restocking, warehouses, trucks, stock transfers and automatic supply routes.
-- Online portfolio: four regional market securities, server-generated quotes, server-authorized share trades, loans/repayments, property/rental holdings, technology research and one real-action-based daily contract reward.
+- Expanded server-owned multiplayer economy with company staff, managers, marketing, efficiency, company branches, branch upgrades, inventory purchases and actual time-based sales, price adjustments, auto-restocking, warehouses, trucks, stock transfers and **multiple concurrent supply routes (one route per paid truck)**. Legacy single-route records migrate without losing scheduled deliveries; selling a company removes or reindexes affected routes.
+- Online portfolio: four market securities, server-generated fifteen-minute quotes, market-price-valued portfolio holdings and leaderboard changes, server-authorized share trades, loans/repayments, property/rental holdings, technology research and one real-action-based daily contract reward. Mark-to-market movements are allocated to UTC daily/weekly periods; refreshes cannot double-count them.
 - Authenticated, same-region company marketplace: players choose to list companies at bounded prices, others can acquire them with atomic cash/asset transfers and transaction replay protection.
 - The online server derives earned trophy ranks across the same 8 industry categories × 16 tracks × 1,024 possible ranks (131,072 combinations); these ranks are **not yet synchronized** into the singleplayer Firebase account-wide trophy collection.
 - The World interface has Management, Supply & Logistics, Stock Market, Finance & Property, and Research & Contracts controls. All online mutations pass through the verified backend; local singleplayer money is not authoritative for World operations.
@@ -18,9 +18,9 @@ Updated: November 6, 2026
 ## Verified by automated tests
 
 - Node.js regression suite and syntax checks on the isolated development copy.
-- Tests for server-owned economy actions, cash/inventory conservation, replay protection, cross-region isolation, company marketplace transfers, profile security, cloud save conflicts and account switching, profanity masking, chat reporting and emergency shutdown, and CrazyGames packaging.
+- Tests for server-owned economy actions, cash/inventory conservation, concurrent routes, route cleanup on company sale, quote-valued stock holdings, midnight/weekly mark-to-market, CJS/ESM server consistency, replay protection, cross-region isolation, company marketplace transfers, profile security, cloud save conflicts and account switching, profanity masking, chat reporting and emergency shutdown, and CrazyGames packaging.
 - Cloudflare/static asset and CrazyGames distributions build without deleting original source.
-- **Real Cloudflare/D1 smoke and GitHub CI must pass on this exact commit** before it can be considered ready for live account testing.
+- Local Node regression suite: **468 passing, 0 failing**, with Cloudflare static frontend build passing. Recheck real Cloudflare/D1 smoke and GitHub CI on the exact integration commit before any live-account test.
 
 ## Critical gaps / no launch
 

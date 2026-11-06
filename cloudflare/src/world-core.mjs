@@ -38,6 +38,10 @@ const clone=p=>({...p,
   sites:Array.isArray(b.sites)?b.sites.map(site=>({...site})):undefined})),
  enterprise:p.enterprise?{...p.enterprise,stocks:{...(p.enterprise.stocks||{})},
   properties:[...(p.enterprise.properties||[])],research:[...(p.enterprise.research||[])],
+  routes:Array.isArray(p.enterprise.routes)?p.enterprise.routes.map(r=>({...r})):undefined,
+  route:p.enterprise.route?{...p.enterprise.route}:undefined,
+  badgeCounters:p.enterprise.badgeCounters?Object.fromEntries(
+   Object.entries(p.enterprise.badgeCounters).map(([id,counters])=>[id,{...counters}])):undefined,
   metrics:{...(p.enterprise.metrics||{})}}:undefined
 });
 const valueOf=business=>{
@@ -45,8 +49,15 @@ const valueOf=business=>{
  if(!def||!Number.isSafeInteger(business.level)||business.level<1||business.level>30)return 0;
  return Math.round(def.cost*(1+(business.level-1)*.15));
 };
-const SHARE_BASE=Object.freeze({nova:42.5,harbor:24.8,atlas:67.2,skyline:31.4});
-function worth(p){
+const SHARE_BASE_CENTS=Object.freeze({nova:4250,harbor:2480,atlas:6720,skyline:3140});
+function stockPriceCents(id,at=Date.now()){
+ const base=SHARE_BASE_CENTS[id];
+ if(!base||!Number.isSafeInteger(at)||at<0)return 0;
+ const period=Math.floor(at/900000);
+ const seed=id.split('').reduce((acc,c)=>acc+c.charCodeAt(0),0);
+ return Math.max(100,Math.round(base*(100+((period*7+seed)%19)-9)/100));
+}
+function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  let value=Number(p.cash||0);
  for(const b of p.businesses||[]){
   value+=valueOf(b);
@@ -58,9 +69,10 @@ function worth(p){
  }
  const e=p.enterprise;
  if(e){
-  for(const [id,base] of Object.entries(SHARE_BASE)){
+  for(const id of Object.keys(SHARE_BASE_CENTS)){
    const count=Number(e.stocks?.[id]||0);
-   if(Number.isSafeInteger(count)&&count>=0&&count<=1000000)value+=Math.floor(count*base);
+   if(Number.isSafeInteger(count)&&count>=0&&count<=1000000)
+    value+=Math.floor(count*stockPriceCents(id,at)/100);
   }
   for(const price of e.properties||[])if(Number.isSafeInteger(price)&&price>0)value+=price;
   value+=Math.max(0,Number(e.warehouse||0))*10000;
@@ -151,7 +163,8 @@ function settle(player,now){
   const d=new Date(cursor),midnight=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1);
   const nextMonday=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+((8-d.getUTCDay())%7||7));
   const penaltyBoundary=Number(p.activePenaltyUntil||0)*1000;
-  const next=Math.min(now,midnight,nextMonday,penaltyBoundary>cursor?penaltyBoundary:Infinity);
+  const nextQuote=(Math.floor(cursor/900000)+1)*900000;
+  const next=Math.min(now,midnight,nextMonday,nextQuote,penaltyBoundary>cursor?penaltyBoundary:Infinity);
   const durationMs=Math.max(0,next-cursor);
   if(durationMs>0){
    const rate=perSecond(p);
@@ -170,6 +183,12 @@ function settle(player,now){
    milliRemainder=totalMilli%1000;
    if(earned>0)passiveEarned+=credit(p,earned);
   }
+  // Earnings before UTC boundaries belong to the old period; a quote change
+  // exactly at midnight belongs to the new day (and Monday's new week).
+  if(next===midnight||next===nextMonday)periodRoll(p,next);
+  // Mark-to-market P&L belongs to server-owned holdings and is credited once.
+  const quoteChange=worth(p,next)-worth(p,cursor);
+  if(quoteChange){p.dayGain+=quoteChange;p.weekGain+=quoteChange;}
   cursor=next;
  }
  if(passiveEarned>0&&p.enterprise){
@@ -182,7 +201,7 @@ function settle(player,now){
  // Each branch sells a bounded amount of already-purchased inventory per minute.
  // This part is also deterministic across refreshes and reconnects.
  const e=p.enterprise;
- if(e&&(e.route||p.businesses?.some(b=>Array.isArray(b.sites)&&b.sites.some(s=>Number(s.stock)>0||s.autoRestock)))){
+ if(e&&(e.route||(Array.isArray(e.routes)&&e.routes.length)||p.businesses?.some(b=>Array.isArray(b.sites)&&b.sites.some(s=>Number(s.stock)>0||s.autoRestock)))){
   const prior=Number(e.lastInventoryAt);
   const last=Number.isFinite(prior)&&prior>=0&&prior<=now?prior:now;
   const minutes=Math.min(360,Math.floor((now-last)/60000));
@@ -212,13 +231,18 @@ function settle(player,now){
      }
     }
    }
-   const route=e.route;
-   if(route&&e.trucks>0&&e.research?.includes('logistics')&&
-    Number.isSafeInteger(route.index)&&Number.isSafeInteger(route.site)){
-    const target=p.businesses?.[route.index]?.sites?.[route.site];
-    if(target){
-     const deliver=Math.max(0,Math.min(Number(e.warehouseStock||0),
-      Math.min(minutes,30)*Math.max(1,Math.min(100,Number(route.quantity||0))),5000-target.stock));
+   // Legacy single routes remain valid; new players can operate one route per truck.
+   const routes=Array.isArray(e.routes)?e.routes:(e.route?[e.route]:[]);
+   if(e.trucks>0&&e.research?.includes('logistics')){
+    for(const route of routes.slice(0,Math.min(100,e.trucks))){
+     if(!route||!Number.isSafeInteger(route.index)||route.index<0||
+      !Number.isSafeInteger(route.site)||route.site<0||
+      !Number.isSafeInteger(route.quantity)||route.quantity<1||route.quantity>100)continue;
+     const target=p.businesses?.[route.index]?.sites?.[route.site];
+     if(!target)continue;
+     const stock=Math.max(0,Number(e.warehouseStock||0));
+     const room=Math.max(0,5000-Number(target.stock||0));
+     const deliver=Math.min(stock,Math.min(minutes,30)*route.quantity,room);
      if(Number.isSafeInteger(deliver)&&deliver>0){target.stock+=deliver;e.warehouseStock-=deliver}
     }
    }
@@ -271,6 +295,6 @@ function score(player,period,now){
  return period==='day'?p.dayGain:period==='week'?p.weekGain:p.netWorth;
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,
- byId,dayKey,weekKey,cleanName,valueOf,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
+ byId,dayKey,weekKey,cleanName,valueOf,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
 
 export default module.exports;
