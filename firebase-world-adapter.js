@@ -161,7 +161,7 @@ function selectWorld(worldId){
 }
 function requireSession(){
  if(!connected||!playing()||connectedWorld!==selectedWorld||user?.uid!==currentUser()?.uid)
-  throw Error('Connect to the selected world first.');
+  throw Error('Connect to '+(selectedWorld==='world1'?'World 1':getWorld().label)+' first.');
 }
 async function request(action,data={}){requireSession();return call(action,data)}
 function nonce(){
