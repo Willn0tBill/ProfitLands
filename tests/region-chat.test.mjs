@@ -154,3 +154,12 @@ test('Emergency chat shutdown closes both reads and writes without affecting the
  const mods={CHAT_DISABLED:'true',CHAT_MODERATOR_UIDS:'alpha'};
  assert.deepEqual(await region(db,'getChatReports','alpha','world1',{},mods),[]);
 });
+
+test('Public chat advertises disabled until a moderator is configured',async()=>{
+ const db=database();
+ assert.equal((await region(db,'health',null,'world1',{},null)).chatEnabled,false);
+ assert.equal((await region(db,'health',null,'world1',{}, {CHAT_MODERATOR_UIDS:'trusted-mod'})).chatEnabled,true);
+ await region(db,'register','alpha');
+ await assert.rejects(region(db,'sendChat','alpha','world1',{text:'Hello world'},null),e=>e.status===409);
+ assert.equal(db.read('world1').chat,undefined);
+});
