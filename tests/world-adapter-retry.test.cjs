@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 let globalNonce=0;
 
-function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false,authRestoring=false}={}){
+function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false,authRestoring=false,chatEnabled=false}={}){
  const store=storage||new Map();
  const sent=[],events=[],callbacks={};
  let current=authRestoring?null:{uid:'alpha',getIdToken:async()=> 'signed-alpha'};
@@ -19,7 +19,7 @@ function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=
   sent.push(payload);
   if(payload.action==='health'){
    if(healthIsPlaceholder)return {ok:true,status:200,json:async()=>{throw Error('Hello World is not JSON')}};
-   return answer({ok:true,worldId:payload.worldId,chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
+   return answer({ok:true,worldId:payload.worldId,chatEnabled,catalog:[{id:'coffee',cost:500}]});
   }
   assert.match(options.headers.Authorization,/^Bearer signed-/,'uses Firebase ID token, not a client cash value');
   if(payload.action==='register')return answer({worldId:payload.worldId,player:{uid:current.uid,worldId:payload.worldId}});
