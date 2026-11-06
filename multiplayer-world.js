@@ -29,6 +29,7 @@ function bindRegionSelector(root){
   if(next===regionId())return;
   const chat=$('worldChatMessages');if(chat)chat.textContent='Switching regional chat…';
   const blocked=$('worldChatBlockedList');if(blocked)blocked.replaceChildren();
+  const moderator=$('worldChatModerator');if(moderator)moderator.hidden=true;
   if(online()?.selectWorld?.(next)){
    ownPlayer=null;players=[];targetUid='';period='day';
    latest++;empireStamp++;playersStamp++;lastWorldRefreshAt=0;
@@ -331,6 +332,7 @@ function updateChat(){
  if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · no links or personal details':connected()?'Regional chat temporarily unavailable':'Connect to your world to chat';
  const list=$('worldChatMessages');
  if(list&&!ready)list.textContent='Connect to a regional world to view chat.';
+ if(!ready&&$('worldChatModerator'))$('worldChatModerator').hidden=true;
 }
 const chatStatus=text=>{const el=$('worldChatStatus');if(el)el.textContent=String(text).slice(0,170)};
 function renderChatMessages(entries){
@@ -391,6 +393,40 @@ async function refreshBlockedChat(){
   return true;
  }catch(e){return false}
 }
+async function refreshModerationQueue(){
+ const panel=$('worldChatModerator'),list=$('worldChatReports');
+ if(!panel||!list||!connected()||typeof online()?.getChatReports!=='function')return false;
+ const world=regionId();
+ try{
+  const reported=await online().getChatReports();
+  if(world!==regionId()||!connected())return false;
+  panel.hidden=false;list.replaceChildren();
+  if(!Array.isArray(reported)||!reported.length){
+   list.textContent='No pending reports in this region.';return true;
+  }
+  for(const item of reported){
+   const row=document.createElement('div');row.className='pl-chat-moderation-row';
+   const label=document.createElement('span');
+   label.textContent=String(item.displayName||'Player').slice(0,25)+': '+
+    String(item.text||'').slice(0,160)+' · '+Number(item.reportCount||0)+' reports';
+   row.appendChild(label);
+   for(const decision of ['remove','dismiss']){
+    const button=document.createElement('button');button.type='button';
+    button.textContent=decision==='remove'?'Remove':'Dismiss';
+    button.onclick=async()=>{
+     button.disabled=true;
+     try{await online().moderateChat(item.id,decision);
+      await Promise.all([refreshModerationQueue(),refreshChat()]);
+      chatStatus('Report '+(decision==='remove'?'removed':'dismissed')+'.');
+     }catch(e){button.disabled=false;chatStatus('Moderation action failed.')}
+    };
+    row.appendChild(button);
+   }
+   list.appendChild(row);
+  }
+  return true;
+ }catch(e){panel.hidden=true;return false}
+}
 async function submitChat(){
  if(!connected()||online()?.chatEnabled?.()!==true)return;
  const input=$('worldChatInput'),text=String(input?.value||'').trim();
@@ -438,12 +474,13 @@ function init(){
   const panel=$('worldChatPanel');if(!panel)return;
   panel.hidden=!panel.hidden;
   $('worldChatToggle').setAttribute('aria-expanded',String(!panel.hidden));
-  if(!panel.hidden){updateChat();refreshChat();refreshBlockedChat();$('worldChatInput')?.focus()}
+  if(!panel.hidden){updateChat();refreshChat();refreshBlockedChat();refreshModerationQueue();$('worldChatInput')?.focus()}
  });
  $('worldChatClose')?.addEventListener('click',()=>{
   $('worldChatPanel').hidden=true;$('worldChatToggle')?.setAttribute('aria-expanded','false');
  });
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
+ $('worldChatRefreshReports')?.addEventListener('click',refreshModerationQueue);
  // Poll chat only while its panel is visible; no hidden-tab chatter.
  if(typeof window.setInterval==='function')window.setInterval(()=>{
   if(connected()&&online()?.chatEnabled?.()===true&&
