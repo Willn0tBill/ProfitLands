@@ -23,7 +23,7 @@ The Worker supports optional moderator-only actions `getChatReports` and `modera
 
 ### Emergency shutdown
 
-Set the existing Worker secret `CHAT_DISABLED` to `true` (e.g. `wrangler secret put CHAT_DISABLED --config wrangler.toml`) to disable **all** chat reads and writes without affecting any economic action. The backend health API then advertises `chatEnabled:false` to the browser. To re-enable after investigation, set the value to `false`, then verify the public health response.
+Set the existing Worker secret `CHAT_DISABLED` to `true` (e.g. `wrangler secret put CHAT_DISABLED --config wrangler.toml`) to disable **player-facing** chat reads and writes without affecting the economy. Moderator-only report review and removals remain available so incidents can be investigated while chat is shut down. The backend health API then advertises `chatEnabled:false` to the browser. To re-enable after investigation, set the value to `false`, then verify the public health response.
 
 ## Acceptance tests before broader promotion
 
