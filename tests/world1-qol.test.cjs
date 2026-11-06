@@ -123,6 +123,7 @@ test('market prices and upgrades reflect the server wallet and 40-shop cap',asyn
  assert.match(h.element('worldStore').innerHTML,/Need \$23,500 more/);
  h.setPlayer({uid:'qa-player',cash:100000,netWorth:100000,pvpEnabled:false,
   protectedUntil:0,nextAttackAt:0,businesses:Array.from({length:40},()=>({type:'coffee',level:1}))});
+ h.setTime(1_011_000); // manual refresh has a 10-second server quota guard
  await h.window.ProfitLandsWorld.refresh();await h.settle();
  assert.equal(getBuy('coffee').disabled,true);
  assert.match(h.element('worldStore').innerHTML,/40-shop alpha cap reached/);
