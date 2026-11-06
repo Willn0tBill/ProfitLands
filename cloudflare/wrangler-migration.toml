@@ -1,0 +1,15 @@
+# Temporary migration-only Worker; never use as the public ProfitLands backend.
+# No migration endpoint is enabled unless FOUR independent settings/steps:
+# 1. Freeze public writes using WORLD_MAINTENANCE_READONLY=true on main Worker.
+# 2. Back up the entire D1 database.
+# 3. Set secret WORLD_MIGRATION_ENABLED=true and WORLD_MAINTENANCE_READONLY=true here.
+# 4. Set separate WORLD_MIGRATION_ADMIN_UID and WORLD_MIGRATION_SECRET secrets.
+name = "profitlands-v2-migration-temporary"
+main = "src/migration-admin.mjs"
+compatibility_date = "2026-11-05"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "profitlands-world1"
+database_id = "31c8678d-241a-4ed1-aa81-8243e99df55a"

@@ -154,6 +154,8 @@ jobs:
           node --check functions/pvp-rules.js
           node --check functions/index.js
           node --check cloudflare/src/index.mjs
+          node --check cloudflare/src/world-store-v2.mjs
+          node --check cloudflare/src/migration-admin.mjs
           node --check cloudflare/src/world-core.mjs
           node --check cloudflare/src/pvp-rules.mjs
       - name: Verify Firebase server dependency resolution

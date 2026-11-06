@@ -1,13 +1,14 @@
 /* ProfitLands World 1 — no-billing Cloudflare Workers + D1 backend.
- * The server alone creates income and validates purchases, cooldowns and PvP.
- * One versioned world-state row provides atomic multi-player transactions;
- * request receipts are saved in that same row to prevent double purchases.
+ * Server-authoritative purchases, income, PvP and replay protection.
+ * Legacy single-row worlds remain readable; opt-in V2 stores individual
+ * players, receipts and regional metadata with atomic D1 batch transfers.
  */
 import core from './world-core.mjs';
 import pvp from './pvp-rules.mjs';
 import enterprise from './world-enterprise.mjs';
 import achievements from './world-achievements.mjs';
 import {encodeLedger,decodeLedger} from './world-ledger.mjs';
+import {readNormalized,transactNormalized,migrateLegacy} from './world-store-v2.mjs';
 import {censorChat} from './chat-filter.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
@@ -37,6 +38,8 @@ const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
 const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
 const CHAT_BLOCK_LIMIT=48;
+const READ_ONLY_ACTIONS=new Set(['health','me','getLeaderboard','getPlayers',
+ 'getListings','getChat','getBlockedChatUsers','getChatReports']);
 const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers','getListings',
  'buyListedCompany',
  'buyBusiness','upgradeBusiness','enterpriseAction','togglePvP','requestAttack','requestDefense',
@@ -135,7 +138,8 @@ function validateState(obj){
   err('internal','World data is unavailable.',500);
  return obj;
 }
-async function rawWorld(db,init=false,worldId=WORLD_ID){
+async function rawWorld(db,init=false,worldId=WORLD_ID,env=null,accountIds=undefined){
+ if(env?.WORLD_STORAGE_V2==='enabled')return readNormalized(db,worldId,null,accountIds);
  let row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(worldId).first();
  if(!row&&init){
   await db.prepare('INSERT OR IGNORE INTO world_state (id,version,payload) VALUES (?,0,?)')
@@ -148,7 +152,9 @@ async function rawWorld(db,init=false,worldId=WORLD_ID){
  catch(e){err('internal','World data could not be read.',500)}
  return {version:Number(row.version),state};
 }
-async function transaction(db,change,worldId=WORLD_ID){
+async function transaction(db,change,worldId=WORLD_ID,env=null,receiptKey=null,accountIds=undefined,requireRegionalGuard=false){
+ if(env?.WORLD_STORAGE_V2==='enabled')
+  return transactNormalized(db,worldId,change,receiptKey,accountIds,requireRegionalGuard);
  if(!db?.prepare)err('unavailable','Cloudflare D1 is not configured. Bind the database as DB.',503);
  for(let tries=0;tries<10;tries++){
   const {version,state}=await rawWorld(db,true,worldId);
@@ -270,6 +276,11 @@ function requireModerator(uid,env){
  if(!moderator(uid,env))err('permission-denied','Moderator access required.',403);
 }
 async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
+ // Production cutovers must freeze all world writes while a verified
+ // read-only legacy backup is staged into normalized D1 records.
+ const maintenance=String(env?.WORLD_MAINTENANCE_READONLY||'').toLowerCase()==='true';
+ if(maintenance&&!READ_ONLY_ACTIONS.has(action))
+  err('unavailable','Regional multiplayer is in read-only maintenance.',503);
  // Emergency kill switch must protect writes as well as the health-advertised UI.
  if(!chatAvailable(env)&&[
   'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser',
@@ -277,14 +288,21 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  ].includes(action))err('failed-precondition','Regional chat is temporarily disabled.',409);
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
-  try{await rawWorld(db,false,worldId)}
-  catch(e){err('unavailable','World 1 database schema is not ready.',503)}
+  try{
+   if(env?.WORLD_STORAGE_V2==='enabled'){
+    const row=await db.prepare('SELECT version FROM world_meta WHERE world_id=?')
+     .bind(worldId).first();
+    if(!row)err('unavailable','World 1 database migration is incomplete.',503);
+   }else await rawWorld(db,false,worldId,env);
+  }catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId,region:worldById(worldId).region,
-    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:5,
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),
+    version:env?.WORLD_STORAGE_V2==='enabled'?6:5,maintenance,
     enterpriseEnabled:true,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat'||action==='getBlockedChatUsers'){
-  const {state}=await rawWorld(db,false,worldId);
+  const {state}=await rawWorld(db,false,worldId,env,
+   action==='getChat'?[uid]:undefined);
   const viewer=playerOf(state,uid);
   if(action==='getChat')return visibleChat(state,viewer,Date.now());
   return (viewer.chatBlockedUids||[]).map(id=>state.players[id]&&
@@ -292,14 +310,14 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  }
  if(action==='getChatReports'){
   requireModerator(uid,env);
-  const {state}=await rawWorld(db,false,worldId);
+  const {state}=await rawWorld(db,false,worldId,env,[uid]);
   playerOf(state,uid);
   return (state.chat||[]).filter(m=>Array.isArray(m.reports)&&m.reports.length)
    .slice(-40).map(m=>({...publicChatMessage(m),reportCount:m.reports.length,hidden:m.hidden===true}));
  }
 
  if(action==='getListings'){
-  const {state}=await rawWorld(db,false,worldId);
+  const {state}=await rawWorld(db,false,worldId,env);
   playerOf(state,uid);
   const at=Date.now(),entries=[];
   for(const seller of Object.values(state.players)){
@@ -315,12 +333,13 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   return entries.sort((a,b)=>a.price-b.price||a.sellerUid.localeCompare(b.sellerUid)).slice(0,60);
  }
  if(action==='getLeaderboard'||action==='getPlayers'||action==='me'){
-  const {state}=await rawWorld(db,false,worldId);
+  const {state}=await rawWorld(db,false,worldId,env,action==='me'?[uid]:undefined);
   playerOf(state,uid);
   const at=Date.now();
   if(action==='me')return {worldId,player:display(core.settle(state.players[uid],at),worldId)};
   const list=settleAll(state,at);
-  if(action==='getPlayers')return list.filter(p=>p.uid!==uid).map(publicRival).slice(0,63);
+  if(action==='getPlayers')return list.filter(p=>p.uid!==uid).map(publicRival)
+   .slice(0,core.MAX_PLAYERS-1);
   if(!['day','week','all'].includes(body.period))err('invalid-argument','Unknown leaderboard period.');
   return list.map(p=>({uid:p.uid,displayName:p.displayName,score:core.score(p,body.period,at)}))
    .sort((a,b)=>b.score-a.score||a.uid.localeCompare(b.uid)).slice(0,20);
@@ -334,8 +353,11 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    player.worldId=worldId;
    state.players[uid]=player;
    return {worldId,player:display(player,worldId),created:true};
-  },worldId);
+  },worldId,env,null,undefined,true);
  }
+ const related=action==='buyListedCompany'?body.sellerUid:
+  ['requestAttack','blockChatUser','unblockChatUser'].includes(action)?body.targetUid:null;
+ const affectedAccounts=typeof related==='string'&&UID.test(related)?[uid,related]:[uid];
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
   if(action==='sendChat'){
@@ -528,7 +550,13 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    },at,worldId);
   }
   err('invalid-argument','Unknown world operation.');
- },worldId);
+ },worldId,env,typeof body?.requestId==='string'&&RID.test(body.requestId)
+  ?uid+':'+body.requestId:null,affectedAccounts);
+}
+// Explicit maintenance-only migration, not reachable from HTTP routes.
+export async function migrateExistingRegion(db,worldId){
+ if(!worldById(worldId))err('invalid-argument','Unknown region.',400);
+ return migrateLegacy(db,worldId,await rawWorld(db,true,worldId));
 }
 export default {
  async fetch(request,env){
