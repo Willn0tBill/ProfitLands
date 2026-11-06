@@ -92,10 +92,10 @@
   },
   markets:(p,s)=>{
    const stocks=s.quotes||[];
-   const holdingsCents=stocks.reduce((sum,q)=>
-    sum+Number(s.stocks?.[q.id]||0)*Number(q.priceCents||0),0);
+   const holdingsValue=stocks.reduce((sum,q)=>
+    sum+Math.floor(Number(s.stocks?.[q.id]||0)*Number(q.priceCents||0)/100),0);
    return '<div class="pl-advanced-metrics">'+
-    summary('Current holdings value',fmt(Math.floor(holdingsCents/100)))+
+    summary('Current holdings value',fmt(holdingsValue))+
     summary('Available cash',fmt(p.cash))+'</div>'+
     '<p class="pl-online-note">Regional market prices are calculated by the server. Shares and sales are owned by your online account, not a local save.</p>'+
     '<div class="pl-advanced-list">'+stocks.map(t=>{
