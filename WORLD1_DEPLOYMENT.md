@@ -1,4 +1,6 @@
-# ProfitLands World 1 — Deploy and Verify
+# ProfitLands World 1 — Legacy Firebase Cloud Functions Deployment Notes
+
+> **Historical documentation — not the current production deployment path.** ProfitLands World 1 now uses the separate Cloudflare `profitlands-world1` Worker and D1 Free backend. For current deployment, see `CLOUDFLARE_DEPLOYMENT.md` and `cloudflare/deploy-free-world1.ps1`. Do **not** enable Firebase Blaze or deploy the legacy `worldApi` function just to run the current multiplayer server. Authentication remains Firebase; gameplay balances and PvP are authoritative in Cloudflare D1. A successful `/health` response does not replace real multi-account acceptance tests.
 
 ## Current status
 
