@@ -19,10 +19,10 @@ function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=
   sent.push(payload);
   if(payload.action==='health'){
    if(healthIsPlaceholder)return {ok:true,status:200,json:async()=>{throw Error('Hello World is not JSON')}};
-   return answer({ok:true,worldId:'world1',chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
+   return answer({ok:true,worldId:payload.worldId,chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
   }
   assert.match(options.headers.Authorization,/^Bearer signed-/,'uses Firebase ID token, not a client cash value');
-  if(payload.action==='register')return answer({player:{uid:current.uid}});
+  if(payload.action==='register')return answer({worldId:payload.worldId,player:{uid:current.uid,worldId:payload.worldId}});
   if(['requestAttack','buyBusiness'].includes(payload.action)&&failure>0){
    failure--;
    return answer({error:{code:'unavailable',message:'Temporary outage'}},503);
@@ -32,12 +32,14 @@ function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=
  const answer=(data,status=200)=>({ok:status===200,status,json:async()=>data});
  const userAuth={get currentUser(){return current},onAuthStateChanged:fn=>{callbacks.auth=fn}};
  const firebase={apps:[{}],auth:()=>userAuth};
+ const prefs=new Map();
+ const localStorage={getItem:k=>prefs.get(k)||null,setItem:(k,v)=>prefs.set(k,String(v))};
  const sessionStorage={
   getItem:key=>store.get(key)||null,
   setItem:(key,value)=>store.set(key,String(value)),
   removeItem:key=>store.delete(key)
  };
- const window={state:{playType:'multi'},sessionStorage,firebase,
+ const window={state:{playType:'multi'},sessionStorage,localStorage,firebase,
   PROFITLANDS_WORLD1_ENDPOINT:configured?'https://profitlands-world1.demo.workers.dev':'',
   crypto:{getRandomValues:buffer=>{buffer.fill(++globalNonce)}},
   dispatchEvent:e=>events.push(e.type),
@@ -47,7 +49,7 @@ function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=
  const CustomEvent=class{constructor(type){this.type=type}};
  vm.runInNewContext(source,{window,document,CustomEvent,Uint8Array,URL,
   fetch:fakeFetch,setTimeout,clearTimeout,AbortController,console});
- return {api:window.ProfitLandsOnline,window,events,callbacks,sent,store,
+ return {api:window.ProfitLandsOnline,window,events,callbacks,sent,store,prefs,
   changeUser:uid=>{current=uid?{uid,getIdToken:async()=> 'signed-'+uid}:null}};
 }
 test('client connects only with a matching authenticated account and a configured free Worker',async()=>{
@@ -195,4 +197,42 @@ test('initial signed-out World 1 connect does not remount UI before login error 
  await assert.rejects(h.api.connect(),/Please sign in to your ProfitLands account/);
  assert.deepEqual(h.events,[],'a never-connected player must not broadcast a disconnect');
  assert.equal(h.sent.length,0);
+});
+
+test('three region choices are independent, persistent and validate their world IDs',async()=>{
+ const h=setup();
+ assert.deepEqual(Array.from(h.api.getWorlds(),w=>w.region),['Americas','Europe','Asia']);
+ assert.equal(h.api.getSelectedWorld(),'world1');
+ assert.equal(h.api.selectWorld('world-europe'),true);
+ assert.equal(h.prefs.get('profitlands-selected-world-v1'),'world-europe');
+ assert.equal(await h.api.probe(),true);
+ assert.equal(await h.api.connect(),true);
+ assert.equal(h.api.isConnected(),true);
+ assert.equal(h.sent.find(p=>p.action==='register').worldId,'world-europe');
+ await h.api.buyBusiness('coffee');
+ assert.equal(h.sent.find(p=>p.action==='buyBusiness').worldId,'world-europe');
+ assert.equal(h.api.selectWorld('world-asia'),true);
+ assert.equal(h.api.isConnected(),false,'changing region must sever old world session');
+ assert.equal(await h.api.connect(),true);
+ assert.equal(h.sent.filter(p=>p.action==='register').at(-1).worldId,'world-asia');
+ assert.equal(h.api.selectWorld('world1'),true);
+ assert.equal(await h.api.connect(),true);
+ assert.equal(h.sent.filter(p=>p.action==='register').at(-1).worldId,'world1');
+ assert.equal(h.api.selectWorld('world-hacker'),false,'arbitrary world names cannot reach Worker');
+ assert.equal(h.api.getSelectedWorld(),'world1');
+});
+test('paid request IDs are scoped to world and switching aborts access to old world',async()=>{
+ const h=setup(2);
+ await h.api.connect();
+ await assert.rejects(h.api.buyBusiness('coffee'),/Temporary outage/);
+ const before=[...h.store.keys()];
+ assert.equal(before.length,1);
+ assert.match(before[0],/^profitlands-world1-pending:/);
+ h.api.selectWorld('world-europe');
+ await h.api.connect();
+ await h.api.buyBusiness('coffee');
+ const buys=h.sent.filter(p=>p.action==='buyBusiness');
+ assert.equal(buys[0].worldId,'world1');
+ assert.equal(buys.at(-1).worldId,'world-europe');
+ assert.notEqual(buys[0].requestId,buys.at(-1).requestId);
 });
