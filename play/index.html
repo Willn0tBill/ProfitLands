@@ -68,17 +68,17 @@
   <div class="pl-new-empire-intro"><a href="../" class="pl-setup-back">← ProfitLands Home</a><span class="eyebrow">NEW EMPIRE SETUP</span><h2>Set up your next empire</h2><p>Choose your world, market speed, difficulty, and headquarters. Then create your company. To continue a saved empire, use <a href="../">Continue Your Empire on the homepage</a>.</p></div>
   <div class="section-title"><span class="eyebrow">PLAY TYPE</span><h3>Choose your world</h3></div>
   <div class="type-grid"><button class="type-card selected" data-type="single" type="button"><strong>Singleplayer</strong><small>Grow against market conditions.</small></button><button class="type-card" data-type="multi" type="button"><strong>Regional Multiplayer</strong><small>Americas, Europe, or Asia · independent online empires and rankings.</small></button></div>
-  <div class="section-title"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
+  <div class="section-title pl-solo-config"><span class="eyebrow">WORLD SPEED</span><h3>Choose your automatic market speed</h3></div>
   <div class="mode-grid"><button class="mode-card" data-mode="fast" type="button"><span>⚡</span><strong>Fast</strong><small>5 min auto cycle · 40 actions</small></button><button class="mode-card selected" data-mode="standard" type="button"><span>◆</span><strong>Standard</strong><small>15 min auto cycle · 60 actions</small></button><button class="mode-card" data-mode="long" type="button"><span>◷</span><strong>Long</strong><small>1 hr auto cycle · 100 actions</small></button><button class="mode-card" data-mode="persistent" type="button"><span>∞</span><strong>Persistent</strong><small>24 hr auto cycle · 120 actions</small></button></div>
-  <div class="section-title"><span class="eyebrow">DIFFICULTY</span><h3>Choose your business pressure</h3></div>
+  <div class="section-title pl-solo-config"><span class="eyebrow">DIFFICULTY</span><h3>Choose your business pressure</h3></div>
   <div class="difficulty-grid" role="group" aria-label="Game difficulty">
     <button type="button" class="difficulty-card" data-difficulty="startup" aria-pressed="false"><strong>Startup</strong><span>Beginner</span><small>More room to learn and recover.</small></button>
     <button type="button" class="difficulty-card selected" data-difficulty="executive" aria-pressed="true"><strong>Executive</strong><span>Experienced</span><small>The intended ProfitLands balance.</small></button>
     <button type="button" class="difficulty-card" data-difficulty="tycoon" aria-pressed="false"><strong>Tycoon</strong><span>Pro</span><small>Tighter margins and harsher markets.</small></button>
     <button type="button" class="difficulty-card" data-difficulty="hostile" aria-pressed="false"><strong>Hostile Takeover</strong><span>Unwinnable</span><small>Deliberately unfair. Survival is the challenge.</small></button>
   </div>
-  <p class="difficulty-summary" id="difficultySummary">Executive · Experienced — The intended ProfitLands balance.</p>
-  <div class="section-title"><span class="eyebrow">STARTING MARKET</span><h3>Choose your home country</h3></div>
+  <p class="difficulty-summary pl-solo-config" id="difficultySummary">Executive · Experienced — The intended ProfitLands balance.</p>
+  <div class="section-title pl-solo-config"><span class="eyebrow">STARTING MARKET</span><h3>Choose your home country</h3></div>
   <section class="country-setup" aria-label="Starting country">
     <div class="country-setup-head">
       <div><span class="eyebrow">COUNTRY ECONOMY</span><h3>Your headquarters market</h3></div>
@@ -101,7 +101,8 @@
       <p class="country-tax-note">Tax, inflation, GDP and price-level inputs use published economic data. APR, demand and sector advantages are simulation values derived from those inputs.</p>
     </details>
   </section>
-  <div id="multiNotice" class="info-box hidden"><b>Three regional multiplayer worlds</b><span>Choose Americas, Europe or Asia in the World screen. Each region has independent in-game money, PvP and leaderboards, with up to 64 registered accounts. Your singleplayer save is untouched; chat stays disabled pending moderation.</span></div>
+  <div id="multiplayerPreset" class="pl-online-preset" hidden><strong>Standard multiplayer · Ready to play</strong><span>Game speed, difficulty, country and economy rules are selected automatically by the regional server. Pick Americas, Europe or Asia after entering. Your singleplayer settings and saves stay unchanged.</span></div>
+  <div id="multiNotice" class="info-box hidden"><b>Three regional multiplayer worlds</b><span>Choose Americas, Europe or Asia in the World screen. Each region has independent in-game money, PvP and leaderboards, with up to 64 registered accounts. Multiplayer uses an automatic Standard preset and keeps your local save untouched.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Create My Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../">Back to Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
 </section>
