@@ -219,7 +219,11 @@ window.ProfitLandsOnline={
  requestDefense:()=>paid('requestDefense'),
  getChat:()=>chatEnabled?request('getChat'):Promise.resolve([]),
  sendChat:text=>chatEnabled?request('sendChat',{text}):Promise.reject(Error('World chat is currently disabled.')),
- reportMessage:messageId=>chatEnabled?request('reportMessage',{messageId}):Promise.reject(Error('World chat is currently disabled.'))
+ reportMessage:messageId=>chatEnabled?request('reportMessage',{messageId}):Promise.reject(Error('World chat is currently disabled.')),
+ blockChatUser:targetUid=>chatEnabled?request('blockChatUser',{targetUid}):Promise.reject(Error('World chat is currently disabled.')),
+ unblockChatUser:targetUid=>chatEnabled?request('unblockChatUser',{targetUid}):Promise.reject(Error('World chat is currently disabled.')),
+ getChatReports:()=>request('getChatReports'),
+ moderateChat:(messageId,decision)=>request('moderateChat',{messageId,decision})
 };
 window.addEventListener('load',()=>{
  if(!window.firebase?.auth)return;
