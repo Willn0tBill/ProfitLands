@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="../quick-switch.css?v=wtvi01" />
   <link rel="stylesheet" href="../save-center.css?v=save01" />
   <link rel="stylesheet" href="../clans.css?v=clans01" />
-  <link rel="stylesheet" href="../multiplayer-world.css?v=regions01" />
+  <link rel="stylesheet" href="../multiplayer-world.css?v=standardchat01" />
   <link rel="stylesheet" href="../game-experience.css?v=tycoon01" />
   <link rel="stylesheet" href="../game-motion-v2.css?v=motion03" />
   <link rel="stylesheet" href="../game-feedback-v4.css?v=feedback04" />
@@ -319,10 +319,10 @@
   <aside id="worldChatDock" class="pl-world-chat-dock" hidden aria-label="Multiplayer world chat">
     <button type="button" id="worldChatToggle" class="pl-world-chat-toggle" aria-controls="worldChatPanel" aria-expanded="false">💬 World Chat</button>
     <section id="worldChatPanel" class="pl-world-chat-panel" hidden aria-label="World chat messages">
-      <header><strong>🌎 Regional Chat (disabled)</strong><button type="button" id="worldChatClose" aria-label="Close chat">×</button></header>
-      <p id="worldChatStatus" role="status">Offline preview</p>
+      <header><strong>🌎 Regional Chat</strong><button type="button" id="worldChatClose" aria-label="Close chat">×</button></header>
+      <p id="worldChatStatus" role="status">Sign in to your region to join chat.</p><p class="pl-world-chat-safety">Be respectful. Do not share personal details, contact information or outside links. Report or block players when needed.</p>
       <div id="worldChatMessages" class="pl-world-chat-messages" role="log" aria-live="polite">Chat requires the online server.</div>
-      <form id="worldChatForm"><label for="worldChatInput">World message</label><input id="worldChatInput" maxlength="220" autocomplete="off" placeholder="World chat unavailable" disabled/><button type="submit" id="worldChatSend" disabled>Send</button></form>
+      <div id="worldChatBlockedList" class="pl-chat-blocked"></div><form id="worldChatForm"><label for="worldChatInput">World message</label><input id="worldChatInput" maxlength="160" autocomplete="off" placeholder="World chat unavailable" disabled/><button type="submit" id="worldChatSend" disabled>Send</button></form>
     </section>
   </aside>
 
@@ -335,7 +335,7 @@
   <script src="../platform.js?v=steambridge01"></script>
   <script src="../huge-money.js?v=huge01"></script>
   <script src="../progression.js?v=huge01"></script>
-  <script src="../app.js?v=balance02"></script>
+  <script src="../app.js?v=standardchat01"></script>
   <script src="../difficulty-system.js?v=difficulty01"></script>
   <script src="../country-system.js?v=country02"></script>
   <script src="../enhancements.js?v=balance02"></script>
@@ -345,7 +345,7 @@
   <script src="../performance-motion.js"></script>
   <script src="../trade-ui.js"></script>
   <script src="../sticky-news.js"></script>
-  <script src="../player-system.js"></script>
+  <script src="../player-system.js?v=standardchat01"></script>
   <script src="../modal-dismiss.js?v=close02"></script>
   <script src="../mobile-fixes.js"></script>
   <script src="../mobile-controls.js"></script>
@@ -355,7 +355,7 @@
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js?v=authrestore01"></script>
   <script src="../world1-config.js?v=cloudflare01"></script>
-  <script src="../firebase-world-adapter.js?v=regions01"></script>
+  <script src="../firebase-world-adapter.js?v=standardchat01"></script>
   <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
   <script src="../location-operations.js?v=balance02"></script>
@@ -372,7 +372,7 @@
   <script src="../save-center.js?v=save01"></script>
   <script src="../clans.js?v=clans01"></script>
   <script src="../multiplayer-pvp-rules.js?v=pvp01"></script>
-  <script src="../multiplayer-world.js?v=regions01"></script>
+  <script src="../multiplayer-world.js?v=standardchat01"></script>
   <script src="../game-experience.js?v=tycoon01"></script>
   <script src="../game-motion-v2.js?v=motion04"></script>
   <script src="../game-feedback-v4.js?v=feedback04"></script>
