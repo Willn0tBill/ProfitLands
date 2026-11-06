@@ -138,3 +138,16 @@ test('Chat history stays capped and the previously deployed Americas world state
  assert.equal(db.read('world1').chat.length,60);
  assert.equal((await region(db,'getChat','legacy')).length,40);
 });
+
+test('Emergency chat shutdown closes both reads and writes without affecting the economy',async()=>{
+ const db=database();
+ await region(db,'register','alpha');
+ const env={CHAT_DISABLED:'true'};
+ const health=await region(db,'health',null,'world1',{},env);
+ assert.equal(health.ok,true);
+ assert.equal(health.chatEnabled,false);
+ await assert.rejects(region(db,'sendChat','alpha','world1',{text:'Hello game'},env),e=>e.status===409);
+ await assert.rejects(region(db,'getChat','alpha','world1',{},env),e=>e.status===409);
+ assert.equal((await region(db,'me','alpha','world1',{},env)).player.cash,1500);
+ assert.equal((await region(db,'getChat','alpha')).length,0);
+});
