@@ -6,7 +6,7 @@ Regional chat uses the existing `profitlands-world1` Cloudflare Worker and D1 da
 
 - Chat requires verified Firebase authentication and joining the selected world. No anonymous write endpoint exists.
 - The server saves plain-text messages only, up to 160 characters. Links, emails, off-platform contact requests, phone-like numbers, selected abusive words and repeated spam are rejected.
-- A player may post once every 20 seconds. Only the most recent 60 messages per region are retained, for at most 24 hours, and the client shows the latest 40.
+- A player may post once every 20 seconds. The most recent 60 messages per region are stored. Only messages from the past 24 hours are shown; older messages are pruned on the next chat write. The client displays the latest 40 visible messages.
 - Players can **Report**, **Block**, and **Unblock** others. Reports hide the message immediately from the reporting player. Two distinct reporters automatically hide it from everybody, pending moderator review.
 - Chat never transfers money, affects singleplayer saves, sends private messages, or shows user email addresses. Player names shown in chat are the server-generated Tycoon aliases.
 - Polling occurs every 30 seconds only while the chat panel is open and the browser tab is visible; there is no WebSocket connection.
