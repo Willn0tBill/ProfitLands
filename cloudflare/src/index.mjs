@@ -23,10 +23,17 @@ function worldFor(id){
   err('invalid-argument','Unknown world. Choose Americas, Europe or Asia.',400);
  return id;
 }
-const CHAT_ENABLED=false; // Report/block/moderation must exist before enabling.
+// Limited text chat beta: server-moderated, rate-limited, region-scoped and
+// automatically concealed after independent reports. Never display HTML.
+const CHAT_ENABLED=true;
+const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
+const CHAT_RETENTION_MS=24*60*60*1000;
+const CHAT_REPORT_LIMIT=2;
+const CHAT_BLOCK_LIMIT=48;
 const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
  'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
- 'getChat','sendChat','reportMessage']);
+ 'getChat','sendChat','reportMessage','blockChatUser','unblockChatUser',
+ 'getChatReports','moderateChat']);
 const RID=/^[0-9a-f]{32}$/;
 const UID=/^[A-Za-z0-9_-]{1,128}$/;
 const RECEIPT_RETENTION_MS=72*60*60*1000;
@@ -200,17 +207,64 @@ function checkPlayerCount(state,worldId=WORLD_ID){
  if(Object.keys(state.players).length>=core.MAX_PLAYERS)
   err('resource-exhausted',worldById(worldId).region+' world is full (64 players).',503);
 }
-async function dispatch(action,uid,body,db,worldId=WORLD_ID){
+// All text must be plain, short and free of off-platform contact information.
+// This screening is defense-in-depth, not a substitute for active moderation.
+function chatText(raw){
+ if(typeof raw!=='string')err('invalid-argument','Write a short text message.');
+ const text=raw.normalize('NFKC').replace(/[\u0000-\u001f\u007f-\u009f]/g,' ')
+  .replace(/\s+/g,' ').trim();
+ if(text.length<2||text.length>CHAT_TEXT_LIMIT)
+  err('invalid-argument','Messages must contain 2–160 characters.');
+ const unsafe=/https?:\/\/|www\.|\b\S+@\S+\.\S+\b|\b(?:discord|snapchat|telegram|whatsapp|instagram|tiktok)\b|\b(?:dm me|send your number|my phone|my address|meet me at)\b|(?:\+?\d[\s().-]?){8,}|\b(?:nigger|faggot|kys|kill yourself|rape|go die|fuck|bitch|cunt)\b/i;
+ if(unsafe.test(text))err('invalid-argument','Message blocked by chat safety rules. Keep chat respectful and do not share contact details.');
+ if(/(.)\1{11,}/u.test(text))err('invalid-argument','Please avoid repetitive spam.');
+ return text;
+}
+function chatMessages(state){
+ if(!Array.isArray(state.chat))state.chat=[];
+ return state.chat;
+}
+function cleanChat(state,at){
+ state.chat=chatMessages(state).filter(m=>m&&Number.isFinite(m.at)&&m.at<=at&&at-m.at<CHAT_RETENTION_MS)
+  .slice(-CHAT_LIMIT);
+}
+function publicChatMessage(m){
+ return {id:m.id,uid:m.uid,displayName:m.displayName,text:m.text,at:m.at};
+}
+function visibleChat(state,viewer,at){
+ const hidden=new Set(viewer.chatHiddenIds||[]);
+ const blocked=new Set(viewer.chatBlockedUids||[]);
+ return (state.chat||[]).filter(m=>m&&m.at>at-CHAT_RETENTION_MS&&!m.hidden&&
+  !hidden.has(m.id)&&!blocked.has(m.uid)).slice(-40).map(publicChatMessage);
+}
+function moderator(uid,env){
+ const names=String(env?.CHAT_MODERATOR_UIDS||'').split(',').map(x=>x.trim());
+ return names.some(id=>id&&id===uid);
+}
+function requireModerator(uid,env){
+ if(!moderator(uid,env))err('permission-denied','Moderator access required.',403);
+}
+async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
   try{await rawWorld(db,false,worldId)}
   catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId,region:worldById(worldId).region,
-    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:CHAT_ENABLED,version:3,catalog:core.BUSINESS_TYPES};
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:CHAT_ENABLED,version:4,catalog:core.BUSINESS_TYPES};
  }
- if(action==='getChat')return [];
- if(action==='sendChat'||action==='reportMessage')
-  err('failed-precondition','World chat is disabled pending moderation.',409);
+ if(action==='getChat'){
+  const {state}=await rawWorld(db,false,worldId);
+  const viewer=playerOf(state,uid);
+  return visibleChat(state,viewer,Date.now());
+ }
+ if(action==='getChatReports'){
+  requireModerator(uid,env);
+  const {state}=await rawWorld(db,false,worldId);
+  playerOf(state,uid);
+  return (state.chat||[]).filter(m=>Array.isArray(m.reports)&&m.reports.length)
+   .slice(-40).map(m=>({...publicChatMessage(m),reportCount:m.reports.length,hidden:m.hidden===true}));
+ }
+
  if(action==='getLeaderboard'||action==='getPlayers'||action==='me'){
   const {state}=await rawWorld(db,false,worldId);
   playerOf(state,uid);
@@ -235,6 +289,58 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID){
  }
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
+  if(action==='sendChat'){
+   const text=chatText(body.text);
+   if(Number(p.chatMutedUntil||0)>at)
+    err('permission-denied','Chat is temporarily unavailable on this account.',403);
+   if(Number(p.chatLastAt||0)>at-CHAT_COOLDOWN_MS)
+    err('resource-exhausted','Please wait 20 seconds between messages.',429);
+   if(p.chatLastText===text&&Number(p.chatLastAt||0)>at-120000)
+    err('invalid-argument','Please do not repeat the same message.');
+   cleanChat(state,at);
+   const item={id:crypto.randomUUID(),uid,displayName:p.displayName,
+    text,at,reports:[],hidden:false};
+   state.chat.push(item);state.chat=state.chat.slice(-CHAT_LIMIT);
+   p.chatLastAt=at;p.chatLastText=text;state.players[uid]=p;
+   return publicChatMessage(item);
+  }
+  if(action==='reportMessage'){
+   if(typeof body.messageId!=='string'||!/^[-a-zA-Z0-9]{8,80}$/.test(body.messageId))
+    err('invalid-argument','Invalid message identifier.');
+   const item=chatMessages(state).find(m=>m.id===body.messageId);
+   if(!item)err('not-found','That chat message has expired.',404);
+   if(item.uid===uid)err('invalid-argument','You cannot report your own message.');
+   item.reports=Array.isArray(item.reports)?item.reports:[];
+   if(item.reports.includes(uid))return {reported:true,duplicate:true,hidden:item.hidden===true};
+   item.reports.push(uid);
+   if(item.reports.length>=CHAT_REPORT_LIMIT)item.hidden=true;
+   p.chatHiddenIds=[...new Set([...(p.chatHiddenIds||[]),item.id])].slice(-CHAT_LIMIT);
+   state.players[uid]=p;
+   return {reported:true,hidden:item.hidden===true};
+  }
+  if(action==='blockChatUser'||action==='unblockChatUser'){
+   const target=body.targetUid;
+   if(typeof target!=='string'||!UID.test(target)||target===uid||!state.players[target])
+    err('invalid-argument','Choose another player in the same world.');
+   const old=Array.isArray(p.chatBlockedUids)?p.chatBlockedUids:[];
+   if(action==='blockChatUser'){
+    if(!old.includes(target)&&old.length>=CHAT_BLOCK_LIMIT)
+     err('resource-exhausted','Your chat block list is full.',409);
+    p.chatBlockedUids=[...new Set([...old,target])];
+   }else p.chatBlockedUids=old.filter(id=>id!==target);
+   state.players[uid]=p;
+   return {blocked:action==='blockChatUser',targetUid:target};
+  }
+  if(action==='moderateChat'){
+   requireModerator(uid,env);
+   const item=chatMessages(state).find(m=>m.id===body.messageId);
+   if(!item)err('not-found','Chat message not found.',404);
+   if(!['remove','dismiss'].includes(body.decision))
+    err('invalid-argument','Choose remove or dismiss.');
+   if(body.decision==='remove'){item.hidden=true;item.reviewed=true}
+   else{item.hidden=false;item.reports=[];item.reviewed=true}
+   return {moderated:true,hidden:item.hidden===true};
+  }
   if(action==='buyBusiness'||action==='upgradeBusiness'){
    return paid(state,uid,body,action,action==='buyBusiness'?body.businessId:body.index,()=>{
     const result=action==='buyBusiness'?core.buyBusiness(p,body.businessId,at):
@@ -310,7 +416,7 @@ export default {
     err('invalid-argument','Unknown world action.');
    const worldId=worldFor(request.method==='GET'?url.searchParams.get('worldId')||undefined:body.worldId);
    const uid=body.action==='health'?null:await identity(request);
-   const data=await dispatch(body.action,uid,body,env?.DB,worldId);
+   const data=await dispatch(body.action,uid,body,env?.DB,worldId,env);
    return json(request,data);
   }catch(e){
    const failure=e instanceof ApiError?e:new ApiError('internal','World 1 request failed.',500);
