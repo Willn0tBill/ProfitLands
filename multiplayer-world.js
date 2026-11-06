@@ -326,12 +326,12 @@ function updateChat(){
  dock.hidden=!active();if(!active())return;
  const ready=connected()&&online()?.chatEnabled?.()===true;
  const input=$('worldChatInput'),send=$('worldChatSend');
- if(input){input.disabled=!ready;input.maxLength=160;input.placeholder=ready?'Message '+region().region+' (160 characters max)':'Connect to regional chat first'}
+ if(input){input.disabled=!ready;input.maxLength=160;input.placeholder=ready?'Message '+region().region+' (160 characters max)':connected()?'Chat opens after moderator setup':'Connect to regional chat first'}
  if(send)send.disabled=!ready;
  const status=$('worldChatStatus');
- if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · no links or personal details':connected()?'Regional chat temporarily unavailable':'Connect to your world to chat';
+ if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · no links or personal details':connected()?'Regional chat is awaiting a trusted moderator.':'Connect to your world to chat';
  const list=$('worldChatMessages');
- if(list&&!ready)list.textContent='Connect to a regional world to view chat.';
+ if(list&&!ready)list.textContent=connected()?'Regional chat will open once a moderator is assigned.':'Connect to a regional world to view chat.';
  if(!ready&&$('worldChatModerator'))$('worldChatModerator').hidden=true;
 }
 const chatStatus=text=>{const el=$('worldChatStatus');if(el)el.textContent=String(text).slice(0,170)};
