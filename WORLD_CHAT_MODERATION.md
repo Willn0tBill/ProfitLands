@@ -1,6 +1,6 @@
 # ProfitLands Regional Chat — Controlled Beta
 
-Regional chat uses the existing `profitlands-world1` Cloudflare Worker and D1 database. There are three separate ledgers: Americas (`world1`), Europe (`world-europe`) and Asia (`world-asia`). No new database, migration, or paid plan is needed.
+Regional chat uses the existing `profitlands-world1` Cloudflare Worker and D1 database. **Public chat stays disabled until a trusted moderator UID is configured in the Cloudflare secret `CHAT_MODERATOR_UIDS`.** There are three separate ledgers: Americas (`world1`), Europe (`world-europe`) and Asia (`world-asia`). No new database, migration, or paid plan is needed.
 
 ## Player safeguards
 
