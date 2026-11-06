@@ -57,21 +57,13 @@ The server must settle income against active debuffs using trusted timestamps, h
 
 Public chat should stay disabled until a production-grade message backend and moderation exist. It needs: server message length enforcement, limits per account and per minute, profanity and privacy-sensitive information filtering, blocking, reporting to human moderators, retention policy, and abuse escalation tools. No public email addresses or private saved-game data should be exposed. For teen players, avoid direct messages by default.
 
-### Firebase / production readiness
+### Production readiness
 
-The current `firestore.rules` denies direct client reads and writes to any future `worlds` collection. **Keep this default deny rule.** A trusted service identity such as Firebase Admin in Cloud Functions must own authoritative economy and moderation changes. Do not open Firestore write permissions for scores, attacks, chat messages or shared balances.
+Firebase is used for player sign-in and private singleplayer saves. The deployed Cloudflare Worker and existing D1 database own all online cash, businesses, earnings, purchases, leaderboard results and PvP transactions. Region selection is validated by the Worker; clients cannot invent world IDs. No Firebase Blaze tier is required for this setup.
 
-The following are still required for a real launch:
+The worlds are **logical regions in one Cloudflare Worker and one D1 database**, not dedicated servers physically hosted in the Americas, Europe and Asia. The 64-account limit is per region, not a demonstrated limit of simultaneous players.
 
-1. Deploy and verify the existing clan security rules.
-2. Build and deploy the authoritative world economy, world registration, and cloud functions / server.
-3. Replace local Preview's start/resume flow with online world enrollment and live server balances without overwriting solo saves.
-4. Implement period snapshots and server-generated leaderboard updates.
-5. Implement signed-in, moderated and rate-limited chat (including reporting and blocking).
-6. Implement atomic attack transaction and server-timed income debuffs with replay protection.
-7. Run multi-account emulator and end-to-end tests, measure cost and concurrency, then conduct a controlled alpha.
-
-No server has been deployed as part of this client-side branch. The World 1 UI is deliberately honest about its status.
+**Still to verify before a wider launch:** authenticated two-account testing on the deployed worker; refresh, reconnect and purchase persistence with real Firebase accounts; multi-region concurrency and quota measurements; protections against abuse; and account moderation. Chat stays disabled until reporting, blocking and moderation have been implemented and tested. Never expose D1 or Firestore writes directly to clients.
 
 ## Test plan
 
