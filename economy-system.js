@@ -629,7 +629,19 @@
     window.ProfitLandsRealtime={rate:perSecond,settle:settleIncome,formatRate:rateMoney,period:INCOME_UNIT_SECONDS};
     window.endDay=()=>false; // Manual market advances are disabled.
     window.startTimer=startTimer2;
-    window.startProfitLands=()=>{reset(state.mode,state.playType);document.getElementById('homeScreen')?.classList.remove('active');document.getElementById('gameScreen')?.classList.add('active');render();startTimer2();window.profitLandsPlatform?.gameplayStart()};
+    // app.js owns the server-authoritative multiplayer entry. Preserve that
+    // route when overriding singleplayer's real-time economy startup.
+    const originalStart=window.startProfitLands;
+    window.startProfitLands=()=>{
+      if(state.playType==='multi'){
+        if(typeof originalStart!=='function')throw Error('World 1 startup is unavailable.');
+        return originalStart();
+      }
+      reset(state.mode,state.playType);
+      document.getElementById('homeScreen')?.classList.remove('active');
+      document.getElementById('gameScreen')?.classList.add('active');
+      render();startTimer2();window.profitLandsPlatform?.gameplayStart();
+    };
     // Market cycles advance only when the countdown reaches zero.
     ensure();setTimeout(()=>{render();if(state.started)startTimer2()},100);
   }
