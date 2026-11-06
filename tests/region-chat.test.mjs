@@ -150,4 +150,7 @@ test('Emergency chat shutdown closes both reads and writes without affecting the
  await assert.rejects(region(db,'getChat','alpha','world1',{},env),e=>e.status===409);
  assert.equal((await region(db,'me','alpha','world1',{},env)).player.cash,1500);
  assert.equal((await region(db,'getChat','alpha')).length,0);
+ // A moderator must still be able to review a queue while public chat is offline.
+ const mods={CHAT_DISABLED:'true',CHAT_MODERATOR_UIDS:'alpha'};
+ assert.deepEqual(await region(db,'getChatReports','alpha','world1',{},mods),[]);
 });
