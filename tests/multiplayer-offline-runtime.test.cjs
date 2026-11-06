@@ -51,8 +51,8 @@ test('local multiplayer preview visibly reports no server and disables sending m
  assert.equal(h.nodes.worldChatDock.hidden,false);
  assert.equal(h.nodes.worldChatInput.disabled,true);
  assert.equal(h.nodes.worldChatSend.disabled,true);
- assert.match(h.nodes.worldChatStatus.textContent,/Not connected/);
- assert.match(h.nodes.worldChatMessages.textContent,/No live chat connection/);
+ assert.match(h.nodes.worldChatStatus.textContent,/Connect to your world to chat/);
+ assert.match(h.nodes.worldChatMessages.textContent,/Connect to a regional world to view chat/);
  assert.equal(JSON.stringify(h.state),before);
 });
 test('offline PvP attack, protection, and PvP enrollment are rejected',async()=>{
