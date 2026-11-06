@@ -27,6 +27,9 @@ function bindRegionSelector(root){
  (root.querySelectorAll?.('[data-world-region]')||[]).forEach(btn=>btn.addEventListener('click',()=>{
   const next=btn.dataset.worldRegion;
   if(next===regionId())return;
+  const chat=$('worldChatMessages');if(chat)chat.textContent='Switching regional chat…';
+  const blocked=$('worldChatBlockedList');if(blocked)blocked.replaceChildren();
+  const moderator=$('worldChatModerator');if(moderator)moderator.hidden=true;
   if(online()?.selectWorld?.(next)){
    ownPlayer=null;players=[];targetUid='';period='day';
    latest++;empireStamp++;playersStamp++;lastWorldRefreshAt=0;
@@ -320,47 +323,131 @@ async function togglePvP(){
 }
 function updateChat(){
  const dock=$('worldChatDock');if(!dock)return;
- dock.hidden=!active();
- if(!active())return;
- const ready=connected()&&online()?.chatEnabled?.()===true,input=$('worldChatInput'),send=$('worldChatSend');
- if(input){input.disabled=!ready;input.placeholder=ready?'Message World 1…':'World chat unavailable until the online server is ready'}
+ dock.hidden=!active();if(!active())return;
+ const ready=connected()&&online()?.chatEnabled?.()===true;
+ const input=$('worldChatInput'),send=$('worldChatSend');
+ if(input){input.disabled=!ready;input.maxLength=160;input.placeholder=ready?'Message '+region().region+' (160 characters max)':'Connect to regional chat first'}
  if(send)send.disabled=!ready;
- const status=$('worldChatStatus');if(status)status.textContent=ready?'Online World 1 chat':connected()?'World chat disabled pending moderation':'Not connected · Preview only';
- const list=$('worldChatMessages');if(list&&!ready)list.textContent=connected()?'World chat is unavailable while reporting, blocking and moderation are prepared.':'No live chat connection. Messages are not simulated or stored locally.';
-}
-function renderChatMessages(entries){
+ const status=$('worldChatStatus');
+ if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · no links or personal details':connected()?'Regional chat temporarily unavailable':'Connect to your world to chat';
  const list=$('worldChatMessages');
- if(!list)return;
- if(!Array.isArray(entries))return;
+ if(list&&!ready)list.textContent='Connect to a regional world to view chat.';
+ if(!ready&&$('worldChatModerator'))$('worldChatModerator').hidden=true;
+}
+const chatStatus=text=>{const el=$('worldChatStatus');if(el)el.textContent=String(text).slice(0,170)};
+function renderChatMessages(entries){
+ const list=$('worldChatMessages');if(!list||!Array.isArray(entries))return;
  list.replaceChildren();
- for(const msg of entries.slice(-35)){
+ const ownUid=window.profitlandsFirebase?.getCurrentUser?.()?.uid||window.firebase?.auth?.()?.currentUser?.uid||'';
+ for(const msg of entries.slice(-40)){
+  if(!msg||!msg.id)continue;
   const row=document.createElement('div');row.className='pl-world-message';
   const name=document.createElement('strong');name.textContent=String(msg.displayName||'Player').slice(0,30)+': ';
-  const content=document.createElement('span');content.textContent=String(msg.text||'').slice(0,220);
+  const content=document.createElement('span');content.textContent=String(msg.text||'').slice(0,160);
   row.append(name,content);
-  if(msg.id&&online()?.reportMessage){
+  if(msg.uid&&msg.uid!==ownUid){
    const report=document.createElement('button');report.type='button';report.textContent='Report';
-   report.setAttribute('aria-label','Report message from '+name.textContent.replace(/: $/,''));
-   report.addEventListener('click',()=>{if(window.confirm?.('Report this message to the moderators?'))online().reportMessage(msg.id).catch(()=>{})});
-   row.appendChild(report);
+   report.setAttribute('aria-label','Report message from '+String(msg.displayName||'Player'));
+   report.onclick=async()=>{
+    if(!window.confirm?.('Report and hide this message for yourself?'))return;
+    report.disabled=true;
+    try{await online().reportMessage(msg.id);await refreshChat();chatStatus('Report received. Hidden for your account.')}
+    catch(e){report.disabled=false;chatStatus('Report failed: '+String(e?.message||'Retry.'))}
+   };
+   const block=document.createElement('button');block.type='button';block.textContent='Block';
+   block.setAttribute('aria-label','Block '+String(msg.displayName||'Player')+' from regional chat');
+   block.onclick=async()=>{
+    if(!window.confirm?.('Block this player in '+region().region+' chat?'))return;
+    block.disabled=true;
+    try{await online().blockChatUser(msg.uid);
+     await Promise.all([refreshChat(),refreshBlockedChat()]);
+     chatStatus('Player blocked. You can unblock them below.');}
+    catch(e){block.disabled=false;chatStatus('Block failed: '+String(e?.message||'Retry.'))}
+   };
+   row.append(report,block);
   }
   list.appendChild(row);
  }
+ if(!list.children.length)list.textContent='No recent messages in this region.';
  list.scrollTop=list.scrollHeight;
 }
+async function refreshBlockedChat(){
+ const list=$('worldChatBlockedList');if(!list||!connected())return false;
+ const world=regionId();
+ try{
+  const blocked=await online().getBlockedChatUsers?.();
+  if(world!==regionId()||!connected())return false;
+  list.replaceChildren();
+  if(!Array.isArray(blocked)||!blocked.length)return true;
+  const heading=document.createElement('strong');heading.textContent='Blocked: ';list.appendChild(heading);
+  for(const person of blocked){
+   const button=document.createElement('button');button.type='button';
+   button.textContent='Unblock '+String(person.displayName||'Player').slice(0,22);
+   button.onclick=async()=>{
+    button.disabled=true;
+    try{await online().unblockChatUser(person.uid);await Promise.all([refreshChat(),refreshBlockedChat()]);}
+    catch(e){button.disabled=false;chatStatus('Unblock failed. Retry.')}
+   };
+   list.appendChild(button);
+  }
+  return true;
+ }catch(e){return false}
+}
+async function refreshModerationQueue(){
+ const panel=$('worldChatModerator'),list=$('worldChatReports');
+ if(!panel||!list||!connected()||typeof online()?.getChatReports!=='function')return false;
+ const world=regionId();
+ try{
+  const reported=await online().getChatReports();
+  if(world!==regionId()||!connected())return false;
+  panel.hidden=false;list.replaceChildren();
+  if(!Array.isArray(reported)||!reported.length){
+   list.textContent='No pending reports in this region.';return true;
+  }
+  for(const item of reported){
+   const row=document.createElement('div');row.className='pl-chat-moderation-row';
+   const label=document.createElement('span');
+   label.textContent=String(item.displayName||'Player').slice(0,25)+': '+
+    String(item.text||'').slice(0,160)+' · '+Number(item.reportCount||0)+' reports';
+   row.appendChild(label);
+   for(const decision of ['remove','dismiss']){
+    const button=document.createElement('button');button.type='button';
+    button.textContent=decision==='remove'?'Remove':'Dismiss';
+    button.onclick=async()=>{
+     button.disabled=true;
+     try{await online().moderateChat(item.id,decision);
+      await Promise.all([refreshModerationQueue(),refreshChat()]);
+      chatStatus('Report '+(decision==='remove'?'removed':'dismissed')+'.');
+     }catch(e){button.disabled=false;chatStatus('Moderation action failed.')}
+    };
+    row.appendChild(button);
+   }
+   list.appendChild(row);
+  }
+  return true;
+ }catch(e){panel.hidden=true;return false}
+}
 async function submitChat(){
- if(!connected())return;
- const input=$('worldChatInput');
- const text=String(input?.value||'').trim();
- if(!text||text.length>220||Date.now()-lastChatAt<3000)return;
+ if(!connected()||online()?.chatEnabled?.()!==true)return;
+ const input=$('worldChatInput'),text=String(input?.value||'').trim();
+ if(text.length<2||text.length>160||Date.now()-lastChatAt<3000)return;
  lastChatAt=Date.now();input.disabled=true;
- try{await online().sendChat(text);input.value='';await refreshChat()}
- catch(e){const el=$('worldChatStatus');if(el)el.textContent='Message not sent. Please retry.'}
- finally{input.disabled=false}
+ const world=regionId();
+ try{
+  await online().sendChat(text);
+  if(world!==regionId())return;
+  input.value='';await refreshChat();
+  chatStatus('Message sent · '+region().region);
+ }catch(e){chatStatus('Message not sent: '+String(e?.message||'Please retry.'))}
+ finally{if(world===regionId())input.disabled=false}
 }
 async function refreshChat(){
- if(!connected()||online()?.chatEnabled?.()!==true||typeof online().getChat!=='function')return;
- try{renderChatMessages(await online().getChat())}catch(e){}
+ if(!connected()||online()?.chatEnabled?.()!==true||typeof online().getChat!=='function')return false;
+ const world=regionId();
+ try{const result=await online().getChat();
+  if(world===regionId()&&connected())renderChatMessages(result);
+  return true;
+ }catch(e){chatStatus('Could not refresh chat.');return false}
 }
 function render(){
  if(!page())return false;
@@ -387,12 +474,18 @@ function init(){
   const panel=$('worldChatPanel');if(!panel)return;
   panel.hidden=!panel.hidden;
   $('worldChatToggle').setAttribute('aria-expanded',String(!panel.hidden));
-  if(!panel.hidden){updateChat();refreshChat();$('worldChatInput')?.focus()}
+  if(!panel.hidden){updateChat();refreshChat();refreshBlockedChat();refreshModerationQueue();$('worldChatInput')?.focus()}
  });
  $('worldChatClose')?.addEventListener('click',()=>{
   $('worldChatPanel').hidden=true;$('worldChatToggle')?.setAttribute('aria-expanded','false');
  });
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
+ $('worldChatRefreshReports')?.addEventListener('click',refreshModerationQueue);
+ // Poll chat only while its panel is visible; no hidden-tab chatter.
+ if(typeof window.setInterval==='function')window.setInterval(()=>{
+  if(connected()&&online()?.chatEnabled?.()===true&&
+    !$('worldChatPanel')?.hidden&&document.visibilityState!=='hidden')void refreshChat();
+ },30000);
  // Opt-in auto-sync does not run when the tab is hidden or another view is open.
  if(typeof window.setInterval==='function')window.setInterval(autoSyncTick,15000);
  window.addEventListener('profitlands:viewchange',event=>{updateChat();if(event.detail?.view==='world')render()});

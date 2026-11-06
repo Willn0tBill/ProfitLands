@@ -7,7 +7,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 let globalNonce=0;
 
-function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false,authRestoring=false}={}){
+function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false,authRestoring=false,chatEnabled=false}={}){
  const store=storage||new Map();
  const sent=[],events=[],callbacks={};
  let current=authRestoring?null:{uid:'alpha',getIdToken:async()=> 'signed-alpha'};
@@ -19,7 +19,7 @@ function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=
   sent.push(payload);
   if(payload.action==='health'){
    if(healthIsPlaceholder)return {ok:true,status:200,json:async()=>{throw Error('Hello World is not JSON')}};
-   return answer({ok:true,worldId:payload.worldId,chatEnabled:false,catalog:[{id:'coffee',cost:500}]});
+   return answer({ok:true,worldId:payload.worldId,chatEnabled,catalog:[{id:'coffee',cost:500}]});
   }
   assert.match(options.headers.Authorization,/^Bearer signed-/,'uses Firebase ID token, not a client cash value');
   if(payload.action==='register')return answer({worldId:payload.worldId,player:{uid:current.uid,worldId:payload.worldId}});
@@ -235,4 +235,25 @@ test('paid request IDs are scoped to world and switching aborts access to old wo
  assert.equal(buys[0].worldId,'world1');
  assert.equal(buys.at(-1).worldId,'world-europe');
  assert.notEqual(buys[0].requestId,buys.at(-1).requestId);
+});
+
+test('regional chat is enabled only after the server announces support, and actions stay world-scoped',async()=>{
+ const h=setup(false,null,{chatEnabled:true});
+ await h.api.connect();
+ assert.equal(h.api.chatEnabled(),true);
+ await h.api.sendChat('Hello Europe');
+ await h.api.reportMessage('message-1');
+ await h.api.blockChatUser('beta');
+ await h.api.unblockChatUser('beta');
+ await h.api.getBlockedChatUsers();
+ const acts=h.sent.filter(p=>['sendChat','reportMessage','blockChatUser','unblockChatUser','getBlockedChatUsers'].includes(p.action));
+ assert.deepEqual(acts.map(p=>p.action),['sendChat','reportMessage','blockChatUser','unblockChatUser','getBlockedChatUsers']);
+ assert.ok(acts.every(p=>p.worldId==='world1'));
+ assert.equal(acts[0].text,'Hello Europe');
+ assert.equal(acts[1].messageId,'message-1');
+ assert.equal(acts[2].targetUid,'beta');
+ h.api.selectWorld('world-europe');
+ await h.api.connect();
+ await h.api.sendChat('Hello World 2');
+ assert.equal(h.sent.filter(p=>p.action==='sendChat').at(-1).worldId,'world-europe');
 });
