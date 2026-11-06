@@ -444,3 +444,109 @@ test('Functions and Cloudflare use matching online economy logic with isolated s
  }
  assert.deepEqual(p,frozen,'read-only settlements must not mutate cached player snapshots');
 });
+
+test('all seven classic corporation tiers have their singleplayer prices and baselines',()=>{
+ const expected=[
+  ['local',1000000,850000,12000],['regional',10000000,8000000,90000],
+  ['national',100000000,80000000,800000],['global',1000000000,800000000,8000000],
+  ['conglomerate',10000000000,8000000000,7000000],
+  ['mega',100000000000,80000000000,600000000],
+  ['empire',1000000000000,850000000000,5000000000]
+ ];
+ assert.deepEqual(core.MAJOR_CORPORATIONS.map(c=>[c.id,c.req,c.price,c.rev-c.expense]),expected);
+ assert.deepEqual(cjsCore.MAJOR_CORPORATIONS,core.MAJOR_CORPORATIONS);
+});
+test('major corporation purchases require actual server worth and funds, and increase income',()=>{
+ const at=t,p=core.fresh('corp','Corporation Tester',at);
+ assert.equal(enterprise.apply(p,'buyMajorCorporation',{corporationId:'local',cash:999999999},at).error,
+  'corporation_worth_required');
+ core.credit(p,1000000);
+ const previousWorth=core.worth(p),previousIncome=core.perSecond(p);
+ const bought=enterprise.apply(p,'buyMajorCorporation',{corporationId:'local',cost:0},at);
+ assert.equal(bought.ok,true);
+ assert.equal(bought.cost,850000);
+ assert.equal(bought.player.cash,p.cash-850000);
+ assert.equal(bought.player.enterprise.majorCompanies.length,1);
+ assert.equal(core.worth(bought.player),previousWorth);
+ assert.equal(core.perSecond(bought.player)-previousIncome,200);
+ assert.equal(enterprise.apply(bought.player,'buyMajorCorporation',{corporationId:'local'},at).error,
+  'corporation_already_owned');
+ const later=core.settle(bought.player,at+60000);
+ assert.equal(later.cash,bought.player.cash+12000);
+ assert.equal(enterprise.apply(p,'buyMajorCorporation',{corporationId:'bogus'},at).error,'unknown_corporation');
+ assert.equal(p.enterprise,undefined,'no failed purchase mutates original player state');
+});
+test('corporation buying is idempotent and region isolated in the authoritative worker',async()=>{
+ const db=database(),who='corporation-account';
+ await dispatch('register',who,{},db,'world1');
+ await dispatch('register',who,{},db,'world-asia');
+ const state=db.read('world1'),p=state.players[who];
+ core.credit(p,2000000);
+ state.players[who]=p;
+ db.set('world1',state);
+ const requestId='f'.repeat(32);
+ const bought=await dispatch('enterpriseAction',who,
+  {operation:'buyMajorCorporation',corporationId:'local',cash:100000000000,requestId},
+  db,'world1');
+ assert.equal(bought.ok,true);
+ assert.equal(bought.player.enterprise.majorCompanies.length,1);
+ const repeated=await dispatch('enterpriseAction',who,
+  {operation:'buyMajorCorporation',corporationId:'local',cash:100000000000,requestId},
+  db,'world1');
+ assert.equal(repeated.replayed,true);
+ assert.equal(db.read('world1').players[who].enterprise.majorCompanies.length,1);
+ assert.equal(db.read('world-asia').players[who].cash,1500);
+ await assert.rejects(dispatch('enterpriseAction',who,
+  {operation:'buyMajorCorporation',corporationId:'local',requestId:'e'.repeat(32)},
+  db,'world-asia'),/corporation_worth_required/);
+});
+test('corporation holdings are cloned across reconnect and CJS/ESM return matching income',()=>{
+ const p=core.fresh('corpclone','Tester',t);
+ core.credit(p,2000000);
+ const bought=enterprise.apply(p,'buyMajorCorporation',{corporationId:'local'},t).player;
+ const first=core.settle(bought,t+60000),second=cjsCore.settle(bought,t+60000);
+ assert.deepEqual(first,second);
+ first.enterprise.majorCompanies.push({type:'regional'});
+ assert.equal(bought.enterprise.majorCompanies.length,1);
+ assert.equal(core.worth(bought,t),cjsCore.worth(bought,t));
+});
+
+test('full singleplayer country catalog is generated into both online runtimes',()=>{
+ assert.equal(core.COUNTRIES.length,35);
+ assert.deepEqual(core.COUNTRIES,cjsCore.COUNTRIES);
+ const regions=new Set(core.COUNTRIES.map(c=>c.region));
+ assert.ok(regions.has('Africa')&&regions.has('Asia')&&regions.has('Europe'));
+ for(const code of ['us','cl','nl','ie','ae','ng','nz','vn','id','ke']){
+  assert.ok(core.COUNTRIES.find(c=>c.id===code),code);
+ }
+ const p=core.fresh('country','Country Test',t);
+ const catalog=enterprise.summary(p,t).countryCatalog;
+ assert.equal(catalog.length,35);
+ assert.equal(catalog.find(x=>x.id==='ae').name,'United Arab Emirates');
+ assert.equal(enterprise.apply(p,'setCountry',{country:'xx'},t).error,'country_locked');
+ for(const code of ['ae','nz','cl','ng']){
+  const result=enterprise.apply(p,'setCountry',{country:code},t);
+  assert.equal(result.ok,true,code);
+  assert.equal(result.player.enterprise.country,code);
+ }
+});
+test('country revenue and cost factors affect online businesses using singleplayer baselines',()=>{
+ for(const def of core.BUSINESS_TYPES){
+  const input=core.BUSINESS_ECONOMICS[def.id];
+  assert.equal(input.revenue-input.expense,def.baseProfit);
+  assert.equal(core.countryMargin('us',def.id,input.revenue,input.expense),def.baseProfit);
+ }
+ const make=code=>{
+  let p=core.fresh('testcountry','Tester',t);
+  p=enterprise.apply(p,'setCountry',{country:code},t).player;
+  core.credit(p,5000000);
+  return core.buyBusiness(p,'software',t).player;
+ };
+ const us=make('us'),ae=make('ae'),ng=make('ng');
+ assert.equal(core.perSecond(us),Math.floor(26733/60));
+ assert.notEqual(core.perSecond(ae),core.perSecond(us));
+ assert.notEqual(core.perSecond(ng),core.perSecond(us));
+ assert.equal(core.perSecond(ae),cjsCore.perSecond(ae));
+ assert.equal(core.perSecond(ng),cjsCore.perSecond(ng));
+ assert.equal(enterprise.apply(ng,'setCountry',{country:'us'},t).error,'country_locked');
+});

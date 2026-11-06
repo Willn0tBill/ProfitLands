@@ -131,6 +131,30 @@
    btn('buyProperty','Buy $10k property',{amount:10000},p.cash<10000,'Build your asset portfolio')+
    btn('buyProperty','Buy $100k property',{amount:100000},p.cash<100000,'Generates rental income')+
    btn('buyProperty','Buy $1m property',{amount:1000000},p.cash<1000000,'Generates rental income')+'</div>',
+  corporations:(p,s)=>{
+   const holdings=Array.isArray(s.majorCompanies)?s.majorCompanies:[];
+   const catalog=Array.isArray(s.majorCatalog)?s.majorCatalog:[];
+   const owned=new Set(holdings.map(x=>x.type));
+   const profit=holdings.reduce((sum,x)=>{
+    const corp=catalog.find(c=>c.id===x.type);
+    return sum+(corp?.profitPerMinute||0);
+   },0);
+   return '<p class="pl-online-note">These are the original singleplayer corporate tiers with the same purchase prices, unlock requirements and baseline operating margins. The regional server verifies ownership and cash.</p>'+
+    '<div class="pl-advanced-metrics">'+
+    summary('Corporations owned',holdings.length+' / '+catalog.length)+
+    summary('Baseline corporate profit',fmt(profit)+'/minute')+
+    summary('Empire worth',fmt(p.netWorth))+'</div>'+
+    '<div class="pl-advanced-list">'+catalog.map(c=>{
+     const has=owned.has(c.id),unlocked=p.netWorth>=c.req;
+     const unavailable=has||!unlocked||p.cash<c.price;
+     const label=has?'Owned':!unlocked?'Requires '+fmt(c.req):'Acquire '+c.name;
+     return '<article class="pl-advanced-market"><div><strong>'+esc(c.name)+
+      '</strong><small>Unlock '+fmt(c.req)+' · Purchase '+fmt(c.price)+
+      ' · Baseline profit '+fmt(c.profitPerMinute)+'/minute</small></div>'+
+      btn('buyMajorCorporation',label,{corporationId:c.id},unavailable,
+       has?'Already in your portfolio':'Funded by server-owned cash')+'</article>';
+    }).join('')+'</div>';
+  },
   growth:(p,s)=>{
    const research=s.researchCatalog||[];
    return '<div class="pl-advanced-metrics">'+summary('Completed contracts',s.contractsCompleted||0)+
@@ -144,14 +168,15 @@
     'Complete a paid business, hiring or trade action today')+'</div>'+
     '<p class="pl-online-note">Online achievement ranks are computed from server-owned activity, matching the 131,072 possible industry/track/tier combinations. Merging them with your singleplayer account trophies is still an independent task.</p>'+ 
     '<div class="pl-advanced-company"><label for="plCountrySelector">Home country</label><select id="plCountrySelector" '+(p.businesses.length?'disabled':'')+'>'+
-    [['us','United States'],['ca','Canada'],['mx','Mexico'],['br','Brazil'],['gb','United Kingdom'],['de','Germany'],
-     ['fr','France'],['es','Spain'],['jp','Japan'],['cn','China'],['kr','South Korea'],['au','Australia'],
-     ['in','India'],['sg','Singapore'],['za','South Africa']].map(([id,name])=>
-     '<option value="'+id+'" '+(s.country===id?'selected':'')+'>'+name+'</option>').join('')+'</select>'+
-     btn('setCountry','Confirm country',{country:s.country},p.businesses.length>0,'Choose before buying the first company')+'</div>';
+    (s.countryCatalog||[]).map(c=>
+     '<option value="'+esc(c.id)+'" '+(s.country===c.id?'selected':'')+'>'+
+     esc(c.name)+' ('+esc(c.region)+')</option>').join('')+'</select>'+
+     btn('setCountry','Confirm country',{country:s.country},
+     p.businesses.length>0||Number(s.metrics?.trades||0)>0||Number(s.loanDebt||0)>0||
+     (s.properties||[]).length>0,'Choose before buying companies or opening financial positions')+'</div>';
   }
  };
- const labels={operations:'Management',supply:'Supply & Logistics',markets:'Stock Market',finance:'Finance & Property',growth:'Research & Contracts'};
+ const labels={operations:'Management',supply:'Supply & Logistics',markets:'Stock Market',finance:'Finance & Property',corporations:'Corporations',growth:'Research & Contracts'};
  async function transact(action,params,button){
   if(pending||window.ProfitLandsOnline?.isConnected?.()!==true)return;
   pending=true;const old=button?.textContent;

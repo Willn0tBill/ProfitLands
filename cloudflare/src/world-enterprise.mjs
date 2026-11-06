@@ -20,9 +20,9 @@ const RESEARCH=Object.freeze([
  {id:'finance',name:'Financial Analytics',cost:100000},
  {id:'sustainability',name:'Sustainable Growth',cost:500000}
 ]);
-const COUNTRY_IDS=new Set(['us','ca','mx','br','gb','de','fr','es','jp','cn','kr','au','in','sg','za']);
+const COUNTRY_IDS=new Set(core.COUNTRIES.map(x=>x.id));
 const DEFAULTS=()=>({
- country:'us',stocks:{},loanDebt:0,loanPrincipal:0,
+ country:'us',stocks:{},majorCompanies:[],loanDebt:0,loanPrincipal:0,
  properties:[],warehouse:0,warehouseStock:0,trucks:0,research:[],
  lastContractDay:'',contractsCompleted:0,routes:[],metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
 });
@@ -37,6 +37,7 @@ function ensure(p){
  if(!s.stocks||typeof s.stocks!=='object')s.stocks={};
  if(!Array.isArray(s.properties))s.properties=[];
  if(!Array.isArray(s.research))s.research=[];
+ if(!Array.isArray(s.majorCompanies))s.majorCompanies=[];
  // Old saves held one route; retain it during the additive multi-route upgrade.
  if(!Array.isArray(s.routes))s.routes=s.route?[s.route]:[];
  delete s.route;
@@ -78,6 +79,10 @@ function assetValue(p,now=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:
   if(nonnegInt(shares,1000000))total+=Math.floor(shares*stockPriceCents(entry.id,now)/100);
  }
  for(const price of s.properties||[])if(Number.isSafeInteger(price)&&price>0)total+=price;
+ for(const holding of s.majorCompanies||[]){
+  const corp=core.MAJOR_CORPORATIONS.find(x=>x.id===holding?.type);
+  if(corp)total+=corp.price;
+ }
  total+=Math.max(0,Number(s.warehouse||0))*10000;
  total+=Math.max(0,Number(s.trucks||0))*5000;
  return Math.max(-core.MAX_CASH,Math.min(core.MAX_CASH,total-Number(s.loanDebt||0)));
@@ -107,7 +112,9 @@ function summary(p,now=Date.now()){
  const s=ensure(p);
  return {...s,stocks:Object.fromEntries(STOCKS.map(x=>[x.id,Number(s.stocks[x.id]||0)])),
   quotes:STOCKS.map(x=>({id:x.id,name:x.name,ticker:x.ticker,priceCents:stockPriceCents(x.id,now)})),
-  researchCatalog:RESEARCH,companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
+  researchCatalog:RESEARCH,majorCatalog:core.MAJOR_CORPORATIONS.map(x=>({...x,profitPerMinute:x.rev-x.expense})),
+  countryCatalog:core.COUNTRIES.map(({id,name,region,taxRate,loanRate,inflationPct})=>({id,name,region,taxRate,loanRate,inflationPct})),
+  companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
 }
 function trade(p,t,qty,mode,now){
  if(!t||!positiveInt(qty,1000000))return error('invalid_stock_trade');
@@ -142,6 +149,15 @@ function apply(player,operation,args={},now=Date.now()){
  const chosen=company(p,index);
  const b=chosen?.b,t=chosen?.t;
  const qty=args.quantity;
+ if(operation==='buyMajorCorporation'){
+  const corp=core.MAJOR_CORPORATIONS.find(x=>x.id===args.corporationId);
+  if(!corp)return error('unknown_corporation');
+  if(e.majorCompanies.some(x=>x.type===corp.id))return error('corporation_already_owned');
+  if(core.worth(p,now)<corp.req)return error('corporation_worth_required');
+  if(!spend(p,corp.price))return error('insufficient_cash');
+  e.majorCompanies.push({type:corp.id});
+  return {ok:true,player:p,cost:corp.price};
+ }
  if(operation==='listCompany'){
   if(!chosen||!positiveInt(args.price,core.MAX_CASH))return error('invalid_listing');
   const value=core.valueOf(b)+extraBusinessValue(b);

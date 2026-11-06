@@ -446,12 +446,13 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     'warehouseOrder','deliverWarehouseStock','setSupplyRoute','clearSupplyRoute','buyWarehouse',
     'buyTruck','buyResearch','buyShares','sellShares','borrowLoan','repayLoan',
     'listCompany','cancelCompanyListing',
-    'buyProperty','setCountry','claimContract']);
+    'buyProperty','setCountry','claimContract','buyMajorCorporation']);
    if(!allowed.has(body.operation))err('invalid-argument','Unknown enterprise operation.');
    const args={
     index:body.index,site:body.site,quantity:body.quantity,enabled:body.enabled,
     percent:body.percent,price:body.price,
-    stockId:body.stockId,amount:body.amount,researchId:body.researchId,country:body.country
+    stockId:body.stockId,amount:body.amount,researchId:body.researchId,country:body.country,
+     corporationId:body.corporationId
    };
    return paid(state,uid,body,action,{operation:body.operation,args},()=>{
     const worthBefore=core.worth(p);

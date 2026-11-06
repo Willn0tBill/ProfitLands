@@ -239,7 +239,11 @@ test('the Cloudflare rules match the established Firebase server economics and a
  const duplicate=readFileSync(join(root,'cloudflare/src/world-core.mjs'),'utf8');
  const prior=readFileSync(join(root,'functions/pvp-rules.js'),'utf8');
  const copied=readFileSync(join(root,'cloudflare/src/pvp-rules.mjs'),'utf8');
- assert.ok(duplicate.includes(original));
+ const aligned=duplicate
+  .replace("import COUNTRIES from './country-catalog.mjs';\n",'')
+  .replace("const module={exports:{}};\n'use strict';",
+   "'use strict';\nconst COUNTRIES=require('./country-catalog.js');");
+ assert.ok(aligned.includes(original),'Cloudflare and Firebase core logic must remain in sync');
  assert.ok(copied.includes(prior));
  assert.equal(core.MAX_PLAYERS,64);
  assert.ok(rules.ATTACKS.length>=3);

@@ -1,4 +1,5 @@
 'use strict';
+const COUNTRIES=require('./country-catalog.js');
 // Deterministic server-only alpha economy. The browser never supplies earnings, cash or worth.
 const WORLD_ID='world1';
 const MAX_PLAYERS=64;
@@ -16,6 +17,34 @@ const BUSINESS_TYPES=Object.freeze([
  {id:'logistics',name:'Logistics Company',cost:10000000,baseProfit:513757}
 ]);
 const byId=id=>BUSINESS_TYPES.find(b=>b.id===id)||null;
+// Same per-minute revenue/expense baselines as singleplayer app.js.
+const BUSINESS_ECONOMICS=Object.freeze({
+ coffee:{revenue:114,expense:48},restaurant:{revenue:416,expense:190},
+ gamestore:{revenue:702,expense:420},hotel:{revenue:3422,expense:1900},
+ dealership:{revenue:12687,expense:7900},factory:{revenue:67207,expense:41000},
+ software:{revenue:196733,expense:170000},logistics:{revenue:1283757,expense:770000}
+});
+const US_COUNTRY=COUNTRIES.find(c=>c.id==='us');
+function countryMargin(countryId,sector,revenue,expense){
+ const p=COUNTRIES.find(c=>c.id===countryId)||US_COUNTRY;
+ const u=US_COUNTRY;
+ const revenueFactor=(p.demand/u.demand)*(p.revenue/u.revenue)*
+  ((p.industry?.[sector]||1)/(u.industry?.[sector]||1));
+ const costFactor=(p.rent*.55+p.wage*.45)/(u.rent*.55+u.wage*.45);
+ return Math.max(0,Math.round(revenue*revenueFactor-expense*costFactor));
+}
+
+// Mirrors the seven singleplayer corporation tiers and their baseline operating margins.
+// Server price and prerequisites are authoritative; no browser balance is accepted.
+const MAJOR_CORPORATIONS=Object.freeze([
+ {id:'local',name:'Local Corporation',req:1000000,price:850000,rev:30000,expense:18000},
+ {id:'regional',name:'Regional Corporation',req:10000000,price:8000000,rev:280000,expense:190000},
+ {id:'national',name:'National Corporation',req:100000000,price:80000000,rev:2800000,expense:2000000},
+ {id:'global',name:'Global Corporation',req:1000000000,price:800000000,rev:30000000,expense:22000000},
+ {id:'conglomerate',name:'Conglomerate',req:10000000000,price:8000000000,rev:32000000,expense:25000000},
+ {id:'mega',name:'Mega Corporation',req:100000000000,price:80000000000,rev:3500000000,expense:2900000000},
+ {id:'empire',name:'Global Empire',req:1000000000000,price:850000000000,rev:40000000000,expense:35000000000}
+]);
 const number=n=>Number.isSafeInteger(n)&&n>=0&&n<=MAX_CASH;
 const time=t=>Number.isSafeInteger(t)&&t>=0;
 const dayKey=now=>new Date(now).toISOString().slice(0,10);
@@ -36,6 +65,7 @@ const clone=p=>({...p,
   sites:Array.isArray(b.sites)?b.sites.map(site=>({...site})):undefined})),
  enterprise:p.enterprise?{...p.enterprise,stocks:{...(p.enterprise.stocks||{})},
   properties:[...(p.enterprise.properties||[])],research:[...(p.enterprise.research||[])],
+  majorCompanies:Array.isArray(p.enterprise.majorCompanies)?p.enterprise.majorCompanies.map(c=>({...c})):undefined,
   routes:Array.isArray(p.enterprise.routes)?p.enterprise.routes.map(r=>({...r})):undefined,
   route:p.enterprise.route?{...p.enterprise.route}:undefined,
   badgeCounters:p.enterprise.badgeCounters?Object.fromEntries(
@@ -73,6 +103,10 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
     value+=Math.floor(count*stockPriceCents(id,at)/100);
   }
   for(const price of e.properties||[])if(Number.isSafeInteger(price)&&price>0)value+=price;
+  for(const holding of e.majorCompanies||[]){
+   const corp=MAJOR_CORPORATIONS.find(x=>x.id===holding?.type);
+   if(corp)value+=corp.price;
+  }
   value+=Math.max(0,Number(e.warehouse||0))*10000;
   value+=Math.max(0,Number(e.trucks||0))*5000;
   value-=Math.max(0,Number(e.loanDebt||0));
@@ -82,9 +116,7 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
 function perSecond(p){
  let income=0;
  const e=p.enterprise;
- const foreign={us:1,ca:1.01,mx:1.04,br:1.06,gb:1.03,de:1.02,fr:1.02,
-  es:1.03,jp:1.04,cn:1.05,kr:1.04,au:1.02,in:1.07,sg:1.04,za:1.05};
- const country=foreign[e?.country]||1;
+ const profile=COUNTRIES.find(x=>x.id===e?.country)||US_COUNTRY;
  for(const business of p.businesses||[]){
   const def=byId(business.type);
   if(!def||!Number.isSafeInteger(business.level)||business.level<1||business.level>30)continue;
@@ -95,13 +127,19 @@ function perSecond(p){
   const training=e?.research?.includes('workforce')?1.1:1;
   const mult=Math.min(12,(1+(sites-1)*.65)*(1+workers*.018)*training*
    (business.manager?1.18:1)*(1+marketing*.015)*(1+efficiency*.014));
-  const base=Math.floor(def.baseProfit*(1+(business.level-1)*.22)/60);
+  const economics=BUSINESS_ECONOMICS[def.id];
+  const margin=economics?countryMargin(profile.id,def.id,economics.revenue,economics.expense):def.baseProfit;
+  const base=Math.floor(margin*(1+(business.level-1)*.22)/60);
   const enhanced=workers>0||sites>1||business.manager||marketing>0||efficiency>0||
-   training!==1||country!==1;
-  income+=enhanced?Math.max(0,Math.ceil(base*mult*country-workers*.005)):base;
+   training!==1||profile.id!=='us';
+  income+=enhanced?Math.max(0,Math.ceil(base*mult-workers*.005)):base;
  }
  for(const price of e?.properties||[])if(Number.isFinite(price))income+=Math.floor(price/180000);
- return Math.max(0,Math.min(50_000_000,income));
+ for(const holding of e?.majorCompanies||[]){
+  const corp=MAJOR_CORPORATIONS.find(x=>x.id===holding?.type);
+  if(corp)income+=Math.floor(countryMargin(profile.id,corp.id,corp.rev,corp.expense)/60);
+ }
+ return Math.max(0,Math.min(250_000_000,income));
 }
 function addBadgeCounter(p,sector,metric,value){
  if(!p.enterprise||!byId(sector)||!Number.isFinite(value)||value<=0)return;
@@ -292,5 +330,5 @@ function score(player,period,now){
  const p=settle(player,now);
  return period==='day'?p.dayGain:period==='week'?p.weekGain:p.netWorth;
 }
-module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,
+module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
  byId,dayKey,weekKey,cleanName,valueOf,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
