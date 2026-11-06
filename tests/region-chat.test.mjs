@@ -36,7 +36,7 @@ function database(){
   }
  };
 }
-const region=(db,action,uid,worldId='world1',body={},env=null)=>
+const region=(db,action,uid,worldId='world1',body={},env={CHAT_MODERATOR_UIDS:'test-moderator'})=>
  dispatch(action,uid,body,db,worldId,env);
 const pauseRate=(db,id,uid)=>{
  db.mutate(id,s=>{s.players[uid].chatLastAt=Date.now()-25000});
