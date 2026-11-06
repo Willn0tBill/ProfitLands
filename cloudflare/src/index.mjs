@@ -32,7 +32,7 @@ const CHAT_REPORT_LIMIT=2;
 const CHAT_BLOCK_LIMIT=48;
 const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
  'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
- 'getChat','sendChat','reportMessage','blockChatUser','unblockChatUser',
+ 'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser','unblockChatUser',
  'getChatReports','moderateChat']);
 const RID=/^[0-9a-f]{32}$/;
 const UID=/^[A-Za-z0-9_-]{1,128}$/;
@@ -252,10 +252,12 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   return {ok:true,worldId,region:worldById(worldId).region,
     worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:CHAT_ENABLED,version:4,catalog:core.BUSINESS_TYPES};
  }
- if(action==='getChat'){
+ if(action==='getChat'||action==='getBlockedChatUsers'){
   const {state}=await rawWorld(db,false,worldId);
   const viewer=playerOf(state,uid);
-  return visibleChat(state,viewer,Date.now());
+  if(action==='getChat')return visibleChat(state,viewer,Date.now());
+  return (viewer.chatBlockedUids||[]).map(id=>state.players[id]&&
+   {uid:id,displayName:state.players[id].displayName}).filter(Boolean);
  }
  if(action==='getChatReports'){
   requireModerator(uid,env);
