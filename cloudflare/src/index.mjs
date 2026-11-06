@@ -9,7 +9,20 @@ import pvp from './pvp-rules.mjs';
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const ORIGINS=new Set(['https://willn0tbill.github.io','https://profitlands.winotbill.workers.dev']);
+// World 1 remains Americas, preserving the existing production ledger.
 const WORLD_ID=core.WORLD_ID;
+const WORLDS=Object.freeze([
+ {id:'world1',region:'Americas',label:'World 1 · Americas'},
+ {id:'world-europe',region:'Europe',label:'World 2 · Europe'},
+ {id:'world-asia',region:'Asia',label:'World 3 · Asia'}
+]);
+const worldById=id=>WORLDS.find(w=>w.id===id);
+function worldFor(id){
+ if(id===undefined)return WORLD_ID;
+ if(typeof id!=='string'||!worldById(id))
+  err('invalid-argument','Unknown world. Choose Americas, Europe or Asia.',400);
+ return id;
+}
 const CHAT_ENABLED=false; // Report/block/moderation must exist before enabling.
 const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
  'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
@@ -107,22 +120,22 @@ function validateState(obj){
   err('internal','World data is unavailable.',500);
  return obj;
 }
-async function rawWorld(db,init=false){
- let row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(WORLD_ID).first();
+async function rawWorld(db,init=false,worldId=WORLD_ID){
+ let row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(worldId).first();
  if(!row&&init){
   await db.prepare('INSERT OR IGNORE INTO world_state (id,version,payload) VALUES (?,0,?)')
-   .bind(WORLD_ID,JSON.stringify(blank())).run();
-  row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(WORLD_ID).first();
+   .bind(worldId,JSON.stringify(blank())).run();
+  row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(worldId).first();
  }
  if(!row)return {version:null,state:blank()};
  let state;
  try{state=validateState(JSON.parse(row.payload))}catch(e){err('internal','World data could not be read.',500)}
  return {version:Number(row.version),state};
 }
-async function transaction(db,change){
+async function transaction(db,change,worldId=WORLD_ID){
  if(!db?.prepare)err('unavailable','Cloudflare D1 is not configured. Bind the database as DB.',503);
  for(let tries=0;tries<10;tries++){
-  const {version,state}=await rawWorld(db,true);
+  const {version,state}=await rawWorld(db,true,worldId);
   if(!Number.isSafeInteger(version))err('internal','World state could not initialize.',500);
   const at=Date.now();
   const result=await change(state,at);
@@ -133,7 +146,7 @@ async function transaction(db,change){
   const packed=JSON.stringify(state);
   if(packed.length>900000)err('resource-exhausted','World 1 alpha has reached its storage cap.',503);
   const update=await db.prepare('UPDATE world_state SET version=version+1,payload=? WHERE id=? AND version=?')
-   .bind(packed,WORLD_ID,version).run();
+   .bind(packed,worldId,version).run();
   if(update?.meta?.changes===1)return result;
  }
  err('unavailable','World 1 is busy. Retry your action.',503);
@@ -143,8 +156,8 @@ function playerOf(state,uid){
  if(!p||p.uid!==uid)err('failed-precondition','Join World 1 before using online features.',409);
  return p;
 }
-function display(p){
- return {uid:p.uid,displayName:p.displayName,worldId:WORLD_ID,
+function display(p,worldId=WORLD_ID){
+ return {uid:p.uid,displayName:p.displayName,worldId,
   cash:p.cash,netWorth:core.worth(p),businesses:p.businesses,
   pvpEnabled:p.pvpEnabled===true,protectedUntil:p.protectedUntil||0,
   nextAttackAt:p.nextAttackAt||0,dayGain:p.dayGain||0,weekGain:p.weekGain||0};
@@ -183,25 +196,26 @@ function paid(state,uid,body,action,argument,apply,at){
 function settleAll(state,at){
  return Object.values(state.players).map(p=>core.settle(p,at));
 }
-function checkPlayerCount(state){
+function checkPlayerCount(state,worldId=WORLD_ID){
  if(Object.keys(state.players).length>=core.MAX_PLAYERS)
-  err('resource-exhausted','World 1 alpha is full.',503);
+  err('resource-exhausted',worldById(worldId).region+' world is full (64 players).',503);
 }
-async function dispatch(action,uid,body,db){
+async function dispatch(action,uid,body,db,worldId=WORLD_ID){
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
-  try{await rawWorld(db)}
+  try{await rawWorld(db,false,worldId)}
   catch(e){err('unavailable','World 1 database schema is not ready.',503)}
-  return {ok:true,worldId:WORLD_ID,chatEnabled:CHAT_ENABLED,version:2,catalog:core.BUSINESS_TYPES};
+  return {ok:true,worldId,region:worldById(worldId).region,
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:CHAT_ENABLED,version:3,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat')return [];
  if(action==='sendChat'||action==='reportMessage')
   err('failed-precondition','World chat is disabled pending moderation.',409);
  if(action==='getLeaderboard'||action==='getPlayers'||action==='me'){
-  const {state}=await rawWorld(db);
+  const {state}=await rawWorld(db,false,worldId);
   playerOf(state,uid);
   const at=Date.now();
-  if(action==='me')return {worldId:WORLD_ID,player:display(core.settle(state.players[uid],at))};
+  if(action==='me')return {worldId,player:display(core.settle(state.players[uid],at),worldId)};
   const list=settleAll(state,at);
   if(action==='getPlayers')return list.filter(p=>p.uid!==uid).map(publicRival).slice(0,63);
   if(!['day','week','all'].includes(body.period))err('invalid-argument','Unknown leaderboard period.');
@@ -211,12 +225,13 @@ async function dispatch(action,uid,body,db){
  if(action==='register'){
   const name=await alias(uid);
   return transaction(db,(state,at)=>{
-   if(state.players[uid])return {worldId:WORLD_ID,player:display(core.settle(state.players[uid],at)),created:false};
-   checkPlayerCount(state);
+   if(state.players[uid])return {worldId,player:display(core.settle(state.players[uid],at),worldId),created:false};
+   checkPlayerCount(state,worldId);
    const player=core.fresh(uid,name,at);
+   player.worldId=worldId;
    state.players[uid]=player;
-   return {worldId:WORLD_ID,player:display(player),created:true};
-  });
+   return {worldId,player:display(player,worldId),created:true};
+  },worldId);
  }
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
@@ -227,7 +242,7 @@ async function dispatch(action,uid,body,db){
     if(!result.ok)err('failed-precondition',result.error||'Purchase rejected.',409);
     requireValid(result.player);
     state.players[uid]=result.player;
-    return {player:display(result.player),cost:result.cost||0,replayed:false};
+    return {player:display(result.player,worldId),cost:result.cost||0,replayed:false};
    },at);
   }
   if(action==='togglePvP'){
@@ -235,7 +250,7 @@ async function dispatch(action,uid,body,db){
    if(p.pvpEnabled&&(p.nextAttackAt||0)>seconds)
     err('failed-precondition','Cannot disable PvP immediately after an attack.',409);
    p.pvpEnabled=!p.pvpEnabled;p.lastPvPSwitchAt=seconds;
-   state.players[uid]=p;return {player:display(p),cost:0};
+   state.players[uid]=p;return {player:display(p,worldId),cost:0};
   }
   if(action==='requestDefense'){
    return paid(state,uid,body,action,null,()=>{
@@ -243,7 +258,7 @@ async function dispatch(action,uid,body,db){
     if(!result.ok)err('failed-precondition','Defense blocked: '+result.reason,409);
     result.player.dayGain-=result.cost;result.player.weekGain-=result.cost;
     state.players[uid]=result.player;
-    return {ok:true,replayed:false,event:result.event,player:display(result.player)};
+    return {ok:true,replayed:false,event:result.event,player:display(result.player,worldId)};
    },at);
   }
   if(action==='requestAttack'){
@@ -263,11 +278,11 @@ async function dispatch(action,uid,body,db){
     result.attacker.dayGain-=result.cost;result.attacker.weekGain-=result.cost;
     state.players[uid]=result.attacker;
     state.players[body.targetUid]=result.defender;
-    return {ok:true,replayed:false,event:result.event,player:display(result.attacker)};
+    return {ok:true,replayed:false,event:result.event,player:display(result.attacker,worldId)};
    },at);
   }
   err('invalid-argument','Unknown world operation.');
- });
+ },worldId);
 }
 export default {
  async fetch(request,env){
@@ -293,8 +308,9 @@ export default {
    }
    if(!body||typeof body!=='object'||!ALL_ACTIONS.has(body.action))
     err('invalid-argument','Unknown world action.');
+   const worldId=worldFor(request.method==='GET'?url.searchParams.get('worldId')||undefined:body.worldId);
    const uid=body.action==='health'?null:await identity(request);
-   const data=await dispatch(body.action,uid,body,env?.DB);
+   const data=await dispatch(body.action,uid,body,env?.DB,worldId);
    return json(request,data);
   }catch(e){
    const failure=e instanceof ApiError?e:new ApiError('internal','World 1 request failed.',500);
@@ -303,4 +319,4 @@ export default {
   }
  }
 };
-export {verifyFirebase,dispatch,transaction,rawWorld};
+export {verifyFirebase,dispatch,transaction,rawWorld,WORLDS,worldFor};
