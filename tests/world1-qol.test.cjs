@@ -158,3 +158,21 @@ test('opt-in auto-sync respects a visible active World view and 2-minute interva
  h.element('worldAutoSync').onclick();
  assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),false);
 });
+
+test('online upgrade buttons require server-verified affordability and respect the level cap',async()=>{
+ const base={uid:'qa-player',cash:700,netWorth:1200,pvpEnabled:false,protectedUntil:0,nextAttackAt:0,
+  businesses:[{type:'coffee',level:1}]};
+ const h=harness({player:base});h.window.ProfitLandsWorld.render();await h.settle();
+ let button=h.buttons('worldStore','world-upgrade')[0];
+ assert.equal(button.disabled,true,'$700 cannot pay an $875 first upgrade');
+ assert.match(h.element('worldStore').innerHTML,/Need \$175 more online cash/);
+ h.setPlayer({...base,cash:900,netWorth:1400});
+ h.setTime(1_012_000);await h.window.ProfitLandsWorld.refresh();await h.settle();
+ button=h.buttons('worldStore','world-upgrade')[0];
+ assert.equal(button.disabled,false,'$900 can pay a $875 first upgrade');
+ h.setPlayer({...base,cash:900000,netWorth:900000,businesses:[{type:'coffee',level:30}]});
+ h.setTime(1_024_000);await h.window.ProfitLandsWorld.refresh();await h.settle();
+ button=h.buttons('worldStore','world-upgrade')[0];
+ assert.equal(button.disabled,true,'level 30 is the server upgrade cap');
+ assert.match(h.element('worldStore').innerHTML,/Max level/);
+});
