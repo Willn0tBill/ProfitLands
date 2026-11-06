@@ -1,6 +1,6 @@
 # ProfitLands World 1 — Multiplayer design / implementation status
 
-**State: CLIENT SHELL + SERVER-SIDE GAME-RULE HELPERS, NOT A LIVE MULTIPLAYER SERVER.**
+**State (November 6, 2026): World 1 Cloudflare Worker + D1 backend deployed; public health check returns `ok: true`, `worldId: world1`. Authenticated two-account gameplay and production load testing still require live acceptance checks.**
 
 The browser now has a multiplayer-only World hub, money leaderboards, PvP action choices, and a bottom-right chat dock. No fake players, rankings, chat messages, payments or attacks are generated. The widgets stay offline while a trusted backend is unavailable.
 
