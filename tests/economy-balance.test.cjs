@@ -415,3 +415,28 @@ test('new games start with full action budgets; automatic cycles add a capped pa
   assert.ok(economy.includes('state.actions=Math.min(actionCap,state.actions+cycleRefill)'));
   assert.ok(economy.includes('ProfitLandsBalance?.reset'));
 });
+
+test('World 1 entry delegates to the online game route without resetting the local empire',()=>{
+ const source=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+ const from=source.indexOf('const originalStart=window.startProfitLands;');
+ const to=source.indexOf('// Market cycles advance',from);
+ assert.ok(from>0&&to>from,'economy startup delegate must be present');
+ const code=source.slice(from,to);
+ const calls=[];
+ const state={mode:'standard',playType:'multi'};
+ const document={getElementById:()=>({classList:{
+  remove:()=>calls.push('hideHome'),add:()=>calls.push('showGame')
+ }})};
+ const window={startProfitLands:()=>calls.push('onlineStart'),
+  profitLandsPlatform:{gameplayStart:()=>calls.push('platform')}};
+ vm.runInNewContext(code,{state,document,window,
+  reset:()=>calls.push('resetSolo'),render:()=>calls.push('renderSolo'),
+  startTimer2:()=>calls.push('timerSolo')});
+ window.startProfitLands();
+ assert.deepEqual(calls,['onlineStart'],'never replace the World 1 route with a local economy reset');
+ calls.length=0;
+ state.playType='single';
+ window.startProfitLands();
+ assert.deepEqual(calls,['resetSolo','hideHome','showGame','renderSolo','timerSolo','platform'],
+  'singleplayer start must keep the existing realtime startup');
+});
