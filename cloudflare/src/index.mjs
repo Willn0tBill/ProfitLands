@@ -5,6 +5,9 @@
  */
 import core from './world-core.mjs';
 import pvp from './pvp-rules.mjs';
+import enterprise from './world-enterprise.mjs';
+import achievements from './world-achievements.mjs';
+import {censorChat} from './chat-filter.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -26,15 +29,16 @@ function worldFor(id){
 // Limited text chat beta: server-moderated, rate-limited, region-scoped and
 // automatically concealed after independent reports. Never display HTML.
 const CHAT_ENABLED=true;
-// Require a trusted moderator account before opening a public chat.
-const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true'&&
- String(env?.CHAT_MODERATOR_UIDS||'').split(',').some(uid=>UID.test(uid.trim()));
+// Chat works with automatic filtering and self-service reports/blocks.
+// Optional trusted moderator accounts retain restricted review and removal tools.
+const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true';
 const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
 const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
 const CHAT_BLOCK_LIMIT=48;
-const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers',
- 'buyBusiness','upgradeBusiness','togglePvP','requestAttack','requestDefense',
+const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers','getListings',
+ 'buyListedCompany',
+ 'buyBusiness','upgradeBusiness','enterpriseAction','togglePvP','requestAttack','requestDefense',
  'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser','unblockChatUser',
  'getChatReports','moderateChat']);
 const RID=/^[0-9a-f]{32}$/;
@@ -169,6 +173,8 @@ function playerOf(state,uid){
 function display(p,worldId=WORLD_ID){
  return {uid:p.uid,displayName:p.displayName,worldId,
   cash:p.cash,netWorth:core.worth(p),businesses:p.businesses,
+   incomePerSecond:core.perSecond(p),enterprise:enterprise.summary(p),
+   achievements:achievements.summary(p),
   pvpEnabled:p.pvpEnabled===true,protectedUntil:p.protectedUntil||0,
   nextAttackAt:p.nextAttackAt||0,dayGain:p.dayGain||0,weekGain:p.weekGain||0};
 }
@@ -218,10 +224,12 @@ function chatText(raw){
   .replace(/\s+/g,' ').trim();
  if(text.length<2||text.length>CHAT_TEXT_LIMIT)
   err('invalid-argument','Messages must contain 2–160 characters.');
- const unsafe=/https?:\/\/|www\.|\b\S+@\S+\.\S+\b|\b(?:discord|snapchat|telegram|whatsapp|instagram|tiktok)\b|\b(?:dm me|send your number|my phone|my address|meet me at)\b|(?:\+?\d[\s().-]?){8,}|\b(?:nigger|faggot|kys|kill yourself|rape|go die|fuck|bitch|cunt)\b/i;
- if(unsafe.test(text))err('invalid-argument','Message blocked by chat safety rules. Keep chat respectful and do not share contact details.');
+ const unsafe=/https?:\/\/|www\.|\b\S+@\S+\.\S+\b|\b(?:discord|snapchat|telegram|whatsapp|instagram|tiktok)\b|\b(?:dm me|send your number|my phone|my address|meet me at)\b|(?:\+?\d[\s().-]?){8,}|\b(?:rape)\b/i;
+ if(unsafe.test(text))err('invalid-argument','Message blocked: do not post links, contact details or unsafe content.');
  if(/(.)\1{11,}/u.test(text))err('invalid-argument','Please avoid repetitive spam.');
- return text;
+ const screened=censorChat(text);
+ if(screened.blocked)err('invalid-argument','Targeted harassment is not allowed in chat.');
+ return screened;
 }
 function chatMessages(state){
  if(!Array.isArray(state.chat))state.chat=[];
@@ -258,7 +266,8 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   try{await rawWorld(db,false,worldId)}
   catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId,region:worldById(worldId).region,
-    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:4,catalog:core.BUSINESS_TYPES};
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:5,
+    enterpriseEnabled:true,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat'||action==='getBlockedChatUsers'){
   const {state}=await rawWorld(db,false,worldId);
@@ -275,6 +284,22 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    .slice(-40).map(m=>({...publicChatMessage(m),reportCount:m.reports.length,hidden:m.hidden===true}));
  }
 
+ if(action==='getListings'){
+  const {state}=await rawWorld(db,false,worldId);
+  playerOf(state,uid);
+  const at=Date.now(),entries=[];
+  for(const seller of Object.values(state.players)){
+   for(const [index,b] of (seller.businesses||[]).entries()){
+    const listing=b.listing;
+    if(!listing||!Number.isSafeInteger(listing.price)||listing.price<1||
+     !Number.isFinite(listing.expiresAt)||listing.expiresAt<=at)continue;
+    entries.push({sellerUid:seller.uid,displayName:seller.displayName,
+     index,type:b.type,level:b.level,price:listing.price,
+     sites:b.sites?.length||1,expiresAt:listing.expiresAt});
+   }
+  }
+  return entries.sort((a,b)=>a.price-b.price||a.sellerUid.localeCompare(b.sellerUid)).slice(0,60);
+ }
  if(action==='getLeaderboard'||action==='getPlayers'||action==='me'){
   const {state}=await rawWorld(db,false,worldId);
   playerOf(state,uid);
@@ -300,7 +325,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
   if(action==='sendChat'){
-   const text=chatText(body.text);
+   const screened=chatText(body.text),text=screened.text;
    if(Number(p.chatMutedUntil||0)>at)
     err('permission-denied','Chat is temporarily unavailable on this account.',403);
    if(Number(p.chatLastAt||0)>at-CHAT_COOLDOWN_MS)
@@ -311,6 +336,14 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    const item={id:crypto.randomUUID(),uid,displayName:p.displayName,
     text,at,reports:[],hidden:false};
    state.chat.push(item);state.chat=state.chat.slice(-CHAT_LIMIT);
+   // Store only the masked text, and automatically mute repeated slurs.
+   if(screened.slurs){
+    const previous=Number(p.chatAbuseWindowAt||0);
+    const priorStrikes=Number(p.chatAbuseStrikes||0);
+    p.chatAbuseStrikes=(at-previous>600000?0:Math.max(0,priorStrikes))+screened.slurs;
+    p.chatAbuseWindowAt=at;
+    if(p.chatAbuseStrikes>=2)p.chatMutedUntil=at+600000;
+   }
    p.chatLastAt=at;p.chatLastText=text;state.players[uid]=p;
    return publicChatMessage(item);
   }
@@ -357,8 +390,86 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
      core.upgradeBusiness(p,body.index,at);
     if(!result.ok)err('failed-precondition',result.error||'Purchase rejected.',409);
     requireValid(result.player);
+    if(action==='upgradeBusiness'){
+     const sector=result.player.businesses?.[body.index]?.type;
+     if(sector)achievements.record(result.player,sector,'upgrades',1);
+    }
     state.players[uid]=result.player;
     return {player:display(result.player,worldId),cost:result.cost||0,replayed:false};
+   },at);
+  }
+  if(action==='buyListedCompany'){
+   if(typeof body.sellerUid!=='string'||!UID.test(body.sellerUid)||body.sellerUid===uid||
+    !Number.isSafeInteger(body.index)||body.index<0||body.index>=40||
+    !Number.isSafeInteger(body.maxPrice)||body.maxPrice<1)
+    err('invalid-argument','Choose a valid regional company listing.');
+   const argument={sellerUid:body.sellerUid,index:body.index,maxPrice:body.maxPrice};
+   return paid(state,uid,body,action,argument,()=>{
+    const seller=core.settle(playerOf(state,body.sellerUid),at);
+    const company=seller.businesses[body.index],listing=company?.listing;
+    if(!company||!listing||!Number.isSafeInteger(listing.price)||listing.price<100||
+     listing.expiresAt<=at)err('failed-precondition','Company listing is no longer available.',409);
+    if(listing.price>body.maxPrice)err('failed-precondition','Company asking price changed.',409);
+    if(p.businesses.length>=40)err('resource-exhausted','Your online company limit has been reached.',409);
+    if(p.cash<listing.price||seller.cash>core.MAX_CASH-listing.price)
+     err('failed-precondition','Transaction cannot be funded.',409);
+    const buyerBefore=core.worth(p),sellerBefore=core.worth(seller);
+    const buyerDay=p.dayGain,buyerWeek=p.weekGain;
+    const sellerDay=seller.dayGain,sellerWeek=seller.weekGain;
+    if(!core.debit(p,listing.price))err('failed-precondition','Not enough cash.',409);
+    core.credit(seller,listing.price);
+    const transferred={...company,sites:Array.isArray(company.sites)?
+     company.sites.map(site=>({...site})):undefined};
+    delete transferred.listing;
+    seller.businesses.splice(body.index,1);
+    p.businesses.push(transferred);
+    p.dayGain=buyerDay+core.worth(p)-buyerBefore;
+    p.weekGain=buyerWeek+core.worth(p)-buyerBefore;
+    seller.dayGain=sellerDay+core.worth(seller)-sellerBefore;
+    seller.weekGain=sellerWeek+core.worth(seller)-sellerBefore;
+    requireValid(p);requireValid(seller);
+    state.players[uid]=p;
+    state.players[body.sellerUid]=seller;
+    return {ok:true,replayed:false,cost:listing.price,player:display(p,worldId),
+     acquired:{type:transferred.type,level:transferred.level}};
+   },at);
+  }
+  if(action==='enterpriseAction'){
+   if(typeof body.operation!=='string'||body.operation.length>40)
+    err('invalid-argument','Choose a supported online enterprise operation.');
+   const allowed=new Set(['hireStaff','appointManager','runMarketing','upgradeEfficiency',
+    'openBranch','upgradeBranch','restockBranch','setAutoRestock','setPrice',
+    'warehouseOrder','deliverWarehouseStock','setSupplyRoute','clearSupplyRoute','buyWarehouse',
+    'buyTruck','buyResearch','buyShares','sellShares','borrowLoan','repayLoan',
+    'listCompany','cancelCompanyListing',
+    'buyProperty','setCountry','claimContract']);
+   if(!allowed.has(body.operation))err('invalid-argument','Unknown enterprise operation.');
+   const args={
+    index:body.index,site:body.site,quantity:body.quantity,enabled:body.enabled,
+    percent:body.percent,price:body.price,
+    stockId:body.stockId,amount:body.amount,researchId:body.researchId,country:body.country
+   };
+   return paid(state,uid,body,action,{operation:body.operation,args},()=>{
+    const worthBefore=core.worth(p);
+    const result=enterprise.apply(p,body.operation,args,at);
+    if(!result.ok)err('failed-precondition','Online operation blocked: '+result.error,409);
+    const next=result.player;
+    requireValid(next);
+    const sector=next.businesses?.[args.index]?.type;
+    if(sector){
+     if(body.operation==='hireStaff')achievements.record(next,sector,'hired',args.quantity);
+     if(body.operation==='runMarketing')achievements.record(next,sector,'campaigns',1);
+     if(body.operation==='upgradeEfficiency')achievements.record(next,sector,'optimizations',1);
+     if(body.operation==='upgradeBranch')achievements.record(next,sector,'upgrades',1);
+     if(body.operation==='restockBranch')achievements.record(next,sector,'inventory',args.quantity);
+    }
+    // Net-worth ranking changes must not classify borrowing or trading as gains.
+    const delta=core.worth(next)-worthBefore;
+    next.dayGain=p.dayGain+delta;
+    next.weekGain=p.weekGain+delta;
+    state.players[uid]=next;
+    return {ok:true,replayed:false,operation:body.operation,
+     cost:result.cost||0,reward:result.reward||0,player:display(next,worldId)};
    },at);
   }
   if(action==='togglePvP'){

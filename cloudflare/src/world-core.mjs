@@ -33,23 +33,72 @@ const cleanName=value=>{
  if(/\b(fuck|shit|bitch|cunt|nigger|faggot)\b/i.test(text))return 'Tycoon';
  return text;
 };
-const clone=p=>({...p,businesses:(p.businesses||[]).map(b=>({...b}))});
+const clone=p=>({...p,
+ businesses:(p.businesses||[]).map(b=>({...b,
+  sites:Array.isArray(b.sites)?b.sites.map(site=>({...site})):undefined})),
+ enterprise:p.enterprise?{...p.enterprise,stocks:{...(p.enterprise.stocks||{})},
+  properties:[...(p.enterprise.properties||[])],research:[...(p.enterprise.research||[])],
+  metrics:{...(p.enterprise.metrics||{})}}:undefined
+});
 const valueOf=business=>{
  const def=byId(business.type);
  if(!def||!Number.isSafeInteger(business.level)||business.level<1||business.level>30)return 0;
  return Math.round(def.cost*(1+(business.level-1)*.15));
 };
+const SHARE_BASE=Object.freeze({nova:42.5,harbor:24.8,atlas:67.2,skyline:31.4});
 function worth(p){
- return Math.min(MAX_CASH,Number(p.cash||0)+(p.businesses||[]).reduce((total,b)=>total+valueOf(b),0));
+ let value=Number(p.cash||0);
+ for(const b of p.businesses||[]){
+  value+=valueOf(b);
+  const def=byId(b.type);
+  if(def&&Array.isArray(b.sites)){
+   value+=Math.max(0,b.sites.length-1)*Math.round(def.cost*1.5);
+   for(const site of b.sites)value+=Math.max(0,Number(site.level||1)-1)*Math.round(def.cost*.12);
+  }
+ }
+ const e=p.enterprise;
+ if(e){
+  for(const [id,base] of Object.entries(SHARE_BASE)){
+   const count=Number(e.stocks?.[id]||0);
+   if(Number.isSafeInteger(count)&&count>=0&&count<=1000000)value+=Math.floor(count*base);
+  }
+  for(const price of e.properties||[])if(Number.isSafeInteger(price)&&price>0)value+=price;
+  value+=Math.max(0,Number(e.warehouse||0))*10000;
+  value+=Math.max(0,Number(e.trucks||0))*5000;
+  value-=Math.max(0,Number(e.loanDebt||0));
+ }
+ return Math.max(0,Math.min(MAX_CASH,Math.round(value)));
 }
 function perSecond(p){
  let income=0;
+ const e=p.enterprise;
+ const foreign={us:1,ca:1.01,mx:1.04,br:1.06,gb:1.03,de:1.02,fr:1.02,
+  es:1.03,jp:1.04,cn:1.05,kr:1.04,au:1.02,in:1.07,sg:1.04,za:1.05};
+ const country=foreign[e?.country]||1;
  for(const business of p.businesses||[]){
   const def=byId(business.type);
   if(!def||!Number.isSafeInteger(business.level)||business.level<1||business.level>30)continue;
-  income+=Math.floor(def.baseProfit*(1+(business.level-1)*.22)/60);
+  const sites=Array.isArray(business.sites)?Math.max(1,business.sites.length):1;
+  const workers=Math.max(0,Math.min(100,Number(business.workers||0)));
+  const marketing=Math.max(0,Math.min(30,Number(business.marketing||0)));
+  const efficiency=Math.max(0,Math.min(30,Number(business.efficiency||0)));
+  const training=e?.research?.includes('workforce')?1.1:1;
+  const mult=Math.min(12,(1+(sites-1)*.65)*(1+workers*.018)*training*
+   (business.manager?1.18:1)*(1+marketing*.015)*(1+efficiency*.014));
+  const base=Math.floor(def.baseProfit*(1+(business.level-1)*.22)/60);
+  const enhanced=workers>0||sites>1||business.manager||marketing>0||efficiency>0||
+   training!==1||country!==1;
+  income+=enhanced?Math.max(0,Math.ceil(base*mult*country-workers*.005)):base;
  }
+ for(const price of e?.properties||[])if(Number.isFinite(price))income+=Math.floor(price/180000);
  return Math.max(0,Math.min(50_000_000,income));
+}
+function addBadgeCounter(p,sector,metric,value){
+ if(!p.enterprise||!byId(sector)||!Number.isFinite(value)||value<=0)return;
+ if(!p.enterprise.badgeCounters)p.enterprise.badgeCounters={};
+ const counters=p.enterprise.badgeCounters[sector]||{};
+ counters[metric]=Math.min(Number.MAX_SAFE_INTEGER,Math.max(0,Number(counters[metric]||0))+value);
+ p.enterprise.badgeCounters[sector]=counters;
 }
 function fresh(uid,displayName,now){
  if(!uid||!time(now))throw Error('invalid_new_player');
@@ -94,6 +143,7 @@ function settle(player,now){
   ?p.incomeMilliRemainder:0;
  // Keep hundredths of a millidollar too. Repeated 1ms polls must not erase
  // 12%, 20% or 30% PvP-discounted earnings.
+ let passiveEarned=0;
  let subMilliRemainder=Number.isSafeInteger(p.incomeSubMilliRemainder)&&p.incomeSubMilliRemainder>=0&&p.incomeSubMilliRemainder<100
   ?p.incomeSubMilliRemainder:0;
  while(cursor<now){
@@ -118,9 +168,70 @@ function settle(player,now){
    const totalMilli=milliRemainder+milliEarned;
    const earned=Math.floor(totalMilli/1000);
    milliRemainder=totalMilli%1000;
-   if(earned>0)credit(p,earned);
+   if(earned>0)passiveEarned+=credit(p,earned);
   }
   cursor=next;
+ }
+ if(passiveEarned>0&&p.enterprise){
+  const weights=new Map();
+  for(const b of p.businesses||[]){const def=byId(b.type);
+   if(def)weights.set(b.type,(weights.get(b.type)||0)+def.baseProfit*(1+(b.level-1)*.22));}
+  const total=[...weights.values()].reduce((sum,n)=>sum+n,0);
+  if(total>0)for(const [sector,weight] of weights)addBadgeCounter(p,sector,'earnings',passiveEarned*weight/total);
+ }
+ // Each branch sells a bounded amount of already-purchased inventory per minute.
+ // This part is also deterministic across refreshes and reconnects.
+ const e=p.enterprise;
+ if(e&&(e.route||p.businesses?.some(b=>Array.isArray(b.sites)&&b.sites.some(s=>Number(s.stock)>0||s.autoRestock)))){
+  const prior=Number(e.lastInventoryAt);
+  const last=Number.isFinite(prior)&&prior>=0&&prior<=now?prior:now;
+  const minutes=Math.min(360,Math.floor((now-last)/60000));
+  e.lastInventoryAt=last+minutes*60000;
+  if(minutes>0){
+   for(const b of p.businesses){
+    const catalog=byId(b.type);
+    if(!catalog||!Array.isArray(b.sites))continue;
+    for(const site of b.sites){
+     const unitCost=Math.max(1,Math.ceil(catalog.cost*.0005));
+     const units=Math.min(Math.max(0,Number(site.stock||0)),minutes*Math.max(1,Math.min(5,Number(site.level||1))));
+     if(units>0){
+      site.stock-=units;
+      const priceFactor=Math.max(.5,Math.min(2,Number(site.price||100)/100));
+      const revenue=units*Math.max(2,Math.round(unitCost*1.5*priceFactor));
+      const actual=credit(p,Math.min(MAX_CASH,revenue));
+      addBadgeCounter(p,b.type,'sales',units);
+      addBadgeCounter(p,b.type,'earnings',actual);
+     }
+     if(site.autoRestock&&e.research?.includes('automation')&&site.stock<20){
+      const quantity=Math.min(100,5000-site.stock);
+      const amount=unitCost*quantity;
+      if(Number.isSafeInteger(amount)&&debit(p,amount)){
+       site.stock+=quantity;
+       if(e.metrics)e.metrics.supplyOrders=(Number(e.metrics.supplyOrders)||0)+quantity;
+      }
+     }
+    }
+   }
+   const route=e.route;
+   if(route&&e.trucks>0&&e.research?.includes('logistics')&&
+    Number.isSafeInteger(route.index)&&Number.isSafeInteger(route.site)){
+    const target=p.businesses?.[route.index]?.sites?.[route.site];
+    if(target){
+     const deliver=Math.max(0,Math.min(Number(e.warehouseStock||0),
+      Math.min(minutes,30)*Math.max(1,Math.min(100,Number(route.quantity||0))),5000-target.stock));
+     if(Number.isSafeInteger(deliver)&&deliver>0){target.stock+=deliver;e.warehouseStock-=deliver}
+    }
+   }
+  }
+ }
+ if(e){
+  const cycleAt=Number.isFinite(Number(e.lastBadgeCycleAt))?Number(e.lastBadgeCycleAt):
+   Math.max(0,Number(p.createdAtSeconds||0)*1000);
+  const cycles=Math.min(360,Math.max(0,Math.floor((now-cycleAt)/60000)));
+  if(cycles>0){
+   for(const sector of new Set((p.businesses||[]).map(b=>b.type)))addBadgeCounter(p,sector,'cycles',cycles);
+   e.lastBadgeCycleAt=cycleAt+cycles*60000;
+  }
  }
  periodRoll(p,now);
  p.lastSettledAt=now;

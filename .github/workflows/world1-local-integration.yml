@@ -8,6 +8,9 @@ on:
       - 'world1-config.js'
       - 'tests/cloudflare-world.test.mjs'
       - 'tests/world-adapter-retry.test.cjs'
+      - 'tests/world-enterprise.test.mjs'
+      - 'tests/chat-filter.test.mjs'
+      - 'tests/region-chat.test.mjs'
       - '.github/workflows/world1-local-integration.yml'
   push:
     branches: [main]
@@ -17,6 +20,9 @@ on:
       - 'world1-config.js'
       - 'tests/cloudflare-world.test.mjs'
       - 'tests/world-adapter-retry.test.cjs'
+      - 'tests/world-enterprise.test.mjs'
+      - 'tests/chat-filter.test.mjs'
+      - 'tests/region-chat.test.mjs'
       - '.github/workflows/world1-local-integration.yml'
   workflow_dispatch:
 
@@ -36,6 +42,6 @@ jobs:
       - name: Install local Cloudflare build tool
         run: npm --prefix cloudflare install --no-audit --no-fund
       - name: Run server and client behavior tests
-        run: node --test tests/cloudflare-world.test.mjs tests/world-adapter-retry.test.cjs
+        run: node --test tests/cloudflare-world.test.mjs tests/world-adapter-retry.test.cjs tests/world-enterprise.test.mjs tests/chat-filter.test.mjs tests/region-chat.test.mjs
       - name: Start actual Cloudflare Worker with clean D1 and verify API
         run: npm --prefix cloudflare run smoke:local

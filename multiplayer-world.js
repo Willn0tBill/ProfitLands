@@ -138,7 +138,7 @@ function renderRules(){
  return '<div class="pl-online-info"><h4>World 1 alpha rules</h4>'+
   '<p>Americas, Europe and Asia each have their own server-owned cash, shops, purchases and rankings, with 64 accounts per world, 40 businesses per player, and six hours of offline earnings. Switching regions does not transfer money or shops.</p>'+
   '<p>PvP is optional, spends in-game money and has newcomer protection, cooldowns and temporary shields. Attacks reduce earnings for a limited time; they do not delete businesses or steal saved games.</p>'+
-  '<p>Chat is disabled until reporting, blocking and moderation are ready. Automatic World 1 refresh is opt-in to protect the free server quota.</p></div>';
+  '<p>Regional chat masks profanity automatically and provides reporting, player blocking, spam protection and an emergency shutdown. Automatic World refresh is opt-in to protect the free server quota.</p></div>';
 }
 function leaderboardRows(rows){
  if(!Array.isArray(rows)||!rows.length)return '<p class="pl-online-empty">No verified scores for this period.</p>';
@@ -244,6 +244,7 @@ async function loadEmpire(){
    '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are separate from your local singleplayer save. Earnings settle on the server; use Refresh World to see new purchasing options.</p>';
   root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));
   root.querySelectorAll('[data-world-upgrade]').forEach(button=>button.onclick=()=>changeEmpire('upgrade',Number(button.dataset.worldUpgrade)));
+  window.ProfitLandsWorldExtended?.render?.(player,root);
   pvpStatus();updateButtons();
   return true;
  }catch(e){if(stamp===empireStamp&&root===$('worldStore'))root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150);return false}
@@ -326,12 +327,12 @@ function updateChat(){
  dock.hidden=!active();if(!active())return;
  const ready=connected()&&online()?.chatEnabled?.()===true;
  const input=$('worldChatInput'),send=$('worldChatSend');
- if(input){input.disabled=!ready;input.maxLength=160;input.placeholder=ready?'Message '+region().region+' (160 characters max)':connected()?'Chat opens after moderator setup':'Connect to regional chat first'}
+ if(input){input.disabled=!ready;input.maxLength=160;input.placeholder=ready?'Message '+region().region+' (160 characters max)':connected()?'Chat is temporarily unavailable':'Connect to regional chat first'}
  if(send)send.disabled=!ready;
  const status=$('worldChatStatus');
- if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · no links or personal details':connected()?'Regional chat is awaiting a trusted moderator.':'Connect to your world to chat';
+ if(status)status.textContent=ready?region().region+' chat · 20-second cooldown · profanity auto-masked · report/block available':connected()?'Regional chat is temporarily unavailable.':'Connect to your world to chat';
  const list=$('worldChatMessages');
- if(list&&!ready)list.textContent=connected()?'Regional chat will open once a moderator is assigned.':'Connect to a regional world to view chat.';
+ if(list&&!ready)list.textContent=connected()?'Regional chat is temporarily unavailable.':'Connect to a regional world to view chat.';
  if(!ready&&$('worldChatModerator'))$('worldChatModerator').hidden=true;
 }
 const chatStatus=text=>{const el=$('worldChatStatus');if(el)el.textContent=String(text).slice(0,170)};
