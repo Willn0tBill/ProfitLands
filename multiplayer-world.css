@@ -106,3 +106,16 @@ body.pl-online-world #gameScreen .pl-workspace-advanced-nav{display:none!importa
 #worldStore .pl-online-market button:disabled strong{color:#bfd0df}
 #worldShield:disabled,#worldPvpToggle:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:560px){#worldPanel .pl-world-sync-controls{align-items:stretch}#worldPanel .pl-world-sync-controls button{flex:1 1 130px}#worldLastSynced{flex-basis:100%}}
+
+/* Three geographically labeled, independent D1 ledgers. */
+#worldPanel .pl-world-region-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:3px 0 6px}
+#worldPanel .pl-world-region-switch button{cursor:pointer;min-height:74px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:13px 15px;color:#d6e6fa;background:linear-gradient(145deg,#223350,#1b253d);border:1px solid #567097;border-radius:12px;font:inherit;transition:border-color .18s,background .18s,transform .18s}
+#worldPanel .pl-world-region-switch button strong{font-size:14px;color:#faf5d2}
+#worldPanel .pl-world-region-switch button small{font-size:11px;color:#bdcde3}
+#worldPanel .pl-world-region-switch button[aria-pressed="true"]{background:linear-gradient(135deg,#315748,#254255);border:2px solid #b6f474;box-shadow:inset 0 0 0 1px #b6f47429}
+#worldPanel .pl-world-region-switch button:hover{border-color:#ffe39e;transform:translateY(-1px)}
+#worldPanel .pl-world-region-switch button:focus-visible{outline:3px solid #ffe096;outline-offset:2px}
+#worldPanel .pl-world-region-note{margin:4px 0 13px;color:#b9cbe2}
+@media(max-width:560px){#worldPanel .pl-world-region-switch{gap:6px}#worldPanel .pl-world-region-switch button{min-height:68px;padding:9px 7px}#worldPanel .pl-world-region-switch button strong{font-size:12px}#worldPanel .pl-world-region-switch button small{font-size:9px;line-height:1.3}}
+@media(prefers-reduced-motion:reduce){#worldPanel .pl-world-region-switch button{transition:none;transform:none!important}}
+html.pl-reduced-motion #worldPanel .pl-world-region-switch button{transition:none;transform:none!important}

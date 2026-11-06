@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="../quick-switch.css?v=wtvi01" />
   <link rel="stylesheet" href="../save-center.css?v=save01" />
   <link rel="stylesheet" href="../clans.css?v=clans01" />
-  <link rel="stylesheet" href="../multiplayer-world.css?v=worldqol01" />
+  <link rel="stylesheet" href="../multiplayer-world.css?v=regions01" />
   <link rel="stylesheet" href="../game-experience.css?v=tycoon01" />
   <link rel="stylesheet" href="../game-motion-v2.css?v=motion03" />
   <link rel="stylesheet" href="../game-feedback-v4.css?v=feedback04" />
@@ -101,7 +101,7 @@
       <p class="country-tax-note">Tax, inflation, GDP and price-level inputs use published economic data. APR, demand and sector advantages are simulation values derived from those inputs.</p>
     </details>
   </section>
-  <div id="multiNotice" class="info-box hidden"><b>World 1 multiplayer alpha</b><span>World 1 uses a separate server-owned balance. Joining requires a signed-in account and a deployed Cloudflare World 1 server. Your singleplayer save is untouched; World chat stays disabled pending moderation.</span></div>
+  <div id="multiNotice" class="info-box hidden"><b>Three regional multiplayer worlds</b><span>Choose Americas, Europe or Asia in the World screen. Each region has independent in-game money, PvP and leaderboards, with up to 64 registered accounts. Your singleplayer save is untouched; chat stays disabled pending moderation.</span></div>
   <div class="play-entry-actions"><button id="startGame" type="button" class="primary-button">Create My Empire <span>→</span></button><button id="openTutorialHome" type="button" class="secondary-button">How to play</button><a class="secondary-button" href="../">Back to Homepage</a></div>
   <p class="local-note">Progress is saved to this device, and to your ProfitLands account when connected.</p>
 </section>
@@ -152,7 +152,7 @@
   <div id="arcadeContent" aria-label="Business Arcade games" aria-live="polite"></div>
 </section>
 <section id="worldPanel" class="panel pl-world-panel" aria-label="Multiplayer world">
- <div class="panel-head"><div><span class="eyebrow">MULTIPLAYER WORLD</span><h3>World 1 · Tycoon Arena</h3></div><span class="live-tag">SERVER STATUS</span></div>
+ <div class="panel-head"><div><span class="eyebrow">MULTIPLAYER WORLD</span><h3 id="worldPanelHeading">World 1 · Americas · Tycoon Arena</h3></div><span class="live-tag">SERVER STATUS</span></div>
  <div id="worldContent" aria-live="polite"><p class="pl-online-note">The world server is not connected.</p></div>
 </section>
 <section id="clanPanel" class="panel pl-clan-panel" aria-label="Player clans">
@@ -318,7 +318,7 @@
   <aside id="worldChatDock" class="pl-world-chat-dock" hidden aria-label="Multiplayer world chat">
     <button type="button" id="worldChatToggle" class="pl-world-chat-toggle" aria-controls="worldChatPanel" aria-expanded="false">💬 World Chat</button>
     <section id="worldChatPanel" class="pl-world-chat-panel" hidden aria-label="World chat messages">
-      <header><strong>🌎 World 1 Chat</strong><button type="button" id="worldChatClose" aria-label="Close chat">×</button></header>
+      <header><strong>🌎 Regional Chat (disabled)</strong><button type="button" id="worldChatClose" aria-label="Close chat">×</button></header>
       <p id="worldChatStatus" role="status">Offline preview</p>
       <div id="worldChatMessages" class="pl-world-chat-messages" role="log" aria-live="polite">Chat requires the online server.</div>
       <form id="worldChatForm"><label for="worldChatInput">World message</label><input id="worldChatInput" maxlength="220" autocomplete="off" placeholder="World chat unavailable" disabled/><button type="submit" id="worldChatSend" disabled>Send</button></form>
@@ -354,7 +354,7 @@
   <script src="../crazygames.js"></script>
   <script src="../firebase-auth.js?v=authrestore01"></script>
   <script src="../world1-config.js?v=cloudflare01"></script>
-  <script src="../firebase-world-adapter.js?v=worldfix02"></script>
+  <script src="../firebase-world-adapter.js?v=regions01"></script>
   <script src="../balance-system.js?v=autocycle10"></script>
   <script src="../growth-system.js?v=locations09"></script>
   <script src="../location-operations.js?v=balance02"></script>
@@ -371,7 +371,7 @@
   <script src="../save-center.js?v=save01"></script>
   <script src="../clans.js?v=clans01"></script>
   <script src="../multiplayer-pvp-rules.js?v=pvp01"></script>
-  <script src="../multiplayer-world.js?v=worldqol01"></script>
+  <script src="../multiplayer-world.js?v=regions01"></script>
   <script src="../game-experience.js?v=tycoon01"></script>
   <script src="../game-motion-v2.js?v=motion04"></script>
   <script src="../game-feedback-v4.js?v=feedback04"></script>
