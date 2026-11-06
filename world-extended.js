@@ -69,6 +69,21 @@
   content+='<div class="pl-advanced-metrics">'+summary('City contracts completed',c.completed||0)+'</div>';
   return content;
  };
+ const recoveryPanel=s=>{
+  const b=s.bankruptcy||{};
+  const explanation=b.eligible?
+   'An overdue loan exceeds recoverable assets. Liquidation resolves liabilities and provides a small $500 restart allowance.':
+   b.reason==='assets_cover_liabilities'?'Your assets still cover outstanding liabilities. Bankruptcy is unavailable.':
+   b.reason==='recovery_cooldown'?'Financial recovery is on cooldown.':
+   'An overdue insolvent loan is required before bankruptcy becomes available.';
+  return '<h4>Financial recovery</h4>'+ 
+   '<div class="pl-advanced-metrics">'+summary('Estimated recoverable assets',fmt(b.assets||0))+
+   summary('Outstanding liabilities',fmt(b.debt||0))+
+   summary('Previous recoveries',b.count||0)+'</div>'+ 
+   '<p class="pl-online-note">'+esc(explanation)+'</p>'+ 
+   '<div class="pl-advanced-grid">'+btn('fileBankruptcy','Liquidate and restart',{},!b.eligible,
+   'Resets all business assets, loans, and taxes; a 90-day new-loan restriction follows')+'</div>';
+ };
  const sections={
   operations:(p,s)=>{
    const event=s.worldEvent;
@@ -171,7 +186,7 @@
    btn('buyProperty','Buy $10k property',{amount:10000},p.cash<10000,'Build your asset portfolio')+
    btn('buyProperty','Buy $100k property',{amount:100000},p.cash<100000,'Generates rental income')+
    btn('buyProperty','Buy $1m property',{amount:1000000},p.cash<1000000,'Generates rental income')+'</div>'+
-   '<p class="pl-online-note">New loans are due 30 real days after borrowing. Players may automatically repay 15% of future earned income; overdue new loans repay 40% until cleared. Existing old loans keep their original no-deadline rules. Payments reduce debt without creating or destroying net worth. Taxes are assessed once per 365 real UTC days on tracked operating profit.</p>',
+   '<p class="pl-online-note">New loans are due 30 real days after borrowing. Players may automatically repay 15% of future earned income; overdue new loans repay 40% until cleared. Existing old loans keep their original no-deadline rules. Payments reduce debt without creating or destroying net worth. Taxes are assessed once per 365 real UTC days on tracked operating profit.</p>'+recoveryPanel(s),
   corporations:(p,s)=>{
    const holdings=Array.isArray(s.majorCompanies)?s.majorCompanies:[];
    const catalog=Array.isArray(s.majorCatalog)?s.majorCatalog:[];
@@ -245,7 +260,9 @@
    if(!other.length){root.textContent='There are no other player listings in this region yet.';return}
    root.innerHTML=other.slice(0,30).map(entry=>{
     const type=window.ProfitLandsOnline.getCatalog?.().find(x=>x.id===entry.type);
-    const canBuy=Number(entry.price)<=Number(player.cash)&&player.businesses.length<(player.enterprise?.companyCap||40);
+    const canBuy=Number(entry.price)<=Number(player.cash)&&
+     Number(player.enterprise?.loanDebt||0)===0&&
+     player.businesses.length<(player.enterprise?.companyCap||80);
     return '<article class="pl-advanced-market"><div><strong>'+esc(type?.name||'Company')+
      ' · Lv '+esc(entry.level)+'</strong><small>Seller '+esc(entry.displayName||'Tycoon')+
      ' · '+esc(entry.sites||1)+' location(s)</small></div><div><strong>'+fmt(entry.price)+'</strong>'+
@@ -299,6 +316,8 @@
   });
   section.querySelectorAll('[data-enterprise-op]').forEach(button=>{
    button.onclick=()=>{
+    if(button.dataset.enterpriseOp==='fileBankruptcy'&&
+     !window.confirm('This will permanently liquidate all your online businesses, investments and properties, resolve your game debts, and reset your online cash to the bankruptcy allowance. Continue?'))return;
     const params={};
     for(const [key,value] of Object.entries(button.dataset)){
      if(!key.startsWith('param'))continue;

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
+import {webcrypto} from 'node:crypto';
+import workerApi from '../cloudflare/src/index.mjs';
+if(!globalThis.crypto)globalThis.crypto=webcrypto;
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
@@ -321,4 +324,115 @@ test('normalized account stores loan due dates and safe opt-in recovery across r
   assert.equal(retry.replayed,true);
   assert.equal(retry.player.enterprise.loanDebt,5500);
  }finally{db.close()}
+});
+
+test('V2 bankruptcy liquidation is atomic, idempotent, and isolated from rivals',async()=>{
+ const db=new D1Sqlite();
+ try{
+  for(const who of ['distressed','healthy'])await dispatch('register',who,{},db,'world1');
+  await migrateExistingRegion(db,'world1');
+  const row=db.get('SELECT version,payload FROM world_players WHERE world_id=? AND uid=?',
+   'world1','distressed');
+  const user=JSON.parse(row.payload);
+  user.cash=0;user.lastSettledAt=Date.now();
+  user.enterprise={
+   country:'us',loanDebt:5500,loanPrincipal:5000,
+   loanDueAt:Date.now()-60000,loanIssuedAt:Date.now()-31*86400000,
+   stocks:{},properties:[],majorCompanies:[],research:[],routes:[],
+   warehouse:0,trucks:0,warehouseStock:0,metrics:{},
+   fiscal:{year:1,nextTaxAt:Date.now()+365*86400000,
+    taxableProfit:0,taxDue:200,totalTaxPaid:0}
+  };
+  db.sqlite.prepare('UPDATE world_players SET payload=?,version=version+1 WHERE world_id=? AND uid=?')
+   .run(JSON.stringify(user),'world1','distressed');
+  const before=(await readNormalized(db,'world1')).state.players.healthy;
+  const req={operation:'fileBankruptcy',requestId:'c'.repeat(32)};
+  const recovery=await dispatch('enterpriseAction','distressed',req,db,'world1',env);
+  assert.equal(recovery.reward,500);
+  assert.equal(recovery.player.cash,500);
+  assert.equal(recovery.player.enterprise.bankruptcyCount,1);
+  assert.equal(recovery.player.enterprise.loanDebt,0);
+  assert.equal(recovery.player.enterprise.fiscal.taxDue,0);
+  assert.equal((await dispatch('enterpriseAction','distressed',req,db,'world1',env)).replayed,true);
+  const stored=await readNormalized(db,'world1');
+  assert.deepEqual(stored.state.players.healthy,before);
+  assert.equal(stored.state.players.distressed.cash,500);
+  assert.equal(Object.keys(stored.state.receipts).length,1);
+  await assert.rejects(dispatch('enterpriseAction','distressed',
+   {operation:'borrowLoan',amount:5000,requestId:'d'.repeat(32)},db,'world1',env),
+    /bankruptcy_credit_cooldown/);
+ }finally{db.close()}
+});
+
+test('two signed Firebase-style accounts safely trade through the real HTTP API on V2 SQLite',async()=>{
+ const db=new D1Sqlite();
+ const priorFetch=globalThis.fetch;
+ try{
+  // The verifier validates real RS256 signatures; only the Google JWKS
+  // retrieval is replaced with a locally generated public test key.
+  const kp=await crypto.subtle.generateKey({
+   name:'RSASSA-PKCS1-v1_5',modulusLength:2048,
+   publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'
+  },true,['sign','verify']);
+  const pub={...await crypto.subtle.exportKey('jwk',kp.publicKey),
+   kid:'v2-authenticated-regression-key',alg:'RS256',use:'sig'};
+  globalThis.fetch=async url=>{
+   assert.match(String(url),/securetoken@system\.gserviceaccount\.com/);
+   return new Response(JSON.stringify({keys:[pub]}),{
+    status:200,headers:{'Content-Type':'application/json','Cache-Control':'public,max-age=600'}});
+  };
+  const enc=data=>Buffer.from(JSON.stringify(data)).toString('base64url');
+  const sign=async uid=>{
+   const now=Math.floor(Date.now()/1000);
+   const first=enc({alg:'RS256',kid:pub.kid})+'.'+
+    enc({aud:'wtvstudios-5b40f',iss:'https://securetoken.google.com/wtvstudios-5b40f',
+     sub:uid,iat:now-20,exp:now+3600,auth_time:now-20});
+   const proof=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',
+    kp.privateKey,new TextEncoder().encode(first));
+   return first+'.'+Buffer.from(proof).toString('base64url');
+  };
+  const [a,b]=await Promise.all([sign('signed-player-a'),sign('signed-player-b')]);
+  const endpoint='https://profitlands-world1.example.workers.dev/api';
+  const send=async(jwt,action,extra={})=>{
+   const response=await workerApi.fetch(new Request(endpoint,{
+    method:'POST',headers:{'Origin':'https://willn0tbill.github.io',
+     'Authorization':'Bearer '+jwt,'Content-Type':'application/json'},
+    body:JSON.stringify({action,...extra})
+   }),{DB:db,WORLD_STORAGE_V2:'enabled'});
+   return {status:response.status,data:await response.json()};
+  };
+  await migrateExistingRegion(db,'world1');
+  await migrateExistingRegion(db,'world-europe');
+  assert.equal((await send(a,'register')).data.created,true);
+  assert.equal((await send(b,'register')).data.created,true);
+  assert.equal((await send('forged','me')).status,401);
+  assert.equal((await send(a,'getPlayers')).data.length,1);
+  assert.equal((await send(a,'getPlayers')).data[0].uid,'signed-player-b');
+  const purchase=await send(a,'buyBusiness',{
+   businessId:'coffee',requestId:rid(311)});
+  assert.equal(purchase.status,200);
+  assert.equal(purchase.data.player.cash,1000);
+  const listing=await send(a,'enterpriseAction',{
+   operation:'listCompany',index:0,price:500,requestId:rid(312)});
+  assert.equal(listing.status,200);
+  const acquisition=await send(b,'buyListedCompany',{
+   sellerUid:'signed-player-a',index:0,maxPrice:500,requestId:rid(313)});
+  assert.equal(acquisition.status,200);
+  assert.equal(acquisition.data.player.businesses.length,1);
+  const replay=await send(b,'buyListedCompany',{
+   sellerUid:'signed-player-a',index:0,maxPrice:500,requestId:rid(313)});
+  assert.equal(replay.status,200);
+  assert.equal(replay.data.replayed,true);
+  assert.equal((await send(a,'me')).data.player.cash,1500);
+  assert.equal((await send(b,'me')).data.player.cash,1000);
+  assert.equal((await send(a,'me',{worldId:'world-europe'})).status,409,
+   'Americas accounts must not exist automatically in Europe');
+  const state=(await readNormalized(db,'world1')).state;
+  assert.equal(state.players['signed-player-a'].businesses.length,0);
+  assert.equal(state.players['signed-player-b'].businesses.length,1);
+  assert.equal(Object.keys(state.receipts).length,3);
+ }finally{
+  globalThis.fetch=priorFetch;
+  db.close();
+ }
 });

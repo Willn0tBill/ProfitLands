@@ -443,6 +443,8 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     err('invalid-argument','Choose a valid regional company listing.');
    const argument={sellerUid:body.sellerUid,index:body.index,maxPrice:body.maxPrice};
    return paid(state,uid,body,action,argument,()=>{
+    if(Number(p.enterprise?.loanDebt||0)>0)
+     err('failed-precondition','Repay outstanding loans before purchasing another player\'s company.',409);
     const seller=core.settle(playerOf(state,body.sellerUid),at);
     const company=seller.businesses[body.index],listing=company?.listing;
     if(!company||!listing||!Number.isSafeInteger(listing.price)||listing.price<100||
@@ -485,7 +487,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     'setAutoDebtRepayment',
     'listCompany','cancelCompanyListing',
     'buyProperty','setCountry','claimContract','buyMajorCorporation','payTax',
-    'acceptCityContract','claimCityContract']);
+    'acceptCityContract','claimCityContract','fileBankruptcy']);
    if(!allowed.has(body.operation))err('invalid-argument','Unknown enterprise operation.');
    const args={
     index:body.index,site:body.site,quantity:body.quantity,enabled:body.enabled,
@@ -514,7 +516,8 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     next.weekGain=p.weekGain+delta;
     state.players[uid]=next;
     return {ok:true,replayed:false,operation:body.operation,
-     cost:result.cost||0,reward:result.reward||0,player:display(next,worldId)};
+     cost:result.cost||0,reward:result.reward||0,
+     bankruptcy:result.bankruptcy||undefined,player:display(next,worldId)};
    },at,worldId);
   }
   if(action==='togglePvP'){

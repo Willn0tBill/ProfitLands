@@ -1,6 +1,6 @@
 # ProfitLands V2 D1 storage: migration and safety runbook
 
-**Status:** Implemented and tested in the draft branch; **NOT enabled in production**.
+**Status:** Implemented and tested in the draft branch; **NOT enabled in production**. On Nov 6, the actual production D1 legacy database was exported to the owner-controlled backup path `D:\\ProfitLands_Backups\\profitlands-world1-before-v2-2026-11-06.sql` (outside the repository). The backup was SHA-256 checked and rehearsed in isolated in-memory SQLite: 3 regions, 1 existing player, 4 replay receipts, two empty regions initialized in memory, all legacy source records unchanged. The backup has never been uploaded to GitHub.
 The public Worker still uses the legacy `world_state` rows until a separate, authenticated cutover. Neither deploying this source nor running the normal static-site build automatically migrates live data.
 
 ## What changed
@@ -39,12 +39,14 @@ The public Worker still uses the legacy `world_state` rows until a separate, aut
 - Simultaneous transactions: an atomic guard causes stale operations to retry against the latest committed player data.
 - D1 batch failure during purchase/acquisition: the **whole batch** rolls back, including both accounts, the receipt and regional version.
 - V2 individual player records retain a bounded 1.8-MB safety guard; receipt expiry is 72 hours. Free Cloudflare plans still have daily quotas.
-- Production deployment and signed-in device tests were **not** performed in the development branch. Basic city work orders, six daily regional economic scenarios and automatic loan repayment are implemented, but complete solo/multiplayer feature parity remains incomplete (e.g. bankruptcy liquidation, the full world-event catalog, multi-stage city contracts and progression).
+- Production deployment and signed-in device tests were **not** performed in the development branch. Basic city work orders, six daily regional economic scenarios, automatic loan repayment and guarded bankruptcy recovery for overdue insolvent loans are implemented, but complete solo/multiplayer feature parity remains incomplete (e.g. nuanced company financial-distress triggers, the full world-event catalog, multi-stage city contracts and progression).
 
 ## Local verification
 
 ```powershell
 node --test tests/world-v2-storage.test.mjs
+# Only with a private owner-controlled D1 SQL export:
+node cloudflare/scripts/verify-v2-backup.mjs D:\\ProfitLands_Backups\\profitlands-world1-before-v2-2026-11-06.sql
 node --test
 npm --prefix cloudflare install
 npm --prefix cloudflare run smoke:local
@@ -52,4 +54,4 @@ npm --prefix cloudflare run smoke:v2
 npm run build:cloudflare
 ```
 
-The V2 tests use Node 22+/24's SQLite engine and execute real transactions, including deliberately failed atomic batches and stale migrations. The legacy path retains its existing regression suite. Both Cloudflare Worker modes passed isolated **real local D1 health/auth/CORS smoke tests** using Wrangler. Real Cloudflare-hosted D1 with two authenticated browser accounts and production-quota testing are still required before production cutover.
+The V2 tests use Node 22+/24's SQLite engine and execute real transactions, including deliberately failed atomic batches and stale migrations. The legacy path retains its existing regression suite. Both Cloudflare Worker modes passed isolated **real local D1 health/auth/CORS smoke tests** using Wrangler. Two independently signed RS256 JWT test identities also passed Worker API + SQLite purchases, cross-account acquisitions, replay protection and region isolation. A manual attempt to create real temporary Firebase test accounts was rejected by the owner project's `ADMIN_ONLY_OPERATION` setting (0 users created). The live Cloudflare Worker still reports version 4; real Cloudflare-hosted D1, actual Firebase sign-in and two-account browser acceptance, and production-quota testing remain required before production cutover. The production backup is stored only on the owner's computer. Marketplace acquisitions also reject buyers carrying loan debt to prevent laundering loan proceeds before a bankruptcy reset.

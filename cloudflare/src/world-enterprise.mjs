@@ -4,6 +4,7 @@
  */
 import core from './world-core.mjs';
 import cityContracts from './world-city-contracts.mjs';
+import bankruptcy from './world-bankruptcy.mjs';
 
 const MAX_COMPANIES=core.MAX_BUSINESSES;
 const MAX_SITES_PER_COMPANY=16;
@@ -25,6 +26,7 @@ const COUNTRY_IDS=new Set(core.COUNTRIES.map(x=>x.id));
 const DEFAULTS=()=>({
  country:'us',stocks:{},majorCompanies:[],loanDebt:0,loanPrincipal:0,
  loanIssuedAt:0,loanDueAt:0,repaymentAuto:false,
+ bankruptcyCount:0,lastBankruptcyAt:0,
  properties:[],warehouse:0,warehouseStock:0,trucks:0,research:[],
  cityContract:null,lastCityRewardAt:0,cityCompleted:0,
  lastContractDay:'',contractsCompleted:0,routes:[],metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
@@ -121,6 +123,7 @@ function summary(p,now=Date.now()){
   countryCatalog:core.COUNTRIES.map(({id,name,region,taxRate,loanRate,inflationPct})=>({id,name,region,taxRate,loanRate,inflationPct})),
   fiscalRate:core.COUNTRIES.find(c=>c.id===s.country)?.taxRate??.255,
   loanStatus:s.loanDebt>0?(s.loanDueAt>0?(now>=s.loanDueAt?'Overdue':'Due'):'Legacy loan'):'Clear',
+  bankruptcy:bankruptcy.assessment(p,now),
   cityContracts:cityContracts.summary(p,now),
   worldEvent:core.worldEvent(now,p.worldId||core.WORLD_ID),
   companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
@@ -158,6 +161,7 @@ function apply(player,operation,args={},now=Date.now()){
  const chosen=company(p,index);
  const b=chosen?.b,t=chosen?.t;
  const qty=args.quantity;
+ if(operation==='fileBankruptcy')return bankruptcy.file(p,now);
  if(operation==='acceptCityContract')return cityContracts.accept(p,args.contractId,now);
  if(operation==='claimCityContract')return cityContracts.claim(p,now);
  if(operation==='buyMajorCorporation'){
@@ -316,6 +320,7 @@ function apply(player,operation,args={},now=Date.now()){
   return {ok:true,player:p,cost:0};
  }
  if(operation==='borrowLoan'){
+  if(bankruptcy.assessment(p,now).nextLoanAt>now)return error('bankruptcy_credit_cooldown');
   if(e.loanDebt>0)return error('loan_outstanding');
   if(![5000,50000,500000].includes(args.amount))return error('invalid_loan');
   const outstanding=Math.ceil(args.amount*1.1);

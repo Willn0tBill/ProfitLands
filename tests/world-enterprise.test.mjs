@@ -816,3 +816,105 @@ test('auto repayment controls require an actual outstanding loan and cannot be f
  assert.equal(replay.replayed,true);
  assert.equal(replay.player.enterprise.loanDebt,5500);
 });
+
+test('bankruptcy requires an overdue insolvent new loan and never forgives healthy accounts',()=>{
+ const p=core.fresh('bankrupt-alpha','Recoverable',t);
+ assert.equal(enterprise.summary(p,t).bankruptcy.eligible,false);
+ assert.equal(enterprise.apply(p,'fileBankruptcy',{},t).error,'overdue_loan_required');
+ const borrowed=enterprise.apply(p,'borrowLoan',{amount:5000},t).player;
+ assert.equal(enterprise.apply(borrowed,'fileBankruptcy',{},t+60000).error,'overdue_loan_required');
+ const healthy=core.settle(borrowed,t+31*86400000);
+ assert.equal(enterprise.summary(healthy,t+31*86400000).bankruptcy.eligible,false,
+  'assets covering debt must not qualify');
+ const legacy=structuredClone(borrowed);
+ legacy.enterprise.loanDueAt=0;
+ legacy.cash=0;
+ assert.equal(enterprise.apply(legacy,'fileBankruptcy',{},t+31*86400000).error,
+  'overdue_loan_required','old loans retain original terms');
+});
+test('bankruptcy liquidates assets and resolves creditors first, with no loan-reborrow exploit',()=>{
+ const at=t+31*86400000;
+ let p=core.fresh('bankrupt-beta','Distressed',t);
+ p.enterprise={country:'us',loanDebt:5500,loanPrincipal:5000,
+  loanIssuedAt:t,loanDueAt:t+30*86400000,repaymentAuto:false,
+  stocks:{nova:4},properties:[],majorCompanies:[],research:[],routes:[],
+  warehouse:0,trucks:0,warehouseStock:0,metrics:{},cityCompleted:4,
+  bankruptcyCount:0,lastBankruptcyAt:0,
+  fiscal:{year:1,nextTaxAt:t+365*86400000,taxDue:200,
+   taxableProfit:200,lastBill:200,totalTaxPaid:400}};
+ p.cash=0;
+ p.businesses=[{type:'coffee',level:1,sites:[{level:1,stock:0,price:100}]}];
+ p.lastSettledAt=at; // Insolvency is evaluated after all earned income is settled.
+ const assessment=enterprise.summary(p,at).bankruptcy;
+ assert.equal(assessment.eligible,true);
+ assert.ok(assessment.debt>assessment.assets);
+ assert.equal(assessment.ownerRecovery,500);
+ const done=enterprise.apply(p,'fileBankruptcy',{},at);
+ assert.equal(done.ok,true);
+ assert.equal(done.reward,500);
+ const cleared=done.player;
+ assert.equal(cleared.cash,500);
+ assert.equal(cleared.businesses.length,0);
+ assert.deepEqual(cleared.enterprise.stocks,{});
+ assert.deepEqual(cleared.enterprise.majorCompanies,[]);
+ assert.equal(cleared.enterprise.loanDebt,0);
+ assert.equal(cleared.enterprise.fiscal.taxDue,0);
+ assert.equal(cleared.enterprise.cityCompleted,4,'lifetime earned account milestones survive');
+ assert.equal(cleared.enterprise.bankruptcyCount,1);
+ assert.equal(cleared.pvpEnabled,false);
+ assert.equal(cleared.dayGain,0);
+ assert.equal(cleared.weekGain,0);
+ assert.equal(core.worth(cleared,at),500);
+ assert.equal(enterprise.apply(cleared,'fileBankruptcy',{},at).error,'overdue_loan_required');
+ assert.equal(enterprise.apply(cleared,'borrowLoan',{amount:5000},at+86400000).error,
+  'bankruptcy_credit_cooldown');
+ assert.equal(enterprise.apply(cleared,'borrowLoan',{amount:5000},at+91*86400000).ok,true);
+ assert.equal(p.cash,0,'failed and completed recovery must not change the source snapshot');
+ assert.equal(p.businesses.length,1);
+});
+test('bankruptcy claims use stable receipt IDs and cannot affect other players',async()=>{
+ const db=database(),uid='bankrupt-user';
+ await dispatch('register',uid,{},db,'world1');
+ const state=db.read('world1');
+ const p=state.players[uid];
+ p.cash=0;
+ p.enterprise={loanDebt:5500,loanPrincipal:5000,loanDueAt:Date.now()-1000,
+  loanIssuedAt:Date.now()-31*86400000,properties:[],stocks:{},
+  majorCompanies:[],research:[],metrics:{},fiscal:{taxDue:0,nextTaxAt:Date.now()+365*86400000}};
+ state.players[uid]=p;db.set('world1',state);
+ const stamp='a'.repeat(32);
+ const first=await dispatch('enterpriseAction',uid,{
+  operation:'fileBankruptcy',requestId:stamp},db,'world1');
+ assert.equal(first.ok,true);
+ assert.equal(first.reward,500);
+ const again=await dispatch('enterpriseAction',uid,{
+  operation:'fileBankruptcy',requestId:stamp},db,'world1');
+ assert.equal(again.replayed,true);
+ assert.equal(again.player.cash,500);
+ assert.equal(db.read('world1').players[uid].enterprise.bankruptcyCount,1);
+ await assert.rejects(dispatch('enterpriseAction',uid,{
+  operation:'fileBankruptcy',requestId:'b'.repeat(32)},db,'world1'),
+  /overdue_loan_required/);
+});
+
+test('borrowed money cannot be transferred to another player through the marketplace then defaulted',async()=>{
+ const db=database();
+ for(const uid of ['seller-loan','buyer-loan'])await dispatch('register',uid,{},db,'world1');
+ await dispatch('buyBusiness','seller-loan',
+  {businessId:'coffee',requestId:'6'.repeat(32)},db,'world1');
+ await dispatch('enterpriseAction','seller-loan',{
+  operation:'listCompany',index:0,price:500,requestId:'7'.repeat(32)},db,'world1');
+ const borrower=await dispatch('enterpriseAction','buyer-loan',{
+  operation:'borrowLoan',amount:5000,requestId:'8'.repeat(32)},db,'world1');
+ assert.equal(borrower.player.enterprise.loanDebt,5500);
+ const snapshot=db.read('world1');
+ await assert.rejects(dispatch('buyListedCompany','buyer-loan',{
+  sellerUid:'seller-loan',index:0,maxPrice:500,requestId:'9'.repeat(32)},db,'world1'),
+  /Repay outstanding loans/);
+ const after=db.read('world1');
+ assert.equal(after.players['buyer-loan'].cash,snapshot.players['buyer-loan'].cash);
+ assert.equal(after.players['seller-loan'].cash,snapshot.players['seller-loan'].cash);
+ assert.equal(after.players['seller-loan'].businesses.length,1);
+ assert.equal(after.receipts['buyer-loan:'+ '9'.repeat(32)],undefined,
+  'rejected transfers must never be recorded as paid receipts');
+});
