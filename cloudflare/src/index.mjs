@@ -390,6 +390,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
      core.upgradeBusiness(p,body.index,at);
     if(!result.ok)err('failed-precondition',result.error||'Purchase rejected.',409);
     requireValid(result.player);
+    enterprise.recordDailyAction(result.player);
     if(action==='upgradeBusiness'){
      const sector=result.player.businesses?.[body.index]?.type;
      if(sector)achievements.record(result.player,sector,'upgrades',1);

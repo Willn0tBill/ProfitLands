@@ -111,7 +111,7 @@ function trade(p,t,qty,mode,now){
  if(mode==='buy'){
   if(before+qty>1000000)return error('stock_holding_limit');
   const total=Math.ceil(qty*price/100);
-  if(!Number.isSafeInteger(total)||!core.debit(p,total))return error('insufficient_cash');
+  if(!Number.isSafeInteger(total)||!spend(p,total))return error('insufficient_cash');
   s.stocks[t.id]=before+qty;
   s.metrics.trades++;
   return {ok:true,player:p,cost:total,quote:price,shares:qty};
@@ -119,11 +119,16 @@ function trade(p,t,qty,mode,now){
  if(before<qty)return error('insufficient_shares');
  const proceeds=Math.floor(qty*price*.98/100);
  s.stocks[t.id]=before-qty;
- core.credit(p,proceeds);s.metrics.trades++;
+ core.credit(p,proceeds);recordDailyAction(p);s.metrics.trades++;
  return {ok:true,player:p,cost:0,proceeds,quote:price,shares:qty};
+}
+function recordDailyAction(p){
+ const e=ensure(p);
+ e.lastQualifyingActionDay=new Date(p.lastSettledAt).toISOString().slice(0,10);
 }
 function spend(p,cost){
  if(!positiveInt(cost,core.MAX_CASH)||!core.debit(p,cost))return false;
+ recordDailyAction(p);
  return true;
 }
 function apply(player,operation,args={},now=Date.now()){
@@ -285,7 +290,7 @@ function apply(player,operation,args={},now=Date.now()){
  if(operation==='claimContract'){
   const day=new Date(now).toISOString().slice(0,10);
   if(e.lastContractDay===day)return error('contract_already_claimed');
-  if(e.metrics.purchases<1&&e.metrics.trades<1&&e.metrics.hires<1)
+  if(e.lastQualifyingActionDay!==day)
    return error('contract_requirements_not_met');
   const reward=Math.min(50000,250+e.contractsCompleted*50);
   e.lastContractDay=day;e.contractsCompleted++;
@@ -293,5 +298,5 @@ function apply(player,operation,args={},now=Date.now()){
  }
  return error('unknown_operation');
 }
-export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,apply};
-export default {ensure,summary,apply,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};
+export {STOCKS,RESEARCH,MAX_COMPANIES,MAX_SITES_PER_COMPANY,DEFAULTS,ensure,summary,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond,recordDailyAction,apply};
+export default {ensure,summary,apply,recordDailyAction,stockPriceCents,assetValue,extraBusinessValue,incomeMultiplier,propertyPerSecond};

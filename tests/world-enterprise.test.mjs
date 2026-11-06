@@ -179,6 +179,8 @@ test('contracts cannot be claimed more than once per UTC day',()=>{
  p=mutate(p,'claimContract',{},t);
  assert.equal(p.enterprise.contractsCompleted,1);
  assert.equal(enterprise.apply(p,'claimContract',{},t).error,'contract_already_claimed');
+ assert.equal(enterprise.apply(p,'claimContract',{},t+86400000).error,'contract_requirements_not_met');
+ p=mutate(p,'hireStaff',{index:0,quantity:1},t+86400000);
  p=mutate(p,'claimContract',{},t+86400000);
  assert.equal(p.enterprise.contractsCompleted,2);
 });
@@ -274,4 +276,29 @@ test('online achievement ranks are derived from trusted server events',async()=>
  assert.ok(hired.player.achievements.sectors.find(x=>x.id==='coffee').ranks.hired>=1);
  const noForgery=await dispatch('me','player',{},db,'world1');
  assert.equal(noForgery.player.achievements.earned,hired.player.achievements.earned);
+});
+
+test('server-approved purchases unlock daily contracts only once and request replay does not mint cash',async()=>{
+ const db=database();
+ await dispatch('register','contractplayer',{},db,'world1');
+ const before=db.read('world1').players.contractplayer.cash;
+ await dispatch('buyBusiness','contractplayer',
+  {businessId:'coffee',requestId:'1'.repeat(32)},db,'world1');
+ const claim=await dispatch('enterpriseAction','contractplayer',
+  {operation:'claimContract',requestId:'2'.repeat(32)},db,'world1');
+ assert.equal(claim.reward,250);
+ const replay=await dispatch('enterpriseAction','contractplayer',
+  {operation:'claimContract',requestId:'2'.repeat(32)},db,'world1');
+ assert.equal(replay.replayed,true);
+ assert.equal(db.read('world1').players.contractplayer.cash,before-500+250);
+ await assert.rejects(dispatch('enterpriseAction','contractplayer',
+  {operation:'claimContract',requestId:'3'.repeat(32)},db,'world1'),/contract_already_claimed/);
+});
+
+test('free configuration changes do not unlock a daily monetary reward',()=>{
+ const p=core.fresh('testplayer','Player',t);
+ const updated=enterprise.apply(p,'setCountry',{country:'ca'},t);
+ assert.equal(updated.ok,true);
+ assert.equal(enterprise.apply(updated.player,'claimContract',{},t).error,
+  'contract_requirements_not_met');
 });
