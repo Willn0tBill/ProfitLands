@@ -122,15 +122,23 @@
     '<h4>Other players\' companies for sale</h4><div id="plCompanyListings" class="pl-advanced-list" role="status">Loading verified listings…</div>';
   },
   finance:(p,s)=>'<div class="pl-advanced-metrics">'+summary('Outstanding loan',fmt(s.loanDebt||0))+
-   summary('Properties',(s.properties||[]).length)+summary('World cash',fmt(p.cash))+'</div>'+
+   summary('Properties',(s.properties||[]).length)+summary('World cash',fmt(p.cash))+
+   summary('Fiscal year',s.fiscal?.year||1)+summary('Taxable operating profit',fmt(s.fiscal?.taxableProfit||0))+
+   summary('Tax rate',((s.fiscalRate||0)*100).toFixed(1)+'%')+
+   summary('Tax bill outstanding',fmt(s.fiscal?.taxDue||0))+
+   summary('Next fiscal close',s.fiscal?.nextTaxAt?new Date(s.fiscal.nextTaxAt).toLocaleDateString():'—')+'</div>'+
    '<div class="pl-advanced-grid">'+
    btn('borrowLoan','Borrow $5,000',{amount:5000},!!s.loanDebt,'10% fixed repayment premium')+
    btn('borrowLoan','Borrow $50,000',{amount:50000},!!s.loanDebt,'One loan at a time')+
    btn('borrowLoan','Borrow $500,000',{amount:500000},!!s.loanDebt,'One loan at a time')+
    btn('repayLoan','Repay up to $5,000',{amount:5000},!(s.loanDebt>0),'Repayment reduces outstanding debt')+
+   btn('payTax','Pay up to $5,000 tax',{amount:5000},!(s.fiscal?.taxDue>0)||p.cash<1,'Pay a verified tax bill')+
+   btn('payTax','Pay remaining tax',{amount:Math.min(s.fiscal?.taxDue||0,p.cash)},
+    !(s.fiscal?.taxDue>0)||p.cash<1,'Tax liability cannot be paid twice')+
    btn('buyProperty','Buy $10k property',{amount:10000},p.cash<10000,'Build your asset portfolio')+
    btn('buyProperty','Buy $100k property',{amount:100000},p.cash<100000,'Generates rental income')+
-   btn('buyProperty','Buy $1m property',{amount:1000000},p.cash<1000000,'Generates rental income')+'</div>',
+   btn('buyProperty','Buy $1m property',{amount:1000000},p.cash<1000000,'Generates rental income')+'</div>'+
+   '<p class="pl-online-note">Online corporate income tax is assessed once per 365 real UTC days on tracked operating profit. Unpaid bills remain liabilities; repayment is explicit. Singleplayer uses accelerated game days.</p>',
   corporations:(p,s)=>{
    const holdings=Array.isArray(s.majorCompanies)?s.majorCompanies:[];
    const catalog=Array.isArray(s.majorCatalog)?s.majorCatalog:[];
@@ -173,7 +181,9 @@
      esc(c.name)+' ('+esc(c.region)+')</option>').join('')+'</select>'+
      btn('setCountry','Confirm country',{country:s.country},
      p.businesses.length>0||Number(s.metrics?.trades||0)>0||Number(s.loanDebt||0)>0||
-     (s.properties||[]).length>0,'Choose before buying companies or opening financial positions')+'</div>';
+     (s.properties||[]).length>0||(s.majorCompanies||[]).length>0||
+     Number(s.fiscal?.taxDue||0)>0||Number(s.fiscal?.taxableProfit||0)!==0,
+     'Choose before opening businesses, investments or tax liabilities')+'</div>';
   }
  };
  const labels={operations:'Management',supply:'Supply & Logistics',markets:'Stock Market',finance:'Finance & Property',corporations:'Corporations',growth:'Research & Contracts'};

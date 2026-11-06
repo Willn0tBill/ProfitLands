@@ -34,6 +34,7 @@ const stock=id=>STOCKS.find(x=>x.id===id)||null;
 function ensure(p){
  if(!p.enterprise||typeof p.enterprise!=='object')p.enterprise=DEFAULTS();
  const s=p.enterprise;
+ core.ensureFiscal(p);
  if(!s.stocks||typeof s.stocks!=='object')s.stocks={};
  if(!Array.isArray(s.properties))s.properties=[];
  if(!Array.isArray(s.research))s.research=[];
@@ -85,7 +86,8 @@ function assetValue(p,now=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:
  }
  total+=Math.max(0,Number(s.warehouse||0))*10000;
  total+=Math.max(0,Number(s.trucks||0))*5000;
- return Math.max(-core.MAX_CASH,Math.min(core.MAX_CASH,total-Number(s.loanDebt||0)));
+ return Math.max(-core.MAX_CASH,Math.min(core.MAX_CASH,
+  total-Number(s.loanDebt||0)-Number(s.fiscal?.taxDue||0)));
 }
 function extraBusinessValue(b){
  const t=def(b.type);
@@ -114,6 +116,7 @@ function summary(p,now=Date.now()){
   quotes:STOCKS.map(x=>({id:x.id,name:x.name,ticker:x.ticker,priceCents:stockPriceCents(x.id,now)})),
   researchCatalog:RESEARCH,majorCatalog:core.MAJOR_CORPORATIONS.map(x=>({...x,profitPerMinute:x.rev-x.expense})),
   countryCatalog:core.COUNTRIES.map(({id,name,region,taxRate,loanRate,inflationPct})=>({id,name,region,taxRate,loanRate,inflationPct})),
+  fiscalRate:core.COUNTRIES.find(c=>c.id===s.country)?.taxRate??.255,
   companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
 }
 function trade(p,t,qty,mode,now){
@@ -214,6 +217,7 @@ function apply(player,operation,args={},now=Date.now()){
   const cost=Math.max(1,Math.ceil(t.cost*.0005))*qty;
   if(!spend(p,cost))return error('insufficient_cash');
   b.sites[args.site].stock+=qty;e.metrics.supplyOrders+=qty;
+  core.recordOperatingProfit(p,-cost);
   e.lastInventoryAt=now;
   return {ok:true,player:p,cost};
  }
@@ -237,6 +241,7 @@ function apply(player,operation,args={},now=Date.now()){
   const cost=qty*3;
   if(!spend(p,cost))return error('insufficient_cash');
   e.warehouseStock+=qty;e.metrics.supplyOrders+=qty;
+  core.recordOperatingProfit(p,-cost);
   return {ok:true,player:p,cost};
  }
  if(operation==='deliverWarehouseStock'){
@@ -287,6 +292,16 @@ function apply(player,operation,args={},now=Date.now()){
  if(operation==='buyShares'||operation==='sellShares'){
   return trade(p,stock(args.stockId),qty,operation==='buyShares'?'buy':'sell',now);
  }
+ if(operation==='payTax'){
+  const due=Number(e.fiscal?.taxDue||0);
+  if(!positiveInt(due,core.MAX_CASH))return error('no_tax_due');
+  if(!positiveInt(args.amount,core.MAX_CASH))return error('invalid_tax_payment');
+  const payment=Math.min(due,args.amount);
+  if(!core.debit(p,payment))return error('insufficient_cash');
+  e.fiscal.taxDue-=payment;
+  e.fiscal.totalTaxPaid=Math.min(core.MAX_CASH,(e.fiscal.totalTaxPaid||0)+payment);
+  return {ok:true,player:p,cost:payment};
+ }
  if(operation==='borrowLoan'){
   if(e.loanDebt>0)return error('loan_outstanding');
   if(![5000,50000,500000].includes(args.amount))return error('invalid_loan');
@@ -313,7 +328,8 @@ function apply(player,operation,args={},now=Date.now()){
  }
  if(operation==='setCountry'){
   if(!COUNTRY_IDS.has(args.country)||p.businesses.length>0||e.metrics.trades>0||
-    e.loanDebt>0||e.properties.length>0)return error('country_locked');
+    e.loanDebt>0||e.properties.length>0||e.majorCompanies.length>0||
+    e.fiscal?.taxDue>0||e.fiscal?.taxableProfit!==0)return error('country_locked');
   e.country=args.country;return {ok:true,player:p,cost:0};
  }
  if(operation==='claimContract'){

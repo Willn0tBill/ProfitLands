@@ -550,3 +550,55 @@ test('country revenue and cost factors affect online businesses using singleplay
  assert.equal(core.perSecond(ng),cjsCore.perSecond(ng));
  assert.equal(enterprise.apply(ng,'setCountry',{country:'us'},t).error,'country_locked');
 });
+
+test('online annual corporate taxes accrue only real operating profit and settle once',()=>{
+ const p=player(0);
+ enterprise.summary(p,t);
+ assert.equal(p.enterprise.fiscal.year,1);
+ assert.equal(p.enterprise.fiscal.nextTaxAt,t+365*86400000);
+ assert.equal(p.enterprise.fiscal.taxDue,0);
+ const later=t+365*86400000;
+ const taxed=core.settle(p,later);
+ assert.equal(taxed.enterprise.fiscal.year,2);
+ assert.equal(taxed.enterprise.fiscal.nextTaxAt,later+365*86400000);
+ assert.equal(taxed.enterprise.fiscal.lastBill,Math.floor(21600*.255));
+ assert.equal(taxed.enterprise.fiscal.taxDue,Math.floor(21600*.255));
+ assert.equal(taxed.enterprise.fiscal.taxableProfit,0);
+ const repeated=core.settle(taxed,later);
+ assert.equal(repeated.enterprise.fiscal.taxDue,taxed.enterprise.fiscal.taxDue);
+ assert.equal(repeated.enterprise.fiscal.year,2);
+ const payment=enterprise.apply(taxed,'payTax',{amount:5000},later);
+ assert.equal(payment.ok,true);
+ assert.equal(payment.cost,5000);
+ assert.equal(payment.player.enterprise.fiscal.taxDue,Math.floor(21600*.255)-5000);
+ assert.equal(core.worth(payment.player),core.worth(taxed));
+ const final=enterprise.apply(payment.player,'payTax',{amount:5000},later);
+ assert.equal(final.ok,true);
+ assert.equal(final.player.enterprise.fiscal.taxDue,0);
+ assert.equal(enterprise.apply(final.player,'payTax',{amount:5000},later).error,'no_tax_due');
+ assert.equal(p.enterprise.fiscal.year,1,'older snapshot cannot mutate');
+});
+test('taxes do not apply to borrowed principal, asset purchases or share trading',()=>{
+ let p=player();
+ const before=enterprise.summary(p,t).fiscal.taxableProfit;
+ p=mutate(p,'borrowLoan',{amount:50000},t);
+ assert.equal(p.enterprise.fiscal.taxableProfit,before);
+ p=mutate(p,'buyProperty',{amount:10000},t);
+ assert.equal(p.enterprise.fiscal.taxableProfit,before);
+ p=mutate(p,'buyShares',{stockId:'nova',quantity:2},t);
+ assert.equal(p.enterprise.fiscal.taxableProfit,before);
+ p=mutate(p,'restockBranch',{index:0,site:0,quantity:10},t);
+ assert.ok(p.enterprise.fiscal.taxableProfit<before);
+});
+test('tax liability cannot be forged, paid twice or bypassed by switching countries',()=>{
+ let p=player(0);
+ enterprise.summary(p,t);
+ p.enterprise.fiscal.taxDue=2000;
+ assert.equal(enterprise.apply(p,'setCountry',{country:'ae'},t).error,'country_locked');
+ assert.equal(enterprise.apply(p,'payTax',{amount:99999, cash:99999999},t).error,'insufficient_cash');
+ core.credit(p,1000);
+ const paid=mutate(p,'payTax',{amount:99999},t);
+ assert.equal(paid.enterprise.fiscal.taxDue,0);
+ assert.equal(paid.enterprise.fiscal.totalTaxPaid,2000);
+ assert.equal(enterprise.apply(paid,'payTax',{amount:99999},t).error,'no_tax_due');
+});

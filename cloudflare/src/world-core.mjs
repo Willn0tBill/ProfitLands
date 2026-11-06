@@ -70,6 +70,7 @@ const clone=p=>({...p,
   majorCompanies:Array.isArray(p.enterprise.majorCompanies)?p.enterprise.majorCompanies.map(c=>({...c})):undefined,
   routes:Array.isArray(p.enterprise.routes)?p.enterprise.routes.map(r=>({...r})):undefined,
   route:p.enterprise.route?{...p.enterprise.route}:undefined,
+  fiscal:p.enterprise.fiscal?{...p.enterprise.fiscal}:undefined,
   badgeCounters:p.enterprise.badgeCounters?Object.fromEntries(
    Object.entries(p.enterprise.badgeCounters).map(([id,counters])=>[id,{...counters}])):undefined,
   metrics:{...(p.enterprise.metrics||{})}}:undefined
@@ -112,6 +113,7 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
   value+=Math.max(0,Number(e.warehouse||0))*10000;
   value+=Math.max(0,Number(e.trucks||0))*5000;
   value-=Math.max(0,Number(e.loanDebt||0));
+  value-=Math.max(0,Number(e.fiscal?.taxDue||0));
  }
  return Math.max(0,Math.min(MAX_CASH,Math.round(value)));
 }
@@ -142,6 +144,40 @@ function perSecond(p){
   if(corp)income+=Math.floor(countryMargin(profile.id,corp.id,corp.rev,corp.expense)/60);
  }
  return Math.max(0,Math.min(250_000_000,income));
+}
+const FISCAL_YEAR_MS=365*86400000;
+function ensureFiscal(p){
+ const e=p.enterprise;
+ if(!e)return null;
+ if(!e.fiscal||!Number.isSafeInteger(e.fiscal.nextTaxAt)){
+  const start=Math.max(0,Number(p.createdAtSeconds)||Math.floor(Date.now()/1000))*1000;
+  e.fiscal={year:1,nextTaxAt:start+FISCAL_YEAR_MS,
+   taxableProfit:0,taxDue:0,lastBill:0,totalTaxPaid:0};
+ }
+ return e.fiscal;
+}
+function recordOperatingProfit(p,change){
+ if(!Number.isSafeInteger(change)||!change)return;
+ const f=ensureFiscal(p);
+ if(!f)return;
+ f.taxableProfit=Math.max(-MAX_CASH,Math.min(MAX_CASH,(Number(f.taxableProfit)||0)+change));
+}
+function closeFiscalYear(p,at){
+ const f=ensureFiscal(p);
+ if(!f)return;
+ let cycles=0;
+ while(f.nextTaxAt<=at&&cycles++<200){
+  const rate=COUNTRIES.find(c=>c.id===p.enterprise.country)?.taxRate??US_COUNTRY.taxRate;
+  const bill=Math.max(0,Math.min(MAX_CASH,Math.floor(Math.max(0,f.taxableProfit||0)*rate)));
+  const before=worth(p,at);
+  f.taxDue=Math.min(MAX_CASH,(Number(f.taxDue)||0)+bill);
+  const delta=worth(p,at)-before;
+  p.dayGain+=delta;p.weekGain+=delta;
+  f.lastBill=bill;
+  f.taxableProfit=0;
+  f.year++;
+  f.nextTaxAt+=FISCAL_YEAR_MS;
+ }
 }
 function addBadgeCounter(p,sector,metric,value){
  if(!p.enterprise||!byId(sector)||!Number.isFinite(value)||value<=0)return;
@@ -185,6 +221,8 @@ function settle(player,now){
  if(!player||!time(now)||!number(player.cash))throw Error('invalid_player_state');
  const p=clone(player),start=Math.min(now,Math.max(0,Number(p.lastSettledAt)||now));
  const from=Math.max(start,now-MAX_OFFLINE_SECONDS*1000);
+ ensureFiscal(p);
+ closeFiscalYear(p,from);
  // UTC boundaries are split before reward allocation.
  let cursor=from;
  // Preserve sub-dollar earnings between polls. Polling every 500ms must not
@@ -202,7 +240,9 @@ function settle(player,now){
   const nextMonday=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+((8-d.getUTCDay())%7||7));
   const penaltyBoundary=Number(p.activePenaltyUntil||0)*1000;
   const nextQuote=(Math.floor(cursor/900000)+1)*900000;
-  const next=Math.min(now,midnight,nextMonday,nextQuote,penaltyBoundary>cursor?penaltyBoundary:Infinity);
+  const due=p.enterprise?.fiscal?.nextTaxAt;
+  const next=Math.min(now,midnight,nextMonday,nextQuote,
+   due>cursor?due:Infinity,penaltyBoundary>cursor?penaltyBoundary:Infinity);
   const durationMs=Math.max(0,next-cursor);
   if(durationMs>0){
    const rate=perSecond(p);
@@ -219,11 +259,15 @@ function settle(player,now){
    const totalMilli=milliRemainder+milliEarned;
    const earned=Math.floor(totalMilli/1000);
    milliRemainder=totalMilli%1000;
-   if(earned>0)passiveEarned+=credit(p,earned);
+   if(earned>0){
+    const actual=credit(p,earned);
+    passiveEarned+=actual;recordOperatingProfit(p,actual);
+   }
   }
   // Earnings before UTC boundaries belong to the old period; a quote change
   // exactly at midnight belongs to the new day (and Monday's new week).
   if(next===midnight||next===nextMonday)periodRoll(p,next);
+  closeFiscalYear(p,next);
   // Mark-to-market P&L belongs to server-owned holdings and is credited once.
   const quoteChange=worth(p,next)-worth(p,cursor);
   if(quoteChange){p.dayGain+=quoteChange;p.weekGain+=quoteChange;}
@@ -258,12 +302,14 @@ function settle(player,now){
       const actual=credit(p,Math.min(MAX_CASH,revenue));
       addBadgeCounter(p,b.type,'sales',units);
       addBadgeCounter(p,b.type,'earnings',actual);
+      recordOperatingProfit(p,actual);
      }
      if(site.autoRestock&&e.research?.includes('automation')&&site.stock<20){
       const quantity=Math.min(100,5000-site.stock);
       const amount=unitCost*quantity;
       if(Number.isSafeInteger(amount)&&debit(p,amount)){
        site.stock+=quantity;
+       recordOperatingProfit(p,-amount);
        if(e.metrics)e.metrics.supplyOrders=(Number(e.metrics.supplyOrders)||0)+quantity;
       }
      }
@@ -296,6 +342,7 @@ function settle(player,now){
   }
  }
  periodRoll(p,now);
+ closeFiscalYear(p,now);
  p.lastSettledAt=now;
  p.incomeMilliRemainder=milliRemainder;
  p.incomeSubMilliRemainder=subMilliRemainder;
@@ -333,6 +380,7 @@ function score(player,period,now){
  return period==='day'?p.dayGain:period==='week'?p.weekGain:p.netWorth;
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
+ ensureFiscal,recordOperatingProfit,closeFiscalYear,
  byId,dayKey,weekKey,cleanName,valueOf,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
 
 export default module.exports;
