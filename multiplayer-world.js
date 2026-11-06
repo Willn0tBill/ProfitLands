@@ -9,6 +9,10 @@ const rules=()=>window.ProfitLandsPvPRules;
 const online=()=>window.ProfitLandsOnline;
 const active=()=>window.state?.playType==='multi'&&Boolean($('gameScreen')?.classList.contains('active'));
 const connected=()=>active()&&online()?.isConnected?.()===true;
+const signedIn=()=>{
+ try{return Boolean(window.profitlandsFirebase?.getCurrentUser?.()||window.firebase?.auth?.().currentUser)}
+ catch(e){return false}
+};
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const cash=value=>{
  const number=Number(value);
@@ -43,7 +47,9 @@ function showUnavailable(){
   try{ready=await online()?.probe?.(force)===true}catch(e){}
   if(!current())return;
   if(ready){
-   status.textContent='World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
+   status.textContent=signedIn()
+    ?'World 1 server is online. Your account is signed in and ready to connect; your online empire is separate from singleplayer.'
+    :'World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
    button.textContent='Connect to World 1';button.disabled=false;button.onclick=connect;
   }else{
    status.textContent='World 1 is not serving its multiplayer API yet. The game and your local save still work. You can retry the server check.';
@@ -268,6 +274,10 @@ function init(){
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
  window.addEventListener('profitlands:viewchange',event=>{updateChat();if(event.detail?.view==='world')render()});
  window.addEventListener('profitlands:serverupdate',()=>{if(window.ProfitLandsWorkspace?.active?.()==='world')render();else updateChat()});
+ // A restored session changes connection instructions without needing another sign-in.
+ window.addEventListener('profitlands:authupdate',()=>{
+  if(active()&&window.ProfitLandsWorkspace?.active?.()==='world'&&!connected())render();
+ });
  updateChat();
 }
 window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period};
