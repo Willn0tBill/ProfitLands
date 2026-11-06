@@ -141,3 +141,10 @@ html.pl-reduced-motion #worldPanel .pl-world-region-switch button{transition:non
 .pl-world-message button:disabled,.pl-chat-blocked button:disabled{opacity:.5}
 .pl-world-message span{white-space:pre-wrap;word-break:break-word}
 @media(prefers-reduced-motion:reduce){#homeScreen .pl-online-preset{transition:none}}
+
+.pl-chat-moderator{border-top:1px solid #6581a5;padding:8px 11px;display:grid;gap:7px;max-height:200px;overflow:auto;color:#dbe9ff;background:#24304b}
+.pl-chat-moderator[hidden]{display:none!important}
+.pl-chat-moderator-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
+.pl-chat-moderator button{border:1px solid #8c9bbf;background:#293957;color:#f0f6ff;border-radius:7px;padding:5px 7px;font:inherit;font-size:10px;cursor:pointer}
+.pl-chat-moderation-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-top:1px solid #52658a;padding:7px 0}
+.pl-chat-moderation-row span{flex:1 1 140px;overflow-wrap:anywhere;font-size:11px}
