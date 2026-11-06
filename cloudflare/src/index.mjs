@@ -5,6 +5,7 @@
  */
 import core from './world-core.mjs';
 import pvp from './pvp-rules.mjs';
+import {censorChat} from './chat-filter.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -26,9 +27,9 @@ function worldFor(id){
 // Limited text chat beta: server-moderated, rate-limited, region-scoped and
 // automatically concealed after independent reports. Never display HTML.
 const CHAT_ENABLED=true;
-// Require a trusted moderator account before opening a public chat.
-const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true'&&
- String(env?.CHAT_MODERATOR_UIDS||'').split(',').some(uid=>UID.test(uid.trim()));
+// Chat works with automatic filtering and self-service reports/blocks.
+// Optional trusted moderator accounts retain restricted review and removal tools.
+const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true';
 const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
 const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
@@ -218,10 +219,12 @@ function chatText(raw){
   .replace(/\s+/g,' ').trim();
  if(text.length<2||text.length>CHAT_TEXT_LIMIT)
   err('invalid-argument','Messages must contain 2–160 characters.');
- const unsafe=/https?:\/\/|www\.|\b\S+@\S+\.\S+\b|\b(?:discord|snapchat|telegram|whatsapp|instagram|tiktok)\b|\b(?:dm me|send your number|my phone|my address|meet me at)\b|(?:\+?\d[\s().-]?){8,}|\b(?:nigger|faggot|kys|kill yourself|rape|go die|fuck|bitch|cunt)\b/i;
- if(unsafe.test(text))err('invalid-argument','Message blocked by chat safety rules. Keep chat respectful and do not share contact details.');
+ const unsafe=/https?:\/\/|www\.|\b\S+@\S+\.\S+\b|\b(?:discord|snapchat|telegram|whatsapp|instagram|tiktok)\b|\b(?:dm me|send your number|my phone|my address|meet me at)\b|(?:\+?\d[\s().-]?){8,}|\b(?:rape)\b/i;
+ if(unsafe.test(text))err('invalid-argument','Message blocked: do not post links, contact details or unsafe content.');
  if(/(.)\1{11,}/u.test(text))err('invalid-argument','Please avoid repetitive spam.');
- return text;
+ const screened=censorChat(text);
+ if(screened.blocked)err('invalid-argument','Targeted harassment is not allowed in chat.');
+ return screened;
 }
 function chatMessages(state){
  if(!Array.isArray(state.chat))state.chat=[];
@@ -300,7 +303,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
   if(action==='sendChat'){
-   const text=chatText(body.text);
+   const screened=chatText(body.text),text=screened.text;
    if(Number(p.chatMutedUntil||0)>at)
     err('permission-denied','Chat is temporarily unavailable on this account.',403);
    if(Number(p.chatLastAt||0)>at-CHAT_COOLDOWN_MS)
@@ -311,6 +314,14 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    const item={id:crypto.randomUUID(),uid,displayName:p.displayName,
     text,at,reports:[],hidden:false};
    state.chat.push(item);state.chat=state.chat.slice(-CHAT_LIMIT);
+   // Store only the masked text, and automatically mute repeated slurs.
+   if(screened.slurs){
+    const previous=Number(p.chatAbuseWindowAt||0);
+    const priorStrikes=Number(p.chatAbuseStrikes||0);
+    p.chatAbuseStrikes=(at-previous>600000?0:Math.max(0,priorStrikes))+screened.slurs;
+    p.chatAbuseWindowAt=at;
+    if(p.chatAbuseStrikes>=2)p.chatMutedUntil=at+600000;
+   }
    p.chatLastAt=at;p.chatLastText=text;state.players[uid]=p;
    return publicChatMessage(item);
   }

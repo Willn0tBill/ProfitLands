@@ -1,37 +1,38 @@
-# ProfitLands Regional Chat — Controlled Beta
+# ProfitLands Regional Chat — Automated Safety Beta
 
-Regional chat uses the existing `profitlands-world1` Cloudflare Worker and D1 database. **Public chat stays disabled until a trusted moderator UID is configured in the Cloudflare secret `CHAT_MODERATOR_UIDS`.** There are three separate ledgers: Americas (`world1`), Europe (`world-europe`) and Asia (`world-asia`). No new database, migration, or paid plan is needed.
+Regional chat runs on the existing free Cloudflare `profitlands-world1` Worker and the existing D1 ledger. Americas, Europe, and Asia have distinct message histories. This is an **automated-first beta, not a promise of perfect moderation**.
 
-## Player safeguards
+## Behavior and safety controls
 
-- Chat requires verified Firebase authentication and joining the selected world. No anonymous write endpoint exists.
-- The server saves plain-text messages only, up to 160 characters. Links, emails, off-platform contact requests, phone-like numbers, selected abusive words and repeated spam are rejected.
-- A player may post once every 20 seconds. The most recent 60 messages per region are stored. Only messages from the past 24 hours are shown; older messages are pruned on the next chat write. The client displays the latest 40 visible messages.
-- Players can **Report**, **Block**, and **Unblock** others. Reports hide the message immediately from the reporting player. Two distinct reporters automatically hide it from everybody, pending moderator review.
-- Chat never transfers money, affects singleplayer saves, sends private messages, or shows user email addresses. Player names shown in chat are the server-generated Tycoon aliases.
-- Polling occurs every 30 seconds only while the chat panel is open and the browser tab is visible; there is no WebSocket connection.
+- Server-side profanity and slur filtering replaces recognized words with `***` *before storage or broadcast*. It handles many common spacing, punctuation, repeated-letter, zero-width and number-substitution tricks. Like all wordlists, it can miss new spellings and produce false positives.
+- Explicit targeted harmful phrases, direct contact details, links, and off-platform contact invitations are rejected rather than masked. Players only see plain-text messages, never HTML.
+- Two slurs inside ten minutes trigger a ten-minute mute. A player may post only once per 20 seconds. Exact repeated messages and long repetitive strings are rejected.
+- Each registered player may **Report**, **Block** and **Unblock**. The reporter immediately hides a reported message locally; two distinct reports hide it globally pending review. Blocking is per region.
+- Only the latest 60 messages per region are retained, and messages older than 24 hours are pruned when chat is written; browser views show up to 40 visible messages. No private messages, public email addresses, external links or financial transfers.
+- Region chat is accessible to authenticated players who have joined that region **without a required moderator UID**. The emergency switch `CHAT_DISABLED=true` disables public chat reads/writes immediately without disabling the economy.
+- `CHAT_MODERATOR_UIDS` is optional; if provided, only those verified Firebase accounts can review the report queue and remove or dismiss reports. Account credentials and tokens must never be written in source code or GitHub.
 
-Automated filters are imperfect. This beta **requires active moderator review** and a human escalation process; do not advertise it as fully moderated or safe from all harmful content. Review reports regularly, especially if younger players are participating. Do not ask players to post personal information.
+## Operational responsibility
 
-## Moderator account setup
+An automatic filter is not a replacement for a response process. Harassment can be written without banned words, moderation mistakes and malicious false reports can occur, and abuse attempts change over time. One accountable game owner should be able to review serious reports, appeals and filter failures, even without staffing full-time moderators.
 
-The Worker supports optional moderator-only actions `getChatReports` and `moderateChat` (`decision`: `remove` or `dismiss`). Every moderator action checks the **verified Firebase UID** against the Cloudflare secret `CHAT_MODERATOR_UIDS`; players cannot grant themselves moderation rights.
+For an initial public release, deploy and verify the new code, run live tests in each region with two *test accounts*, and check abuse-handling before enabling chat to everyone. Keep the shutdown switch available at all times. Never claim guaranteed safety.
 
-1. Identify the Firebase Auth UID of the trusted moderator account in the Firebase Console. Do not use their email address or password; do not share their ID token.
-2. From the checked-out `cloudflare/` project using the correct **existing** `profitlands-world1` Worker configuration, set a Cloudflare secret named `CHAT_MODERATOR_UIDS` containing one or more comma-separated UIDs. Use `wrangler secret put CHAT_MODERATOR_UIDS --config wrangler.toml` through your trusted terminal (this command will ask privately for the value). Never put actual UIDs or tokens in GitHub.
-3. Verify the moderator account can review and decide on reports, and a non-moderator account receives a 403 error. Review the queue per region.
+## Optional owner review setup
 
-### Emergency shutdown
+1. In Firebase Authentication, find the UID of a trusted owner/reviewer account. Do not use or share passwords, ID tokens or another player's private information.
+2. In the existing `cloudflare/` Worker project, set the optional secret privately with `wrangler secret put CHAT_MODERATOR_UIDS --config wrangler.toml` and provide the authorized UID. Never commit it to GitHub.
+3. In each region, confirm only the listed account can call the protected `getChatReports` and `moderateChat` actions; others must receive HTTP 403.
+4. To disable public chat urgently, privately set `CHAT_DISABLED` to `true` on the same Worker; to re-enable later, set `false` and recheck the `/health` response.
 
-Set the existing Worker secret `CHAT_DISABLED` to `true` (e.g. `wrangler secret put CHAT_DISABLED --config wrangler.toml`) to disable **player-facing** chat reads and writes without affecting the economy. Moderator-only report review and removals remain available so incidents can be investigated while chat is shut down. The backend health API then advertises `chatEnabled:false` to the browser. To re-enable after investigation, set the value to `false`, then verify the public health response.
+## Required release verification
 
-## Acceptance tests before broader promotion
+- Two live Firebase test accounts exchange messages in the same region, cannot see messages across regions, and keep online cash unchanged.
+- Profanity, disguises and slurs become `***` on the **server**, not only in browser UI; raw flagged terms never enter D1 chat records.
+- Contact information, links and severe targeted harassment are rejected. Slur repetition triggers a timed mute.
+- Report and block flows work; two distinct reports hide a message globally; the emergency shutdown blocks reads and writes.
+- Unauthenticated callers, wrong-world callers, and unauthorized moderator calls are rejected.
+- Check Cloudflare D1 free-tier usage and server load at intended scale. No separate paid moderation service is required.
+- Review false positives, missed disguises, and abuse reports with a human accountability path before public rollout.
 
-- Two real test accounts in the same region can exchange a message, report it, block and unblock.
-- A person in a different region never sees that message.
-- Two reports hide the content for all, the moderator reviews it, and only the moderator can restore or remove it.
-- No credentials are sent to the chat store. Unauthorized/expired Firebase tokens are rejected.
-- Verify blocked links, phone-like numbers, spam cooldown, bounded history and the emergency shutdown.
-- Measure Cloudflare D1 quotas and CPU before enabling automatic refresh or increasing the player cap.
-
-Current automated tests use signed test tokens or local dispatch fixtures; **they do not prove that human moderation is staffed or that two live Firebase accounts have completed the full flow**.
+Local automated tests do **not** prove that the production Worker has been updated or that real users can safely use the chat.

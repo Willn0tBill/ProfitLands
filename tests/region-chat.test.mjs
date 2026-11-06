@@ -63,7 +63,7 @@ test('Chat rejects spam, links, contact details and hostile content, while prese
  const db=database();
  await region(db,'register','alpha');
  const before=db.read('world1').players.alpha.cash;
- for(const input of ['A','a'.repeat(161),'https://example.com','join discord','me@example.org','Call me 222-333-4444','fuck you','x'.repeat(20)]){
+ for(const input of ['A','a'.repeat(161),'https://example.com','join discord','me@example.org','Call me 222-333-4444','go die','x'.repeat(20)]){
   await assert.rejects(region(db,'sendChat','alpha','world1',{text:input}),e=>e.code==='invalid-argument');
  }
  await region(db,'sendChat','alpha','world1',{text:'Welcome to the game'});
@@ -155,11 +155,29 @@ test('Emergency chat shutdown closes both reads and writes without affecting the
  assert.deepEqual(await region(db,'getChatReports','alpha','world1',{},mods),[]);
 });
 
-test('Public chat advertises disabled until a moderator is configured',async()=>{
+test('Automatic chat protection works without a dedicated moderator while review remains privileged',async()=>{
  const db=database();
- assert.equal((await region(db,'health',null,'world1',{},null)).chatEnabled,false);
- assert.equal((await region(db,'health',null,'world1',{}, {CHAT_MODERATOR_UIDS:'trusted-mod'})).chatEnabled,true);
+ assert.equal((await region(db,'health',null,'world1',{},null)).chatEnabled,true);
  await region(db,'register','alpha');
- await assert.rejects(region(db,'sendChat','alpha','world1',{text:'Hello world'},null),e=>e.status===409);
- assert.equal(db.read('world1').chat,undefined);
+ const sent=await region(db,'sendChat','alpha','world1',{text:'Hello world'},null);
+ assert.equal(sent.text,'Hello world');
+ await assert.rejects(region(db,'getChatReports','alpha','world1',{},null),e=>e.status===403);
+ assert.equal((await region(db,'getChat','alpha','world1',{},null)).length,1);
+});
+
+test('Curses and slurs are masked at the server and repeated slurs trigger a temporary mute',async()=>{
+ const db=database();
+ await region(db,'register','alpha');
+ const first=await region(db,'sendChat','alpha','world1',{text:'What the f.u.c.k'},null);
+ assert.equal(first.text,'What the ***');
+ pauseRate(db,'world1','alpha');
+ const second=await region(db,'sendChat','alpha','world1',{text:'That ch1nk insult is unacceptable'},null);
+ assert.equal(second.text,'That *** insult is unacceptable');
+ pauseRate(db,'world1','alpha');
+ const third=await region(db,'sendChat','alpha','world1',{text:'Another n1gg3r insult'},null);
+ assert.equal(third.text,'Another *** insult');
+ pauseRate(db,'world1','alpha');
+ await assert.rejects(region(db,'sendChat','alpha','world1',{text:'Normal message'},null),e=>e.status===403);
+ assert.ok(db.read('world1').players.alpha.chatMutedUntil>Date.now());
+ assert.equal(db.read('world1').chat.every(m=>!/(?:n1gg3r|ch1nk|f\.u\.c\.k)/i.test(m.text)),true);
 });
