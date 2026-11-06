@@ -20,7 +20,51 @@ const cash=value=>{
  if(number<0)return '-'+cash(-number);
  return '$'+(number>=1e12?(number/1e12).toFixed(2)+'T':number>=1e9?(number/1e9).toFixed(2)+'B':number>=1e6?(number/1e6).toFixed(2)+'M':Math.round(number).toLocaleString('en-US'));
 };
-let period='day',targetUid='',players=[],busy=false,latest=0,empireStamp=0,playersStamp=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
+let period='day',targetUid='',players=[],ownPlayer=null,busy=false,latest=0,empireStamp=0,playersStamp=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
+const AUTO_SYNC_KEY='profitlands-world1-auto-sync-v1',AUTO_SYNC_MS=120000;
+let autoSyncEnabled=false;
+try{autoSyncEnabled=window.localStorage?.getItem(AUTO_SYNC_KEY)==='1'}catch(e){}
+function syncLabel(){
+ const label=$('worldLastSynced');
+ if(label)label.textContent='Last updated just now · Server-verified figures';
+ lastWorldRefreshAt=Date.now();
+}
+function updateAutoSyncButton(){
+ const button=$('worldAutoSync');
+ if(!button)return;
+ button.setAttribute('aria-pressed',String(autoSyncEnabled));
+ button.textContent=autoSyncEnabled?'Auto-sync: On (2 min)':'Auto-sync: Off';
+}
+function toggleAutoSync(){
+ autoSyncEnabled=!autoSyncEnabled;
+ try{window.localStorage?.setItem(AUTO_SYNC_KEY,autoSyncEnabled?'1':'0')}catch(e){}
+ updateAutoSyncButton();
+ message(autoSyncEnabled?'World 1 will refresh every 2 minutes while this tab is visible.':'Automatic World 1 refresh disabled.');
+}
+function autoSyncTick(){
+ if(!autoSyncEnabled||!connected()||busy||worldRefreshing||
+  document.visibilityState==='hidden'||window.ProfitLandsWorkspace?.active?.()!=='world')return false;
+ if(Date.now()-lastWorldRefreshAt<AUTO_SYNC_MS)return false;
+ void refreshWorld();
+ return true;
+}
+function pvpStatus(){
+ const status=$('worldPvpStatus'),toggle=$('worldPvpToggle'),shield=$('worldShield');
+ if(status){
+  if(!ownPlayer)status.textContent='Loading your server-verified PvP status…';
+  else{
+   const now=Math.floor(Date.now()/1000);
+   const activeShield=Number(ownPlayer.protectedUntil)>now
+    ?' · Protected until '+new Date(ownPlayer.protectedUntil*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
+   const cooldown=Number(ownPlayer.nextAttackAt)>now
+    ?' · Attack cooldown until '+new Date(ownPlayer.nextAttackAt*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
+   status.textContent='Your PvP: '+(ownPlayer.pvpEnabled?'On':'Off')+activeShield+cooldown;
+  }
+ }
+ if(toggle){toggle.textContent=ownPlayer?.pvpEnabled?'Turn PvP off':'Enable PvP';toggle.disabled=busy||!ownPlayer}
+ if(shield)shield.disabled=busy||!ownPlayer;
+}
+
 const page=()=> $('worldContent');
 const message=text=>{const status=$('worldStatus');if(status)status.textContent=text};
 function showUnavailable(){
@@ -61,7 +105,10 @@ function showUnavailable(){
  check();
 }
 function renderRules(){
- return '<div class="pl-online-info"><h4>How the shared world will work</h4><p>All players enter one persistent world. Rankings use verified in-game money: daily and weekly net-worth growth, plus all-time current net worth. No clan win points.</p><p>PvP is opt-in, costs in-game cash, has cooldowns and shields, and temporarily lowers a rival company\'s income. No one-click permanent empire deletion.</p><p>Chat will be shared across this world, with reporting, blocking, server rate limits and moderation before public launch.</p></div>';
+ return '<div class="pl-online-info"><h4>World 1 alpha rules</h4>'+
+  '<p>World 1 has server-owned cash, shops, purchases and rankings. The current free-tier alpha supports 64 players, 40 businesses per player and six hours of offline earnings. Singleplayer saves never count toward online scores.</p>'+
+  '<p>PvP is optional, spends in-game money and has newcomer protection, cooldowns and temporary shields. Attacks reduce earnings for a limited time; they do not delete businesses or steal saved games.</p>'+
+  '<p>Chat is disabled until reporting, blocking and moderation are ready. Automatic World 1 refresh is opt-in to protect the free server quota.</p></div>';
 }
 function leaderboardRows(rows){
  if(!Array.isArray(rows)||!rows.length)return '<p class="pl-online-empty">No verified scores for this period.</p>';
@@ -69,26 +116,34 @@ function leaderboardRows(rows){
 }
 function renderPlayers(){
  const root=$('worldRivals');if(!root)return;
- if(!players.length){root.innerHTML='<p class="pl-online-empty">No online rivals available.</p>';return}
+ if(targetUid&&!players.some(p=>p.uid===targetUid))targetUid='';
+ if(!players.length){root.innerHTML='<p class="pl-online-empty">No online rivals available.</p>';updateButtons();return}
  root.innerHTML='<label for="pvpTarget">Choose a rival</label><select id="pvpTarget"><option value="">Choose a player…</option>'+
   players.filter(p=>p.uid).slice(0,100).map(p=>'<option value="'+esc(p.uid)+'" '+(p.uid===targetUid?'selected':'')+'>'+esc(p.displayName||'Player')+(p.pvpEnabled?' · PvP enabled':' · PvP off')+'</option>').join('')+'</select>';
  $('pvpTarget').addEventListener('change',e=>{targetUid=e.target.value;updateButtons()});
+ updateButtons();
 }
 function updateButtons(){
- const canAttack=connected()&&Boolean(targetUid)&&!busy;
- for(const button of document.querySelectorAll('[data-pvp-attack]'))button.disabled=!canAttack;
+ const rival=players.find(p=>p.uid===targetUid);
+ const canAttack=connected()&&ownPlayer?.pvpEnabled===true&&rival?.pvpEnabled===true&&!busy;
+ for(const button of document.querySelectorAll('[data-pvp-attack]')){
+  button.disabled=!canAttack;
+  button.title=!ownPlayer?.pvpEnabled?'Enable your own PvP participation first.'
+   :!rival?'Choose a rival first.':!rival.pvpEnabled?'This rival has PvP turned off.'
+   :busy?'An online action is already processing.':'Final cost and eligibility are checked by World 1.';
+ }
 }
 function renderOnline(){
  const root=page();if(!root)return;
- root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. Online activity and scores come from the game server. Use Refresh World to check the latest totals.</p><button type="button" id="worldRefresh" class="pl-online-connect">Refresh World</button></div></div>'+
+ root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. All purchases, balances and standings come from the server.</p><div class="pl-world-sync-controls"><button type="button" id="worldRefresh" class="pl-online-connect">Refresh World</button><button type="button" id="worldAutoSync" class="pl-online-autosync" aria-pressed="false">Auto-sync: Off</button><small id="worldLastSynced">Loading World 1…</small></div></div></div>'+
  '<div class="pl-online-box" id="worldStore"><p role="status">Loading your server-owned empire…</p></div>'+ 
  '<div class="pl-online-layout"><section class="pl-online-box"><div class="pl-online-title"><h3>🏆 Money Leaderboard</h3><span>Server verified</span></div>'+
  '<div class="pl-online-tabs" role="group" aria-label="Leaderboard period"><button data-lb="day" type="button">Today</button><button data-lb="week" type="button">This week</button><button data-lb="all" type="button">All time</button></div>'+
  '<div id="worldLeaderboard" aria-live="polite" class="pl-online-scores">Loading verified scores…</div></section>'+
  '<section class="pl-online-box"><div class="pl-online-title"><h3>⚔️ Rival Actions</h3><span>In-game money only</span></div><p>Pay to disrupt one rival company, or protect your empire. Attacks cannot permanently delete a business.</p>'+
- '<div id="worldRivals"></div><div class="pl-pvp-options">'+(rules()?.ATTACKS||[]).map(a=>
+ '<p id="worldPvpStatus" class="pl-online-note" role="status">Loading your server-verified PvP status…</p><div id="worldRivals"></div><div class="pl-pvp-options">'+(rules()?.ATTACKS||[]).map(a=>
   '<button type="button" data-pvp-attack="'+esc(a.id)+'"><strong>'+esc(a.icon)+' '+esc(a.name)+'</strong><small>From '+cash(a.baseCost)+' · '+Math.round(a.penalty*100)+'% income penalty for '+Math.round(a.durationSeconds/60)+' min</small></button>').join('')+'</div>'+
- '<div class="pl-pvp-protection"><button type="button" id="worldShield">🛡️ Buy protection</button><button type="button" id="worldPvpToggle">Toggle my PvP participation</button></div>'+
+ '<div class="pl-pvp-protection"><button type="button" id="worldShield">🛡️ Buy protection</button><button type="button" id="worldPvpToggle">Enable PvP</button></div>'+
  '<p class="pl-online-note">Final costs, attack eligibility and protection are verified by the server. Attacks have cooldowns; new players are protected.</p></section></div>'+
  '<div id="worldStatus" role="status" aria-live="polite" class="pl-online-status"></div>'+renderRules();
  root.querySelectorAll('[data-lb]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -96,9 +151,10 @@ function renderOnline(){
  }));
  root.querySelectorAll('[data-pvp-attack]').forEach(btn=>btn.addEventListener('click',()=>attack(btn.dataset.pvpAttack)));
  $('worldRefresh').onclick=()=>refreshWorld();
+ $('worldAutoSync').onclick=toggleAutoSync;
  $('worldShield').onclick=()=>defend();
  $('worldPvpToggle').onclick=()=>togglePvP();
- updatePeriod();updateButtons();
+ updateAutoSyncButton();updatePeriod();pvpStatus();updateButtons();
 }
 async function refreshWorld(){
  if(!connected()||worldRefreshing)return false;
@@ -110,6 +166,7 @@ async function refreshWorld(){
  try{
   const results=await Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]);
   if(results.some(result=>result===false)){message('Some world information could not be refreshed. Try again.');return false}
+  syncLabel();
   message('World balances and standings updated from the server.');
   return true;
  }catch(e){message('Unable to refresh right now.');return false}
@@ -129,20 +186,34 @@ async function loadEmpire(){
   if(!player||!Array.isArray(player.businesses))throw Error('Invalid empire response');
   if(stamp!==empireStamp||!connected()||root!==$('worldStore'))return false;
   const catalog=online().getCatalog?.()||[];
+  const full=player.businesses.length>=40;
   const owned=player.businesses.map((business,index)=>{
    const def=catalog.find(x=>x.id===business.type);
    const name=def?.name||'Business';
    const upgradeCost=def?Math.ceil(def.cost*(1+business.level*.75)):null;
+   const maxed=business.level>=30;
+   const cannotBuy=upgradeCost===null||!Number.isFinite(upgradeCost)||maxed||player.cash<upgradeCost;
+   const reason=maxed?'Maximum level reached':upgradeCost===null?'Upgrade unavailable'
+    :player.cash<upgradeCost?'Need '+fmt(upgradeCost-player.cash)+' more online cash':'Upgrade this business';
    return '<div class="pl-lb-row"><span class="pl-lb-player">'+esc(name)+' · Lv '+business.level+'</span>'+
-    '<button type="button" data-world-upgrade="'+index+'" '+(upgradeCost===null||business.level>=30?'disabled':'')+'>Upgrade '+(upgradeCost===null?'':fmt(upgradeCost))+'</button></div>';
+    '<button type="button" data-world-upgrade="'+index+'" title="'+esc(reason)+'" '+(cannotBuy?'disabled':'')+'>'+
+    (maxed?'Max level':'Upgrade '+(upgradeCost===null?'':fmt(upgradeCost)))+'</button></div>';
   }).join('');
-  const market=catalog.map(b=>'<button type="button" data-world-buy="'+esc(b.id)+'">'+esc(b.name)+' <strong>'+fmt(b.cost)+'</strong></button>').join('');
+  const market=catalog.map(b=>{
+   const lacking=player.cash<b.cost,locked=full||lacking;
+   const reason=full?'40-shop alpha cap reached':lacking?'Need '+fmt(b.cost-player.cash)+' more':'Ready to buy';
+   return '<button type="button" data-world-buy="'+esc(b.id)+'" title="'+esc(reason)+'" '+(locked?'disabled':'')+'>'+
+    '<span>'+esc(b.name)+'<small>'+esc(reason)+'</small></span><strong>'+fmt(b.cost)+'</strong></button>';
+  }).join('');
+  ownPlayer=player;
   root.innerHTML='<div class="pl-online-title"><h3>🏪 My Online Empire</h3><span>World 1 · Server balance</span></div>'+
    '<div class="pl-online-wallet"><div><small>Cash</small><strong>'+fmt(player.cash)+'</strong></div><div><small>Net worth</small><strong>'+fmt(player.netWorth)+'</strong></div></div>'+
+   '<p class="pl-online-note">'+player.businesses.length+' / 40 alpha shops · Purchases are disabled when your verified balance is too low.</p>'+
    '<h4>My shops</h4><div class="pl-online-scores">'+(owned||'<p class="pl-online-empty">Buy your first online shop to earn cash.</p>')+'</div>'+
-   '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are completely separate from your local singleplayer save. Earnings settle on the server.</p>';
+   '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Online cash and upgrades are separate from your local singleplayer save. Earnings settle on the server; use Refresh World to see new purchasing options.</p>';
   root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));
   root.querySelectorAll('[data-world-upgrade]').forEach(button=>button.onclick=()=>changeEmpire('upgrade',Number(button.dataset.worldUpgrade)));
+  pvpStatus();updateButtons();
   return true;
  }catch(e){if(stamp===empireStamp&&root===$('worldStore'))root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150);return false}
 }
@@ -157,7 +228,7 @@ async function changeEmpire(action,value){
   await Promise.all([loadEmpire(),loadLeaderboard()]);
   return true;
  }catch(e){message('Purchase rejected: '+String(e?.message||'Please retry.').slice(0,140));return false}
- finally{busy=false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 async function loadLeaderboard(){
  if(!connected())return false;
@@ -177,23 +248,25 @@ async function loadPlayers(){
   if(stamp!==playersStamp||!connected())return false;
   players=Array.isArray(next)?next:[];
   renderPlayers();
+  updateButtons();
   return true;
  }catch(e){if(stamp===playersStamp){message('Could not load players.');players=[];renderPlayers()}return false}
 }
 async function attack(id){
  if(!connected()||busy||!targetUid||!rules()?.ATTACKS.some(x=>x.id===id))return false;
+ if(ownPlayer?.pvpEnabled!==true){message('Enable your own PvP participation before attacking.');return false}
  const target=players.find(p=>p.uid===targetUid);
  if(!target||target.pvpEnabled!==true){message('Choose a player who has enabled PvP.');return false}
  const rule=rules().ATTACKS.find(x=>x.id===id);
  if(!window.confirm?.('Spend verified in-game cash to use '+rule.name+' against '+(target.displayName||'this rival')+'? The final cost will be checked by the server.'))return false;
- busy=true;updateButtons();
+ busy=true;updateButtons();pvpStatus();
  try{
   await online().requestAttack({targetUid,attackId:id});
   message('Attack submitted and validated by the world server.');
   await Promise.all([loadLeaderboard(),loadPlayers(),loadEmpire()]);
   return true;
  }catch(e){message('Attack rejected by the server: '+(e?.message||'Please retry.'));return false}
- finally{busy=false;updateButtons()}
+ finally{busy=false;updateButtons();pvpStatus()}
 }
 async function defend(){
  if(!connected()||busy)return false;
@@ -201,14 +274,21 @@ async function defend(){
  busy=true;
  try{await online().requestDefense();message('Protection activated by the world server.');await loadEmpire();return true}
  catch(e){message('Protection unavailable: '+(e?.message||'Please retry.'));return false}
- finally{busy=false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 async function togglePvP(){
  if(!connected()||busy)return false;
- busy=true;
- try{await online().togglePvP();message('PvP preference updated on the world server.');return true}
- catch(e){message('Could not update PvP preference.');return false}
- finally{busy=false}
+ busy=true;pvpStatus();updateButtons();
+ try{
+  const result=await online().togglePvP();
+  if(result?.player)ownPlayer=result.player;
+  pvpStatus();updateButtons();
+  message('PvP is now '+(ownPlayer?.pvpEnabled?'enabled. Rivals can challenge your empire.':'disabled.')+' Verified by World 1.');
+  await loadEmpire();
+  return true;
+ }
+ catch(e){message('Could not update PvP preference: '+String(e?.message||'Please retry.').slice(0,130));return false}
+ finally{busy=false;pvpStatus();updateButtons()}
 }
 function updateChat(){
  const dock=$('worldChatDock');if(!dock)return;
@@ -257,8 +337,19 @@ async function refreshChat(){
 function render(){
  if(!page())return false;
  if(!active()){page().innerHTML='<p class="pl-online-note">Multiplayer features appear only in multiplayer mode.</p>';updateChat();return false}
- if(!connected())showUnavailable();
- else{renderOnline();loadEmpire();loadLeaderboard();loadPlayers();refreshChat()}
+ if(!connected()){
+  // Do not leave a previous account's balance or rivals visible.
+  ownPlayer=null;players=[];targetUid='';
+  showUnavailable();
+ }else if(!$('worldStore')){
+  // Connect emits a serverupdate and also calls render. Mount the online
+  // panel only once instead of fetching the same data twice.
+  renderOnline();
+  Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]).then(results=>{
+   if(connected()&&results.every(Boolean)&&$('worldStore'))syncLabel();
+  }).catch(()=>{});
+  refreshChat();
+ }
  updateChat();return true;
 }
 function init(){
@@ -274,6 +365,8 @@ function init(){
   $('worldChatPanel').hidden=true;$('worldChatToggle')?.setAttribute('aria-expanded','false');
  });
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
+ // Opt-in auto-sync does not run when the tab is hidden or another view is open.
+ if(typeof window.setInterval==='function')window.setInterval(autoSyncTick,15000);
  window.addEventListener('profitlands:viewchange',event=>{updateChat();if(event.detail?.view==='world')render()});
  window.addEventListener('profitlands:serverupdate',()=>{if(window.ProfitLandsWorkspace?.active?.()==='world')render();else updateChat()});
  // A restored session changes connection instructions without needing another sign-in.
@@ -282,6 +375,7 @@ function init(){
  });
  updateChat();
 }
-window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period};
+window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period,
+ refresh:refreshWorld,autoSyncIfDue:autoSyncTick,autoSyncEnabled:()=>autoSyncEnabled};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
