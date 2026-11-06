@@ -105,7 +105,10 @@ function showUnavailable(){
  check();
 }
 function renderRules(){
- return '<div class="pl-online-info"><h4>How the shared world will work</h4><p>All players enter one persistent world. Rankings use verified in-game money: daily and weekly net-worth growth, plus all-time current net worth. No clan win points.</p><p>PvP is opt-in, costs in-game cash, has cooldowns and shields, and temporarily lowers a rival company\'s income. No one-click permanent empire deletion.</p><p>Chat will be shared across this world, with reporting, blocking, server rate limits and moderation before public launch.</p></div>';
+ return '<div class="pl-online-info"><h4>World 1 alpha rules</h4>'+
+  '<p>World 1 has server-owned cash, shops, purchases and rankings. The current free-tier alpha supports 64 players, 40 businesses per player and six hours of offline earnings. Singleplayer saves never count toward online scores.</p>'+
+  '<p>PvP is optional, spends in-game money and has newcomer protection, cooldowns and temporary shields. Attacks reduce earnings for a limited time; they do not delete businesses or steal saved games.</p>'+
+  '<p>Chat is disabled until reporting, blocking and moderation are ready. Automatic World 1 refresh is opt-in to protect the free server quota.</p></div>';
 }
 function leaderboardRows(rows){
  if(!Array.isArray(rows)||!rows.length)return '<p class="pl-online-empty">No verified scores for this period.</p>';
