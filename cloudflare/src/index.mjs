@@ -26,6 +26,7 @@ function worldFor(id){
 // Limited text chat beta: server-moderated, rate-limited, region-scoped and
 // automatically concealed after independent reports. Never display HTML.
 const CHAT_ENABLED=true;
+const chatAvailable=env=>CHAT_ENABLED&&String(env?.CHAT_DISABLED||'').toLowerCase()!=='true';
 const CHAT_LIMIT=60,CHAT_TEXT_LIMIT=160,CHAT_COOLDOWN_MS=20000;
 const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
@@ -245,12 +246,17 @@ function requireModerator(uid,env){
  if(!moderator(uid,env))err('permission-denied','Moderator access required.',403);
 }
 async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
+ // Emergency kill switch must protect writes as well as the health-advertised UI.
+ if(!chatAvailable(env)&&[
+  'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser',
+  'unblockChatUser','getChatReports','moderateChat'
+ ].includes(action))err('failed-precondition','Regional chat is temporarily disabled.',409);
  if(action==='health'){
   if(!db?.prepare)err('unavailable','World 1 database is not connected.',503);
   try{await rawWorld(db,false,worldId)}
   catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId,region:worldById(worldId).region,
-    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:CHAT_ENABLED,version:4,catalog:core.BUSINESS_TYPES};
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:4,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat'||action==='getBlockedChatUsers'){
   const {state}=await rawWorld(db,false,worldId);
