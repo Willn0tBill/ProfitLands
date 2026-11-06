@@ -188,3 +188,11 @@ test('signed-out account is prompted only after Firebase confirms sign-out',asyn
  await assert.rejects(pending,/Please sign in to your ProfitLands account on this page/);
  assert.equal(h.sent.length,0,'do not register or send a token for signed-out players');
 });
+
+test('initial signed-out World 1 connect does not remount UI before login error can display',async()=>{
+ const h=setup(false,null,{authRestoring:true});
+ h.window.profitlandsFirebase={waitForAuth:()=>Promise.resolve(null)};
+ await assert.rejects(h.api.connect(),/Please sign in to your ProfitLands account/);
+ assert.deepEqual(h.events,[],'a never-connected player must not broadcast a disconnect');
+ assert.equal(h.sent.length,0);
+});
