@@ -224,7 +224,7 @@ test('Cloudflare adapter and config are loaded, no Firebase Functions billing de
  const wrangler=readFileSync(join(root,'cloudflare/wrangler.toml'),'utf8');
  const schema=readFileSync(join(root,'cloudflare/schema.sql'),'utf8');
  assert.ok(html.indexOf('world1-config.js')<html.indexOf('firebase-world-adapter.js'));
- assert.match(html,/firebase-world-adapter\.js\?v=authrestore01/);
+ assert.match(html,/firebase-world-adapter\.js\?v=worldfix02/);
  assert.doesNotMatch(html,/firebase-functions-compat\.js/);
  assert.doesNotMatch(adapter,/httpsCallable\(|\.functions\(/);
  assert.match(adapter,/getIdToken\(/);
