@@ -91,3 +91,18 @@ body.pl-online-world #gameScreen .pl-workspace-advanced-nav{display:none!importa
  #worldStore .pl-online-market{grid-template-columns:minmax(0,1fr)}
  #worldStore .pl-online-wallet{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* World 1 quality-of-life controls, without changing the original arcade theme. */
+#worldPanel .pl-world-sync-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px}
+#worldPanel .pl-world-sync-controls .pl-online-connect{margin:0}
+#worldPanel .pl-online-autosync{min-height:43px;cursor:pointer;border-radius:10px;padding:10px 13px;font:inherit;font-size:12px;font-weight:800;background:#273750;color:#e9f3ff;border:1px solid #7184ae}
+#worldPanel .pl-online-autosync[aria-pressed="true"]{background:#263f37;border-color:#8ddbb1;color:#cbffe0}
+#worldPanel .pl-online-autosync:hover{filter:brightness(1.08)}
+#worldPanel .pl-online-autosync:focus-visible{outline:3px solid #ffe096;outline-offset:2px}
+#worldLastSynced{color:#c9d8ed;font-size:11px}
+#worldPvpStatus{padding:10px 12px;margin:11px 0;border-radius:10px;background:#1c3049;border:1px solid #566e99;color:#def5e9;font-size:12px;overflow-wrap:anywhere}
+#worldStore .pl-online-market button span{display:block;min-width:0}
+#worldStore .pl-online-market button small{display:block;color:#bbcee2;font-size:10px;margin-top:4px;font-weight:500}
+#worldStore .pl-online-market button:disabled strong{color:#bfd0df}
+#worldShield:disabled,#worldPvpToggle:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:560px){#worldPanel .pl-world-sync-controls{align-items:stretch}#worldPanel .pl-world-sync-controls button{flex:1 1 130px}#worldLastSynced{flex-basis:100%}}
