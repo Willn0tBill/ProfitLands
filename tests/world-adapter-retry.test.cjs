@@ -236,3 +236,24 @@ test('paid request IDs are scoped to world and switching aborts access to old wo
  assert.equal(buys.at(-1).worldId,'world-europe');
  assert.notEqual(buys[0].requestId,buys.at(-1).requestId);
 });
+
+test('regional chat is enabled only after the server announces support, and actions stay world-scoped',async()=>{
+ const h=setup(false,null,{chatEnabled:true});
+ await h.api.connect();
+ assert.equal(h.api.chatEnabled(),true);
+ await h.api.sendChat('Hello Europe');
+ await h.api.reportMessage('message-1');
+ await h.api.blockChatUser('beta');
+ await h.api.unblockChatUser('beta');
+ await h.api.getBlockedChatUsers();
+ const acts=h.sent.filter(p=>['sendChat','reportMessage','blockChatUser','unblockChatUser','getBlockedChatUsers'].includes(p.action));
+ assert.deepEqual(acts.map(p=>p.action),['sendChat','reportMessage','blockChatUser','unblockChatUser','getBlockedChatUsers']);
+ assert.ok(acts.every(p=>p.worldId==='world1'));
+ assert.equal(acts[0].text,'Hello Europe');
+ assert.equal(acts[1].messageId,'message-1');
+ assert.equal(acts[2].targetUid,'beta');
+ h.api.selectWorld('world-europe');
+ await h.api.connect();
+ await h.api.sendChat('Hello World 2');
+ assert.equal(h.sent.filter(p=>p.action==='sendChat').at(-1).worldId,'world-europe');
+});
