@@ -9,6 +9,32 @@ const rules=()=>window.ProfitLandsPvPRules;
 const online=()=>window.ProfitLandsOnline;
 const active=()=>window.state?.playType==='multi'&&Boolean($('gameScreen')?.classList.contains('active'));
 const connected=()=>active()&&online()?.isConnected?.()===true;
+const regionalWorlds=()=>online()?.getWorlds?.()||[
+ {id:'world1',region:'Americas',label:'World 1 · Americas'},
+ {id:'world-europe',region:'Europe',label:'World 2 · Europe'},
+ {id:'world-asia',region:'Asia',label:'World 3 · Asia'}];
+const regionId=()=>online()?.getSelectedWorld?.()||'world1';
+const region=()=>regionalWorlds().find(w=>w.id===regionId())||regionalWorlds()[0];
+const worldDisplay=()=>regionId()==='world1'?'World 1':region().label;
+function regionSelector(){
+ return '<div class="pl-world-region-switch" role="group" aria-label="Select multiplayer region">'+
+ regionalWorlds().map(w=>'<button type="button" data-world-region="'+esc(w.id)+
+ '" aria-pressed="'+(w.id===regionId()?'true':'false')+'"><strong>'+esc(w.region)+
+ '</strong><small>'+esc(w.label)+'</small></button>').join('')+
+ '</div><p class="pl-online-note pl-world-region-note">Three independent worlds · 64 accounts per region · Separate cash, rankings and PvP.</p>';
+}
+function bindRegionSelector(root){
+ (root.querySelectorAll?.('[data-world-region]')||[]).forEach(btn=>btn.addEventListener('click',()=>{
+  const next=btn.dataset.worldRegion;
+  if(next===regionId())return;
+  if(online()?.selectWorld?.(next)){
+   ownPlayer=null;players=[];targetUid='';period='day';
+   latest++;empireStamp++;playersStamp++;lastWorldRefreshAt=0;
+   render();
+  }
+ }));
+ const heading=$('worldPanelHeading');if(heading)heading.textContent=region().label+' · Tycoon Arena';
+}
 const signedIn=()=>{
  try{return Boolean(window.profitlandsFirebase?.getCurrentUser?.()||window.firebase?.auth?.().currentUser)}
  catch(e){return false}
@@ -70,8 +96,9 @@ const message=text=>{const status=$('worldStatus');if(status)status.textContent=
 function showUnavailable(){
  const root=page();if(!root)return;
  const configured=online()?.isConfigured?.()===true;
- const initial=configured?'Checking whether World 1 is online…':'World 1 server setup is not finished. The separate free Cloudflare Worker and D1 database must be deployed first; Firebase Blaze is not needed.';
- root.innerHTML='<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (configured?'World 1 connection':'World 1 setup required') +'</h3><p id="worldAvailability">'+initial+'</p><button type="button" id="worldConnect" class="pl-online-connect" disabled>'+(configured?'Checking server…':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
+ const initial=configured?'Checking '+region().region+' server…':'World 1 server setup is not finished. The free Cloudflare Worker and D1 database must be deployed first.';
+ root.innerHTML=regionSelector()+'<div class="pl-online-callout" role="status"><span>🌎</span><div><h3>'+ (configured?esc(region().label)+' connection':'World 1 setup required') +'</h3><p id="worldAvailability">'+initial+'</p><button type="button" id="worldConnect" class="pl-online-connect" disabled>'+(configured?'Checking server…':'Server not configured')+'</button><p id="worldConnectError" role="status"></p></div></div>'+renderRules();
+ bindRegionSelector(root);
  const button=$('worldConnect'),status=$('worldAvailability');
  if(!button||!configured)return;
  const current=()=>active()&&page()===root&&$('worldConnect')===button;
@@ -92,13 +119,13 @@ function showUnavailable(){
   if(!current())return;
   if(ready){
    status.textContent=window.profitlandsFirebase?.isAuthReady?.()===false
-    ?'World 1 server is online. Restoring your account session…'
+    ?worldDisplay()+' server is online. Restoring your account session…'
     :signedIn()
-     ?'World 1 server is online. Your account is signed in and ready to connect; your online empire is separate from singleplayer.'
-     :'World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
-   button.textContent='Connect to World 1';button.disabled=false;button.onclick=connect;
+     ?worldDisplay()+' server is online. Your account is signed in and ready to connect; each region keeps its own empire.'
+     :worldDisplay()+' server is online. Sign in to join; every region has an independent empire.';
+   button.textContent='Connect to '+worldDisplay();button.disabled=false;button.onclick=connect;
   }else{
-   status.textContent='World 1 is not serving its multiplayer API yet. The game and your local save still work. You can retry the server check.';
+   status.textContent=worldDisplay()+' is not serving its multiplayer API yet. Your other regions and local save remain safe. Retry the server check.';
    button.textContent='Retry server check';button.disabled=false;button.onclick=()=>check(true);
   }
  };
@@ -106,7 +133,7 @@ function showUnavailable(){
 }
 function renderRules(){
  return '<div class="pl-online-info"><h4>World 1 alpha rules</h4>'+
-  '<p>World 1 has server-owned cash, shops, purchases and rankings. The current free-tier alpha supports 64 players, 40 businesses per player and six hours of offline earnings. Singleplayer saves never count toward online scores.</p>'+
+  '<p>Americas, Europe and Asia each have their own server-owned cash, shops, purchases and rankings, with 64 accounts per world, 40 businesses per player, and six hours of offline earnings. Switching regions does not transfer money or shops.</p>'+
   '<p>PvP is optional, spends in-game money and has newcomer protection, cooldowns and temporary shields. Attacks reduce earnings for a limited time; they do not delete businesses or steal saved games.</p>'+
   '<p>Chat is disabled until reporting, blocking and moderation are ready. Automatic World 1 refresh is opt-in to protect the free server quota.</p></div>';
 }
@@ -135,7 +162,7 @@ function updateButtons(){
 }
 function renderOnline(){
  const root=page();if(!root)return;
- root.innerHTML='<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>ProfitLands World 1</h3><p>Shared economy connected. All purchases, balances and standings come from the server.</p><div class="pl-world-sync-controls"><button type="button" id="worldRefresh" class="pl-online-connect">Refresh World</button><button type="button" id="worldAutoSync" class="pl-online-autosync" aria-pressed="false">Auto-sync: Off</button><small id="worldLastSynced">Loading World 1…</small></div></div></div>'+
+ root.innerHTML=regionSelector()+'<div class="pl-online-callout pl-online-live"><span>🌎</span><div><h3>'+esc(region().label)+'</h3><p>Regional economy connected. Balances, purchases and rankings stay in this world.</p><div class="pl-world-sync-controls"><button type="button" id="worldRefresh" class="pl-online-connect">Refresh World</button><button type="button" id="worldAutoSync" class="pl-online-autosync" aria-pressed="false">Auto-sync: Off</button><small id="worldLastSynced">Loading World 1…</small></div></div></div>'+
  '<div class="pl-online-box" id="worldStore"><p role="status">Loading your server-owned empire…</p></div>'+ 
  '<div class="pl-online-layout"><section class="pl-online-box"><div class="pl-online-title"><h3>🏆 Money Leaderboard</h3><span>Server verified</span></div>'+
  '<div class="pl-online-tabs" role="group" aria-label="Leaderboard period"><button data-lb="day" type="button">Today</button><button data-lb="week" type="button">This week</button><button data-lb="all" type="button">All time</button></div>'+
@@ -150,6 +177,7 @@ function renderOnline(){
   period=btn.dataset.lb;updatePeriod();loadLeaderboard();
  }));
  root.querySelectorAll('[data-pvp-attack]').forEach(btn=>btn.addEventListener('click',()=>attack(btn.dataset.pvpAttack)));
+ bindRegionSelector(root);
  $('worldRefresh').onclick=()=>refreshWorld();
  $('worldAutoSync').onclick=toggleAutoSync;
  $('worldShield').onclick=()=>defend();
@@ -206,7 +234,7 @@ async function loadEmpire(){
     '<span>'+esc(b.name)+'<small>'+esc(reason)+'</small></span><strong>'+fmt(b.cost)+'</strong></button>';
   }).join('');
   ownPlayer=player;
-  root.innerHTML='<div class="pl-online-title"><h3>🏪 My Online Empire</h3><span>World 1 · Server balance</span></div>'+
+  root.innerHTML='<div class="pl-online-title"><h3>🏪 My Online Empire</h3><span>'+esc(region().label)+' · Server balance</span></div>'+
    '<div class="pl-online-wallet"><div><small>Cash</small><strong>'+fmt(player.cash)+'</strong></div><div><small>Net worth</small><strong>'+fmt(player.netWorth)+'</strong></div></div>'+
    '<p class="pl-online-note">'+player.businesses.length+' / 40 alpha shops · Purchases are disabled when your verified balance is too low.</p>'+
    '<h4>My shops</h4><div class="pl-online-scores">'+(owned||'<p class="pl-online-empty">Buy your first online shop to earn cash.</p>')+'</div>'+
