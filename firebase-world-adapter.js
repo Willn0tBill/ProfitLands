@@ -119,7 +119,15 @@ async function connect(){
    catalog=Array.isArray(health.catalog)?health.catalog:[];
    chatEnabled=health.chatEnabled===true;
    user=signed;connected=true;emit();return true;
-  }catch(error){connected=false;emit();throw error}
+  }catch(error){
+    // A failed initial connection is not a state transition. Broadcasting
+    // "disconnected" here replaces the Connect button before its click handler
+    // can display the actual error or open the sign-in dialog.
+    const wasConnected=connected;
+    connected=false;
+    if(wasConnected)emit();
+    throw error;
+  }
   finally{connecting=null}
  })();
  return connecting;
