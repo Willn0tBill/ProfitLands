@@ -3,6 +3,16 @@
   const CONFIG=window.PROFITLANDS_FIREBASE_CONFIG||{};
   const configured=CONFIG.apiKey && !String(CONFIG.apiKey).includes('PASTE_');
   let auth=null,db=null,currentUser=null,saveTimer=null,loadingCloud=false;
+  // Authentication can hydrate after a new page loads. Expose the first
+  // confirmed Auth result so World 1 does not mistake loading for sign-out.
+  let resolveInitialAuth=null,initialAuthResolved=false;
+  const initialAuth=new Promise(resolve=>{resolveInitialAuth=resolve});
+  function authChanged(user){
+    if(!initialAuthResolved){initialAuthResolved=true;resolveInitialAuth(user)}
+    if(typeof window.dispatchEvent==='function'&&typeof Event==='function'){
+      window.dispatchEvent(new Event('profitlands:authupdate'));
+    }
+  }
   const PROFILE_KEY='profitlands-profile-v1';
   const $=id=>document.getElementById(id);
   const onlineWorldActive=()=>state.playType==='multi'&&Boolean($('gameScreen')?.classList.contains('active'));
@@ -196,8 +206,12 @@
     }
   }
   function install(){
+    // Install this before Firebase sends the first asynchronous Auth callback.
+    window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh,
+     getCurrentUser:()=>currentUser,waitForAuth:()=>initialAuth};
     styles();
     if(!configured){
+      authChanged(null);
       window.ProfitLandsAccountTrophies?.onAuthChanged?.(null,null);
       refresh();
       const n=document.querySelector('.local-note');
@@ -212,6 +226,7 @@
       auth.onAuthStateChanged(async u=>{
         window.ProfitLandsAccountTrophies?.prepare?.(u?.uid||null);
         currentUser=u;
+        authChanged(u);
         if(u){
           await loadCloud();
           await window.ProfitLandsAccountTrophies?.onAuthChanged?.(u,db);
@@ -222,8 +237,8 @@
           refresh();
         }
       });
-      window.profitlandsFirebase={signIn,create,settings,cloudSave,refresh,getCurrentUser:()=>currentUser}
     }catch(e){
+      authChanged(null);
       console.error(e);
       const n=document.querySelector('.local-note');
       if(n){n.textContent='Firebase could not initialize. Check firebase-config.js.';n.classList.add('firebase-status','bad')}
