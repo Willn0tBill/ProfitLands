@@ -59,7 +59,7 @@ test('settings, homepage and game all load fresh original-color stylesheets',()=
  assert.match(site,/background:#0b0e13/);
  assert.match(site,/--pl-accent:#aef45f/);
  assert.match(site,/\.pl-pref:focus-within/);
- assert.match(play,/multiplayer-world\.css\?v=original02/);
+ assert.match(play,/multiplayer-world\.css\?v=worldqol01/);
  assert.match(read('multiplayer-world.css'),/\.pl-online-status\{color:#e2edff/);
  assert.doesNotMatch(read('multiplayer-world.css'),/\.pl-online-status\{color:#e4d3b4/);
 });
