@@ -116,3 +116,15 @@ test('World 1 refreshes the account status after auth is restored',async()=>{
  await new Promise(resolve=>setImmediate(resolve));
  assert.match(h.nodes.worldAvailability.textContent,/account is signed in and ready to connect/);
 });
+
+test('pending Firebase restore shows restoring status instead of asking for a second login',async()=>{
+ const h=harness('multi');
+ h.nodes.worldAvailability=element();
+ h.nodes.worldConnect=element();
+ h.window.profitlandsFirebase={isAuthReady:()=>false,getCurrentUser:()=>null};
+ h.window.ProfitLandsOnline={isConfigured:()=>true,probe:async()=>true,isConnected:()=>false};
+ h.window.ProfitLandsWorld.render();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(h.nodes.worldAvailability.textContent,/Restoring your account session/);
+ assert.doesNotMatch(h.nodes.worldAvailability.textContent,/Sign in to join/);
+});
