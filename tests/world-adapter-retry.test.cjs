@@ -7,10 +7,10 @@ const vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'..','firebase-world-adapter.js'),'utf8');
 let globalNonce=0;
 
-function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false}={}){
+function setup(failOnce=false,storage=null,{configured=true,healthIsPlaceholder=false,authRestoring=false}={}){
  const store=storage||new Map();
  const sent=[],events=[],callbacks={};
- let current={uid:'alpha',getIdToken:async()=> 'signed-alpha'};
+ let current=authRestoring?null:{uid:'alpha',getIdToken:async()=> 'signed-alpha'};
  let failure=typeof failOnce==='number'?failOnce:Number(Boolean(failOnce));
  const fakeFetch=async (url,options)=>{
   assert.equal(url,'https://profitlands-world1.demo.workers.dev/api');
@@ -162,4 +162,29 @@ test('auth tokens never appear in outgoing JSON payloads or persistent storage',
  assert.equal([...h.store.values()].some(x=>String(x).includes('signed-alpha')),false);
  assert.match(source,/^.*getIdToken\(/m);
  assert.doesNotMatch(source,/httpsCallable/);
+});
+
+test('restored Firebase account can connect after asynchronous page hydration without another login',async()=>{
+ const h=setup(false,null,{authRestoring:true});
+ let resolveAuth;
+ h.window.profitlandsFirebase={waitForAuth:()=>new Promise(resolve=>{resolveAuth=resolve})};
+ const pending=h.api.connect();
+ await Promise.resolve();
+ assert.equal(h.sent.length,0,'do not call the Worker before Firebase restores the session');
+ h.changeUser('alpha');
+ resolveAuth({uid:'alpha'});
+ assert.equal(await pending,true);
+ assert.equal(h.api.isConnected(),true);
+ assert.equal(h.sent.filter(x=>x.action==='register').length,1);
+});
+test('signed-out account is prompted only after Firebase confirms sign-out',async()=>{
+ const h=setup(false,null,{authRestoring:true});
+ let resolveAuth;
+ h.window.profitlandsFirebase={waitForAuth:()=>new Promise(resolve=>{resolveAuth=resolve})};
+ const pending=h.api.connect();
+ await Promise.resolve();
+ assert.equal(h.sent.length,0);
+ resolveAuth(null);
+ await assert.rejects(pending,/Please sign in to your ProfitLands account on this page/);
+ assert.equal(h.sent.length,0,'do not register or send a token for signed-out players');
 });
