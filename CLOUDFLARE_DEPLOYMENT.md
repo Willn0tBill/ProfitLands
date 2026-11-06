@@ -2,9 +2,9 @@
 
 ## Current architecture
 
-ProfitLands is a static HTML/CSS/JS game. Cloudflare hosts its public website via the `profitlands` Worker, and runs the separate World 1 multiplayer backend via the `profitlands-world1` Worker with a D1 Free database. Firebase remains the independent account authentication and private singleplayer cloud-save service. Do not delete Firebase rules, databases, Cloud Functions, or the existing `profitlands-world1` Cloudflare Worker.
+ProfitLands is a static HTML/CSS/JS game. Cloudflare hosts its public website via the `profitlands` Worker, and runs the three-region multiplayer backend (Americas, Europe, Asia) inside the separate `profitlands-world1` Worker with the existing D1 Free database. Firebase remains the independent account authentication and private singleplayer cloud-save service. Do not delete Firebase rules, databases, Cloud Functions, or the existing `profitlands-world1` Cloudflare Worker.
 
-The Cloudflare account already has a Worker named `profitlands` connected to this GitHub repository. **Use the existing Worker instead of creating a duplicate Pages project**. The separate `profitlands-world1` Worker is not part of this static-site deployment.
+The Cloudflare account already has a Worker named `profitlands` connected to this GitHub repository. **Use the existing Worker instead of creating a duplicate Pages project**. The separate `profitlands-world1` Worker is not part of this static-site deployment. Regional worlds are selected by a strictly checked `worldId` argument on the existing backend; `world1` remains Americas for backward compatibility. Updating website assets alone will not update the backend. Deploy `cloudflare/src/index.mjs` using `cloudflare/wrangler.toml` with the existing D1 binding. Do not recreate or wipe the D1 database.
 
 ## Free plan constraints
 
