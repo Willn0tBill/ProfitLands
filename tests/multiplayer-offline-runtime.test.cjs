@@ -85,3 +85,34 @@ test('Cloudflare server is isolated and client cannot locally award PvP cash',()
  const pages=fs.readFileSync(path.join(root,'play/index.html'),'utf8');
  assert.match(pages,/World 1 uses a separate server-owned balance/);
 });
+
+test('connected Firebase identity is shown without a second sign-in request',async()=>{
+ const h=harness('multi');
+ h.nodes.worldAvailability=element();
+ h.nodes.worldConnect=element();
+ h.window.firebase={auth:()=>({currentUser:{uid:'existing-user'}})};
+ h.window.ProfitLandsOnline={isConfigured:()=>true,probe:async()=>true,isConnected:()=>false};
+ h.window.ProfitLandsWorld.render();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(h.nodes.worldAvailability.textContent,/account is signed in and ready to connect/);
+ assert.doesNotMatch(h.nodes.worldAvailability.textContent,/Sign in to join/);
+ assert.equal(h.nodes.worldConnect.disabled,false);
+ assert.equal(h.nodes.worldConnect.textContent,'Connect to World 1');
+});
+test('World 1 refreshes the account status after auth is restored',async()=>{
+ const h=harness('multi');
+ h.nodes.worldAvailability=element();
+ h.nodes.worldConnect=element();
+ let account=null;
+ h.window.firebase={auth:()=>({get currentUser(){return account}})};
+ h.window.ProfitLandsOnline={isConfigured:()=>true,probe:async()=>true,isConnected:()=>false};
+ h.window.ProfitLandsWorkspace={active:()=> 'world'};
+ h.listeners.DOMContentLoaded();
+ h.window.ProfitLandsWorld.render();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(h.nodes.worldAvailability.textContent,/Sign in to join/);
+ account={uid:'restored-user'};
+ h.listeners['profitlands:authupdate']();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.match(h.nodes.worldAvailability.textContent,/account is signed in and ready to connect/);
+});
