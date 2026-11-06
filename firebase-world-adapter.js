@@ -5,7 +5,18 @@
  */
 (function(){
 'use strict';
-let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,epoch=0;
+let connected=false,user=null,catalog=[],chatEnabled=false,connecting=null,epoch=0,connectedWorld=null;
+const WORLDS=Object.freeze([
+ {id:'world1',region:'Americas',label:'World 1 · Americas'},
+ {id:'world-europe',region:'Europe',label:'World 2 · Europe'},
+ {id:'world-asia',region:'Asia',label:'World 3 · Asia'}
+]);
+const WORLD_KEY='profitlands-selected-world-v1';
+let selectedWorld='world1';
+try{const saved=window.localStorage?.getItem(WORLD_KEY);
+ if(WORLDS.some(w=>w.id===saved))selectedWorld=saved;
+}catch(e){}
+const getWorld=()=>WORLDS.find(w=>w.id===selectedWorld)||WORLDS[0];
 const pendingMutations=new Map();
 let lastProbeAt=0,lastProbeResult=false,probeInFlight=null;
 const PROBE_TTL_MS=15000;
@@ -54,18 +65,21 @@ async function probe(force=false){
  if(!ready())return false;
  if(probeInFlight)return probeInFlight;
  if(!force&&lastProbeAt&&Date.now()-lastProbeAt<PROBE_TTL_MS)return lastProbeResult;
- probeInFlight=(async()=>{
+ const world=selectedWorld;
+ const task=(async()=>{
+  let ok=false;
   try{
-   const result=await call('health');
-   lastProbeResult=result?.ok===true&&result.worldId==='world1'&&Array.isArray(result.catalog);
-  }catch(error){lastProbeResult=false}
-  finally{lastProbeAt=Date.now()}
-  return lastProbeResult;
+   const result=await call('health',{},world);
+   ok=result?.ok===true&&result.worldId===world&&Array.isArray(result.catalog);
+  }catch(e){}
+  if(selectedWorld===world){lastProbeResult=ok;lastProbeAt=Date.now()}
+  return selectedWorld===world&&ok;
  })();
- try{return await probeInFlight}
- finally{probeInFlight=null}
+ probeInFlight=task;
+ try{return await task}
+ finally{if(probeInFlight===task)probeInFlight=null}
 }
-async function call(action,data={}){
+async function call(action,data={},worldId=selectedWorld){
  const origin=endpoint();
  if(!origin)throw Error('World 1 has not been deployed. Set the Cloudflare Worker URL in world1-config.js.');
  if(typeof fetch!=='function')throw Error('Your browser cannot reach the multiplayer server.');
@@ -78,9 +92,10 @@ async function call(action,data={}){
  const abort=typeof AbortController==='function'?new AbortController():null;
  const timer=abort?setTimeout(()=>abort.abort(),15000):null;
  try{
+  if(worldId!==selectedWorld)throw Error('World selection changed during this request.');
   const response=await fetch(origin+'/api',{method:'POST',mode:'cors',cache:'no-store',
    headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},
-   body:JSON.stringify({action,...data}),...(abort?{signal:abort.signal}:{})});
+   body:JSON.stringify({action,...data,worldId}),...(abort?{signal:abort.signal}:{})});
   let result;
   try{result=await response.json()}catch(e){result=null}
   if(!response.ok||!result||result.error){
@@ -101,40 +116,52 @@ async function call(action,data={}){
  }finally{if(timer!==null)clearTimeout(timer)}
 }
 async function connect(){
- if(connected&&user?.uid===currentUser()?.uid)return true;
+ if(connected&&connectedWorld===selectedWorld&&user?.uid===currentUser()?.uid)return true;
  if(connecting)return connecting;
- connecting=(async()=>{
+ const worldId=selectedWorld;
+ let task;
+ task=(async()=>{
   const token=epoch;
   try{
    const signed=await restoredUser();
-   if(!signed)throw Error('Please sign in to your ProfitLands account on this page to join World 1.');
-   if(!playing())throw Error('Open Multiplayer before connecting to World 1.');
-   const health=await call('health');
-   if(!health?.ok||health.worldId!=='world1'||!Array.isArray(health.catalog))throw Error('The Cloudflare server is not serving World 1.');
-   lastProbeResult=true;lastProbeAt=Date.now();
-   const result=await call('register');
-   if(!result?.player?.uid||result.player.uid!==signed.uid)throw Error('Server returned the wrong player identity.');
-   if(epoch!==token||currentUser()?.uid!==signed.uid||!playing())
-    throw Error('Session changed while connecting.');
-   catalog=Array.isArray(health.catalog)?health.catalog:[];
-   chatEnabled=health.chatEnabled===true;
-   user=signed;connected=true;emit();return true;
+   if(!signed)throw Error('Please sign in to your ProfitLands account on this page to join a world.');
+   if(!playing())throw Error('Open Multiplayer before connecting to a world.');
+   const health=await call('health',{},worldId);
+   if(!health?.ok||health.worldId!==worldId||!Array.isArray(health.catalog))
+    throw Error('The Cloudflare server is not serving the selected regional world.');
+   if(selectedWorld===worldId){lastProbeResult=true;lastProbeAt=Date.now()}
+   const result=await call('register',{},worldId);
+   if(!result?.player?.uid||result.player.uid!==signed.uid||result.worldId!==worldId||
+      result.player.worldId!==worldId)
+    throw Error('Server returned the wrong player identity or world.');
+   if(epoch!==token||selectedWorld!==worldId||currentUser()?.uid!==signed.uid||!playing())
+    throw Error('Account session or region changed while connecting.');
+   catalog=health.catalog;chatEnabled=health.chatEnabled===true;
+   user=signed;connectedWorld=worldId;connected=true;emit();return true;
   }catch(error){
-    // A failed initial connection is not a state transition. Broadcasting
-    // "disconnected" here replaces the Connect button before its click handler
-    // can display the actual error or open the sign-in dialog.
-    const wasConnected=connected;
-    connected=false;
+   if(epoch===token){
+    const wasConnected=connected;connected=false;connectedWorld=null;
     if(wasConnected)emit();
-    throw error;
-  }
-  finally{connecting=null}
+   }
+   throw error;
+  }finally{if(connecting===task)connecting=null}
  })();
- return connecting;
+ connecting=task;
+ return task;
 }
-function disconnect(){epoch++;connected=false;user=null;catalog=[];chatEnabled=false;emit()}
+function disconnect(){epoch++;connected=false;connectedWorld=null;user=null;catalog=[];chatEnabled=false;emit()}
+function selectWorld(worldId){
+ if(!WORLDS.some(w=>w.id===worldId))return false;
+ if(worldId===selectedWorld)return true;
+ selectedWorld=worldId;
+ try{window.localStorage?.setItem(WORLD_KEY,worldId)}catch(e){}
+ lastProbeAt=0;lastProbeResult=false;probeInFlight=null;connecting=null;
+ disconnect();
+ return true;
+}
 function requireSession(){
- if(!connected||!playing()||user?.uid!==currentUser()?.uid)throw Error('Connect to World 1 first.');
+ if(!connected||!playing()||connectedWorld!==selectedWorld||user?.uid!==currentUser()?.uid)
+  throw Error('Connect to the selected world first.');
 }
 async function request(action,data={}){requireSession();return call(action,data)}
 function nonce(){
@@ -144,9 +171,9 @@ function nonce(){
 }
 async function paid(action,data={}){
  requireSession();
- const caller=user.uid;
+ const caller=user.uid,requestWorld=selectedWorld;
  const fingerprint=JSON.stringify([caller,action,data]);
- const storageKey='profitlands-world1-pending:'+fingerprint;
+ const storageKey='profitlands-'+requestWorld+'-pending:'+fingerprint;
  let rid=pendingMutations.get(fingerprint);
  if(!rid){
   try{
@@ -164,12 +191,12 @@ async function paid(action,data={}){
  };
  try{
   let answer;
-  try{answer=await call(action,{...data,requestId:rid})}
+  try{answer=await call(action,{...data,requestId:rid},requestWorld)}
   catch(e){
    if(!['unavailable','deadline-exceeded'].includes(e.code))throw e;
-   if(user?.uid!==caller||currentUser()?.uid!==caller||!playing())
+   if(user?.uid!==caller||currentUser()?.uid!==caller||!playing()||selectedWorld!==requestWorld)
     throw Error('Your account session changed during the request.');
-   answer=await call(action,{...data,requestId:rid});
+   answer=await call(action,{...data,requestId:rid},requestWorld);
   }
   clear();return answer;
  }catch(e){
@@ -178,7 +205,9 @@ async function paid(action,data={}){
  }
 }
 window.ProfitLandsOnline={
- connect,disconnect,probe,isConnected:()=>connected&&playing()&&user?.uid===currentUser()?.uid,
+ connect,disconnect,selectWorld,getSelectedWorld:()=>selectedWorld,getWorld:getWorld,
+ getWorlds:()=>WORLDS.map(w=>({...w})),
+ probe,isConnected:()=>connected&&playing()&&connectedWorld===selectedWorld&&user?.uid===currentUser()?.uid,
  isConfigured:ready,endpoint,chatEnabled:()=>chatEnabled,getCatalog:()=>catalog.slice(),
  getMyEmpire:()=>request('me'),
  getLeaderboard:period=>request('getLeaderboard',{period}),
