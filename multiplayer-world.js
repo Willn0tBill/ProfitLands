@@ -47,9 +47,11 @@ function showUnavailable(){
   try{ready=await online()?.probe?.(force)===true}catch(e){}
   if(!current())return;
   if(ready){
-   status.textContent=signedIn()
-    ?'World 1 server is online. Your account is signed in and ready to connect; your online empire is separate from singleplayer.'
-    :'World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
+   status.textContent=window.profitlandsFirebase?.isAuthReady?.()===false
+    ?'World 1 server is online. Restoring your account session…'
+    :signedIn()
+     ?'World 1 server is online. Your account is signed in and ready to connect; your online empire is separate from singleplayer.'
+     :'World 1 server is online. Sign in to join; your online empire is separate from singleplayer.';
    button.textContent='Connect to World 1';button.disabled=false;button.onclick=connect;
   }else{
    status.textContent='World 1 is not serving its multiplayer API yet. The game and your local save still work. You can retry the server check.';
