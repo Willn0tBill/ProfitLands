@@ -105,7 +105,7 @@ test('public health works without user identity but protected actions need signe
  const db=dbMock();
  const health=await post(db,'health',null);
  assert.equal(health.status,200);assert.equal(health.body.worldId,'world1');
- assert.equal(health.body.chatEnabled,true);
+ assert.equal(health.body.chatEnabled,false,'no configured moderator means chat stays closed');
  assert.ok(health.body.catalog.length>=8);
  assert.equal(health.headers.get('Access-Control-Allow-Origin'),webOrigin);
  const noAuth=await post(db,'register',null);
