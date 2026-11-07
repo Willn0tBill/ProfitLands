@@ -78,7 +78,7 @@ function assetValue(p,now=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:
  let total=0;
  for(const entry of STOCKS){
   const shares=Number(s.stocks?.[entry.id]||0);
-  if(nonnegInt(shares,1000000))total+=Math.floor(shares*stockPriceCents(entry.id,now)/100);
+  if(nonnegInt(shares,1000000))total+=Math.floor(shares*core.priceForPlayer(p,entry.id,now)/100);
  }
  for(const price of s.properties||[])if(Number.isSafeInteger(price)&&price>0)total+=price;
  for(const holding of s.majorCompanies||[]){
@@ -119,8 +119,8 @@ function summary(p,now=Date.now()){
  const s=ensure(p);
  return {...s,stocks:Object.fromEntries(STOCKS.map(x=>[x.id,Number(s.stocks[x.id]||0)])),
   quotes:STOCKS.map(x=>{
-   const current=stockPriceCents(x.id,now);
-   const old=stockPriceCents(x.id,Math.max(0,now-900000));
+   const current=core.priceForPlayer(p,x.id,now);
+   const old=core.priceForPlayer(p,x.id,Math.max(0,now-900000));
    return {id:x.id,name:x.name,ticker:x.ticker,priceCents:current,
     previousCents:old,changePercent:old?Math.round((current/old-1)*10000)/100:0,
     ipoThreshold:x.ipoThreshold,sector:x.sector,volatility:x.volatility};
@@ -140,7 +140,7 @@ function summary(p,now=Date.now()){
 }
 function trade(p,t,qty,mode,now){
  if(!t||!positiveInt(qty,1000000))return error('invalid_stock_trade');
- const s=ensure(p),before=Number(s.stocks[t.id]||0),price=stockPriceCents(t.id,now);
+ const s=ensure(p),before=Number(s.stocks[t.id]||0),price=core.priceForPlayer(p,t.id,now);
  if(mode==='buy'){
   // New public offerings are unlocked only by current server-estimated worth.
   if(t.ipoThreshold>0&&core.worth(p,now)<t.ipoThreshold)
