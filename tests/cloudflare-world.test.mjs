@@ -84,7 +84,7 @@ async function request(db,action,uid='user-one',extra={},options={}){
  if(authorization)headers.set('Authorization',authorization);
  return worker.fetch(new Request(base+'/api',{
   method:'POST',headers,body:JSON.stringify({action,...extra})
- }),{DB:db});
+ }),{DB:db,...(options.env||{})});
 }
 async function post(db,action,uid,extra={},opts={}){
  const response=await request(db,action,uid,extra,opts);
@@ -389,4 +389,28 @@ test('full regions safely park dormant saves and reactivate them without breachi
  assert.equal(resumed.body.player.businesses[0].type,'coffee');
  assert.ok(db.read().players['slot-1'].parkedAt>0);
  assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
+});
+
+
+test('authenticated market trading uses unpublished secret quotes and preserves payment replay',async()=>{
+ const db=dbMock(),tick=900000;
+ const start=(Math.floor(Date.now()/tick)-3)*tick;
+ const secret=Buffer.alloc(32,0x5a).toString('base64');
+ const config={WORLD_MARKET_SECRET:secret,WORLD_MARKET_START_AT:String(start)};
+ const joined=await post(db,'register','secure-market',{}, {env:config});
+ assert.equal(joined.status,200);
+ const trading=await post(db,'enterpriseAction','secure-market',{
+  operation:'buyShares',stockId:'harbor',quantity:1,requestId:rid(201)
+ },{env:config});
+ assert.equal(trading.status,200,JSON.stringify(trading.body));
+ const price=trading.body.player.enterprise.quotes.find(q=>q.id==='harbor').priceCents;
+ assert.equal(trading.body.cost,Math.ceil(price/100));
+ assert.equal(trading.body.player.enterprise.stocks.harbor,1);
+ assert.equal(JSON.stringify(trading.body).includes(secret),false);
+ const replay=await post(db,'enterpriseAction','secure-market',{
+  operation:'buyShares',stockId:'harbor',quantity:1,requestId:rid(201)
+ },{env:config});
+ assert.equal(replay.status,200);
+ assert.equal(replay.body.replayed,true);
+ assert.equal(replay.body.player.enterprise.stocks.harbor,1);
 });
