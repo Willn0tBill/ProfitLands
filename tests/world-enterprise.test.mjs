@@ -998,3 +998,160 @@ test('regional city economics are server owned, region isolated and preserve leg
  assert.equal(moved.player.businesses[0].sites[1].cityId,'houston');
  assert.equal(enterprise.apply(moved.player,'relocateBranch',
   {index:0,site:1,cityId:'houston'},t).error,'already_in_city');
+ assert.equal(core.perSecond(moved.player,t),cjsCore.perSecond(moved.player,t));
+});
+test('four new public offerings unlock at verified worth and preserve real cash and market quotes',()=>{
+ const at=t;
+ const fresh=core.fresh('ipo-guest','Stock novice',at);
+ assert.equal(enterprise.apply(fresh,'buyShares',{stockId:'aerovent',quantity:1},at).error,
+  'ipo_worth_required');
+ assert.equal(fresh.enterprise,undefined,'denied trade cannot modify original');
+ let p=player(3_000_000);
+ const quotes=enterprise.summary(p,at).quotes;
+ assert.equal(quotes.length,8);
+ for(const q of quotes){
+  assert.ok(q.priceCents>0);
+  assert.ok(Number.isFinite(q.changePercent));
+  assert.equal(core.stockPriceCents(q.id,at),cjsCore.stockPriceCents(q.id,at));
+ }
+ assert.ok(quotes.filter(q=>q.ipoThreshold>0).length===4);
+ const price=core.stockPriceCents('quantum',at);
+ const bought=enterprise.apply(p,'buyShares',{stockId:'quantum',quantity:3},at);
+ assert.equal(bought.ok,true);
+ assert.equal(bought.player.enterprise.stocks.quantum,3);
+ assert.equal(bought.player.cash,p.cash-Math.ceil(3*price/100));
+ const worthBefore=core.worth(bought.player,at);
+ const sold=enterprise.apply(bought.player,'sellShares',
+  {stockId:'quantum',quantity:2},at);
+ assert.equal(sold.ok,true);
+ assert.equal(sold.player.enterprise.stocks.quantum,1);
+ assert.ok(core.worth(sold.player,at)<=worthBefore,'stock spreads cannot mint net worth');
+});
+test('multi-stage contracts accept only ordered fresh server actions and pay once',()=>{
+ const at=t;
+ let p=player(1_000_000);
+ assert.ok(enterprise.summary(p,at).cityContracts.offers.some(c=>c.id==='workforce'));
+ p=mutate(p,'acceptCityContract',{contractId:'workforce'},at);
+ assert.equal(enterprise.summary(p,at).cityContracts.active.total,2);
+ assert.equal(enterprise.recordCityAction(p,'appointManager',at),false,
+  'out of order actions do not advance');
+ assert.equal(enterprise.apply(p,'claimCityContract',{},at).error,
+  'city_contract_incomplete');
+ p=mutate(p,'hireStaff',{index:0,quantity:1},at);
+ assert.equal(enterprise.recordCityAction(p,'hireStaff',at),true);
+ assert.equal(enterprise.recordCityAction(p,'hireStaff',at),false,
+  'first action must not also count as second action');
+ assert.equal(enterprise.summary(p,at).cityContracts.active.progress,1);
+ p=mutate(p,'appointManager',{index:0},at);
+ assert.equal(enterprise.recordCityAction(p,'appointManager',at),true);
+ assert.equal(enterprise.summary(p,at).cityContracts.canClaim,true);
+ const paid=enterprise.apply(p,'claimCityContract',{},at);
+ assert.equal(paid.reward,250);
+ assert.equal(enterprise.apply(paid.player,'claimCityContract',{},at).error,
+  'city_contract_incomplete');
+ assert.equal(paid.player.enterprise.cityCompleted,1);
+});
+test('account-wide trophies merge server-verified regional ranks without duplicates or cash transfers',async()=>{
+ const db=database(),uid='account-trophy-user';
+ await dispatch('register',uid,{},db,'world1');
+ await dispatch('register',uid,{},db,'world-europe');
+ for(const [world,hired] of [['world1',6],['world-europe',12]]){
+  const state=db.read(world);
+  state.players[uid].enterprise={badgeCounters:{coffee:{hired}},stocks:{}};
+  db.set(world,state);
+ }
+ const beforeUS=db.read('world1').players[uid].cash;
+ const beforeEU=db.read('world-europe').players[uid].cash;
+ const result=await dispatch('getAccountAchievements',uid,{},db,'world1');
+ assert.equal(result.source,'server_verified_regions');
+ assert.equal(result.regions.length,2);
+ const coffee=result.sectors.find(s=>s.id==='coffee');
+ const usRank=coffee.ranks.hired;
+ assert.ok(usRank>=3,'most progress should be retained');
+ assert.ok(usRank<6,'two region ranks must not simply add together');
+ assert.ok(result.earned<result.regions.reduce((sum,x)=>sum+x.earned,0),
+  'duplicate account ranks are counted once');
+ assert.equal(db.read('world1').players[uid].cash,beforeUS);
+ assert.equal(db.read('world-europe').players[uid].cash,beforeEU);
+ await assert.rejects(dispatch('getAccountAchievements','unregistered',{},db,'world1'),
+  /Join a world first/);
+});
+
+test('repeatable empire ascension resets assets, settles taxes, preserves lifetime trophies and boosts next cycle',()=>{
+ let p=player(13_000_000);
+ p=mutate(p,'hireStaff',{index:0,quantity:10},t);
+ const before=enterprise.summary(p,t).prestige;
+ assert.equal(before.rank,0);
+ assert.equal(before.canAscend,true);
+ const earnedBefore=achievements.summary(p).sectors.find(s=>s.id==='coffee').ranks.hired;
+ const original=structuredClone(p);
+ const ascended=enterprise.apply(p,'ascendEmpire',{},t);
+ assert.equal(ascended.ok,true);
+ const a=ascended.player;
+ assert.equal(a.cash,core.START_CASH);
+ assert.equal(a.businesses.length,0);
+ assert.equal(a.enterprise.prestigeRank,1);
+ assert.equal(a.enterprise.loanDebt,0);
+ assert.equal(a.enterprise.properties.length,0);
+ assert.equal(a.enterprise.prestigeTrophies.coffee.hired,earnedBefore);
+ assert.ok(enterprise.summary(a,t).prestige.multiplier>1);
+ assert.equal(enterprise.apply(a,'ascendEmpire',{},t).error,'ascension_requirements_not_met');
+ const refreshed=core.settle(a,t);
+ assert.equal(refreshed.enterprise.prestigeRank,1);
+ const normal=core.buyBusiness(core.fresh('normal','Normal',t),'coffee',t);
+ const ascendedBuy=core.buyBusiness(a,'coffee',t);
+ assert.equal(ascendedBuy.ok,true);
+ assert.ok(core.perSecond(ascendedBuy.player,t)>core.perSecond(normal.player,t),
+  'ascension must help even the starter Coffee Shop');
+ assert.equal(core.perSecond(ascendedBuy.player,t),
+  cjsCore.perSecond(ascendedBuy.player,t));
+ assert.equal(original.enterprise.prestigeRank,0,'source player must not be mutated');
+});
+test('ascension forbids unpaid creditors or tax bills and paid requests replay once',async()=>{
+ const now=t;
+ const initial=player(14_000_000);
+ enterprise.summary(initial,now);
+ initial.enterprise.loanDebt=1000;
+ assert.equal(enterprise.apply(initial,'ascendEmpire',{},now).error,
+  'ascension_requirements_not_met');
+ initial.enterprise.loanDebt=0;initial.enterprise.fiscal.taxDue=250;
+ assert.equal(enterprise.apply(initial,'ascendEmpire',{},now).error,
+  'ascension_requirements_not_met');
+ const db=database();
+ await dispatch('register','ascension-player',{},db,'world1');
+ const state=db.read('world1');
+ state.players['ascension-player'].cash=15000000;
+ db.set('world1',state);
+ const req={operation:'ascendEmpire',requestId:'e'.repeat(32)};
+ const first=await dispatch('enterpriseAction','ascension-player',req,db,'world1');
+ assert.equal(first.player.enterprise.prestige.rank,1);
+ assert.equal(first.player.cash,1500);
+ assert.equal(first.player.dayGain,0,'reset must not penalize daily ranking');
+ assert.equal(first.player.weekGain,0,'reset must not penalize weekly ranking');
+ const again=await dispatch('enterpriseAction','ascension-player',req,db,'world1');
+ assert.equal(again.replayed,true);
+ assert.equal(again.player.enterprise.prestige.rank,1);
+ await assert.rejects(dispatch('enterpriseAction','ascension-player',
+  {operation:'ascendEmpire',requestId:'f'.repeat(32)},db,'world1'),
+  /ascension_requirements_not_met/);
+});
+
+test('higher-tier corporations have deterministic regional daily volatility with stable local tier',()=>{
+ const p=core.fresh('corporate-news','Investor',t);
+ p.worldId='world1';
+ enterprise.summary(p,t);
+ p.enterprise.majorCompanies=[{type:'regional'}];
+ const day=86400000;
+ const first=core.corporationPerSecond('regional',p,t);
+ const second=core.corporationPerSecond('regional',p,t+day);
+ assert.notEqual(first,second,'market day should change regional corporate margins');
+ assert.equal(core.corporationPerSecond('regional',p,t),
+  cjsCore.corporationPerSecond('regional',p,t));
+ assert.equal(core.corporationPerSecond('local',p,t),200);
+ assert.equal(core.corporationPerSecond('local',p,t+day),200);
+ assert.ok(enterprise.summary(p,t).majorCatalog.find(x=>x.id==='regional').volatile);
+ assert.equal(core.perSecond(p,t),first);
+ assert.equal(core.perSecond(p,t+day),second);
+ assert.equal(core.perSecond(p,t),core.perSecond(p,t),
+  'same timestamp must always have same payout');
+});
