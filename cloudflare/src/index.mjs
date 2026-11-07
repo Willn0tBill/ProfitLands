@@ -13,6 +13,7 @@ import {censorChat} from './chat-filter.mjs';
 import {checkIp,checkUid} from './world-rate-limit.mjs';
 import {validateClientPayload} from './world-anticheat.mjs';
 import {checkDistributed} from './world-security-rate.mjs';
+import {secureMarketPlan,secureQuote,PERIOD_MS} from './world-secure-market.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -141,8 +142,28 @@ function validateState(obj){
   err('internal','World data is unavailable.',500);
  return obj;
 }
+async function attachMarket(state,env,worldId,at=Date.now()){
+ if(!env?.WORLD_MARKET_SECRET||!state?.players)return state;
+ const random=await secureMarketPlan(env.WORLD_MARKET_SECRET,worldId,at);
+ const quotes=new Map();
+ for(const period of random.keys()){
+  const when=period*PERIOD_MS,event=core.worldEvent(when,worldId),prices={};
+  for(const asset of core.SHARE_CATALOG){
+   const news=(event.effects[asset.sector]||1)-1;
+   prices[asset.id]=secureQuote(random,asset.id,when,core.SHARE_CATALOG,news);
+  }
+  quotes.set(period,prices);
+ }
+ const context={quotes};
+ for(const p of Object.values(state.players))core.setMarketContext(p,context);
+ return state;
+}
 async function rawWorld(db,init=false,worldId=WORLD_ID,env=null,accountIds=undefined){
- if(env?.WORLD_STORAGE_V2==='enabled')return readNormalized(db,worldId,null,accountIds);
+ if(env?.WORLD_STORAGE_V2==='enabled'){
+  const result=await readNormalized(db,worldId,null,accountIds);
+  await attachMarket(result.state,env,worldId);
+  return result;
+ }
  let row=await db.prepare('SELECT version, payload FROM world_state WHERE id = ?').bind(worldId).first();
  if(!row&&init){
   await db.prepare('INSERT OR IGNORE INTO world_state (id,version,payload) VALUES (?,0,?)')
@@ -153,11 +174,15 @@ async function rawWorld(db,init=false,worldId=WORLD_ID,env=null,accountIds=undef
  let state;
  try{state=validateState(await decodeLedger(row.payload))}
  catch(e){err('internal','World data could not be read.',500)}
+ await attachMarket(state,env,worldId);
  return {version:Number(row.version),state};
 }
 async function transaction(db,change,worldId=WORLD_ID,env=null,receiptKey=null,accountIds=undefined,requireRegionalGuard=false){
  if(env?.WORLD_STORAGE_V2==='enabled')
-  return transactNormalized(db,worldId,change,receiptKey,accountIds,requireRegionalGuard);
+  return transactNormalized(db,worldId,async(state,at)=>{
+   await attachMarket(state,env,worldId,at);
+   return change(state,at);
+  },receiptKey,accountIds,requireRegionalGuard);
  if(!db?.prepare)err('unavailable','Cloudflare D1 is not configured. Bind the database as DB.',503);
  for(let tries=0;tries<10;tries++){
   const {version,state}=await rawWorld(db,true,worldId);
