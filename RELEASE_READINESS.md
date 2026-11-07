@@ -9,6 +9,10 @@ Updated: November 6, 2026
 - **Contracts and achievements:** eight verified city work orders (four multi-step) with action-order checking; authenticated highest-rank online trophy merge across three regions without trusting local scores.
 - **Testing:** live Firebase/Firestore two-session save recovery, owner-only isolation and stale-write rejection passed; temporary users and test documents deleted. Local V2 concurrency test passed with 32 accounts, 64 overlapping purchases and exact replay receipts. Packaged CrazyGames v3 local Chrome QA passed gameplay/purchase and 907x510 and 320x568 viewport checks. **No CrazyGames Developer Portal approval and no hosted 64-player quota guarantee.**
 
+## Five-minute server sync and 500 ms display updates
+
+The active World view now animates a clearly labelled **estimated** cash balance and worth every 500 milliseconds without making Workers requests. Automatic account-only server reconciliation is enabled by default every **five minutes** while visible (explicitly disableable), and any purchase refreshes server-verified balances immediately. Full leaderboards and rival lists are not polled by the half-second display timer. This separates responsive gameplay presentation from free-tier network costs and does not claim that projected earnings are authoritative.
+
 ## What is implemented in this candidate
 
 - Three independent regional Cloudflare/D1 multiplayer worlds with server-validated sign-in, ledgers, purchases, 8 industry types, rankings, optional PvP, and player aliases.

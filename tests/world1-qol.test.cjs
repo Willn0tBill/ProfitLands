@@ -139,25 +139,56 @@ test('PvP is visibly off by default and updates only after a server-confirmed to
  assert.equal(h.element('worldPvpToggle').textContent,'Turn PvP off');
  assert.equal(h.buttons('worldContent','pvp-attack')[0].disabled,true,'target is still opted out');
 });
-test('opt-in auto-sync respects a visible active World view and 2-minute interval',async()=>{
+test('default background sync fetches only the player every five minutes in the visible World view',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
- assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),false);
- assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
- h.element('worldAutoSync').onclick();
  assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),true);
- assert.equal(h.prefs.get('profitlands-world1-auto-sync-v1'),'1');
  assert.equal(h.element('worldAutoSync').attributes['aria-pressed'],'true');
- h.setTime(1_130_000);h.setVisibility('hidden');
+ assert.ok(h.intervals.some(x=>x.delay===500),'the local money display ticks every half-second');
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
+ h.setTime(1_301_000);h.setVisibility('hidden');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
  h.setVisibility('visible');h.setView('businesses');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
  h.setView('world');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
  await h.settle();
- assert.deepEqual(h.counts,{me:2,board:2,players:2});
- assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'never poll again immediately');
+ assert.deepEqual(h.counts,{me:2,board:1,players:1},
+  'background sync fetches only own account, not leaderboards or all rivals');
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'no extra request immediately');
  h.element('worldAutoSync').onclick();
  assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),false);
+ assert.equal(h.prefs.get('profitlands-world1-auto-sync-v1'),'0');
+ h.setTime(2_000_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'opt-out persists');
+});
+test('half-second live wallet updates without Workers requests or client-side money mutation',async()=>{
+ const h=harness({player:{
+  uid:'qa-player',cash:400,netWorth:500,incomePerSecond:2,
+  pvpEnabled:false,protectedUntil:0,nextAttackAt:0,businesses:[]}});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ const before={...h.counts};
+ assert.equal(h.element('worldLiveCash').textContent,'$400.00');
+ h.setTime(1_000_500);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$401.00');
+ assert.equal(h.element('worldLiveWorth').textContent,'$501.00');
+ assert.deepEqual(h.counts,before,'500 ms animation sends zero network requests');
+ const coffee=h.buttons('worldStore','world-buy').find(x=>x.dataset.worldBuy==='coffee');
+ assert.equal(coffee.disabled,true);
+ h.setTime(1_050_000);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$500.00');
+ assert.equal(coffee.disabled,false,'a projected affordable shop can ask the server to approve purchase');
+ assert.deepEqual(h.counts,before,'projected affordability is read-only');
+ h.setVisibility('hidden');h.setTime(1_060_000);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ assert.equal(h.element('worldLiveCash').textContent,'$500.00');
+ h.setVisibility('visible');h.setView('businesses');
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ h.setView('world');
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$520.00');
+ assert.deepEqual(h.counts,before);
 });
 
 test('online upgrade buttons require server-verified affordability and respect the level cap',async()=>{
