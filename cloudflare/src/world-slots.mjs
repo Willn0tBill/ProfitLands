@@ -11,8 +11,11 @@ function activeCount(state){
 function lastActivity(player){
  const created=Number(player?.createdAtSeconds||0)*1000;
  const recent=Number(player?.lastActivityAt||0);
- const settled=Number(player?.lastSettledAt||0);
- return Math.max(created,recent,settled);
+ // Settlement is accounting, not evidence of active gameplay.
+ // Existing migrated accounts without a dedicated timestamp retain their
+ // historical last settlement date until their first real reconnect.
+ const legacy=recent>0?0:Number(player?.lastSettledAt||0);
+ return Math.max(created,recent,legacy);
 }
 function mayPark(p,at){
  if(!p||isParked(p)||!Number.isSafeInteger(at)||at-lastActivity(p)<IDLE_MS)
@@ -36,6 +39,7 @@ function reactivate(p,at){
  if(!p||!isParked(p))return p;
  delete p.parkedAt;
  p.lastActivityAt=at;
+ p.lastGameplayAt=at;
  return p;
 }
 export {IDLE_MS,isParked,activeCount,lastActivity,mayPark,parkOldest,reactivate};
