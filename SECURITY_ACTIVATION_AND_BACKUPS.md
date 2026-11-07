@@ -12,6 +12,21 @@ This branch preserves all existing accounts and stored holdings. Pricing and sec
 
 The limiter is globally consistent across Cloudflare Worker isolates *for the defined sensitive operations* because the SQL UPSERT updates a shared D1 row atomically. It is **not** global IP flood protection, a Cloudflare quota guarantee, or a substitute for WAF. Configure Cloudflare's available IP/ASN and bot safeguards outside the application separately if necessary.
 
+## Cloudflare-native off-PC disaster recovery — verified
+
+The existing production D1 database supports **Time Travel**. Its
+read-only `wrangler d1 time-travel info profitlands-world1` command
+returned a valid bookmark on November 7, 2026 UTC. Cloudflare automatically
+retains point-in-time recovery **for 7 days on the Workers Free plan**,
+without a running PC, a cron trigger, GitHub secrets, or an additional bill.
+No destructive production restore was attempted.
+
+This is a valuable PC-independent safety net, but it does **not** replace
+a long-term external SQL backup: it is retained for only seven days, and
+restoring Time Travel over production is destructive. The local
+Windows export remains active; the encrypted GitHub workflow below is
+an optional second off-PC copy once its credentials are configured.
+
 ## PC-independent, encrypted backup workflow
 
 The `.github/workflows/d1-encrypted-backup.yml` workflow schedules a daily encrypted D1 SQL export at 11:35 UTC. GitHub scheduled workflows operate from the repository **default branch**, so merging or explicitly installing this workflow on `main` is required before automatic runs exist. Nothing in this draft PR is a verified running off-PC backup yet.
@@ -103,10 +118,11 @@ free database capacity.
   flag `SECURITY_D1_RATE_LIMIT=enabled` is configured and deployed.
   It covers high-risk authenticated game operations, not arbitrary
   distributed bot floods; use Cloudflare edge rate controls for those.
-- The encrypted GitHub backup workflow needs repository secrets
-  configured and installation on the default branch. Its first
-  successful export **and isolated restore** must be verified before
-  calling the PC dependency eliminated.
+- Cloudflare-native 7-day Time Travel is already verified as available for
+  production and works while the PC is off. The separate 30-day encrypted
+  GitHub backup workflow still needs repository secrets, default-branch
+  installation, and an isolated restore rehearsal before it can be
+  called operational.
 - The new private stock market needs a Cloudflare secret and activation
   boundary; the committed code does not itself change live quotes.
 - No automated punitive bans are applied on rate-limit failures. Blocking
