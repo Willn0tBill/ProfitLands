@@ -1,0 +1,55 @@
+name: Encrypted D1 off-PC backup
+
+on:
+  schedule:
+    - cron: '35 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKUP_PASSPHRASE: ${{ secrets.PROFITLANDS_BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate backup credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Configure CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and PROFITLANDS_BACKUP_PASSPHRASE repository secrets."
+            exit 1
+          fi
+          if [ "${#BACKUP_PASSPHRASE}" -lt 24 ]; then
+            echo "::error::Backup passphrase must be at least 24 characters."
+            exit 1
+          fi
+      - name: Install pinned Wrangler
+        run: npm install --prefix cloudflare --no-audit --no-fund --ignore-scripts
+      - name: Export and encrypt private SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p private-d1
+          trap 'rm -rf private-d1' EXIT
+          ./cloudflare/node_modules/.bin/wrangler d1 export profitlands-world1 --remote --skip-confirmation --output private-d1/world.sql --config cloudflare/wrangler.toml
+          test -s private-d1/world.sql
+          grep -q 'world_players' private-d1/world.sql
+          (cd private-d1 && sha256sum world.sql > SHA256SUMS && tar -czf backup.tar.gz world.sql SHA256SUMS)
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -in private-d1/backup.tar.gz -out profitlands-d1.enc -pass env:BACKUP_PASSPHRASE
+          test -s profitlands-d1.enc
+      - name: Store encrypted backup only
+        uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-d1-${{ github.run_id }}
+          path: profitlands-d1.enc
+          if-no-files-found: error
+          retention-days: 30
