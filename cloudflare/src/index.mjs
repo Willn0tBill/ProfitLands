@@ -145,13 +145,25 @@ function validateState(obj){
 }
 async function attachMarket(state,env,worldId,at=Date.now()){
  if(!env?.WORLD_MARKET_SECRET||!state?.players)return state;
+ const startText=String(env.WORLD_MARKET_START_AT||'');
+ const start=Number(startText);
+ if(!/^\d{13}$/.test(startText)||!Number.isSafeInteger(start)||
+    start<PERIOD_MS||start%PERIOD_MS!==0)
+  err('unavailable','Secure market rollout is not configured.',503);
+ const startPeriod=Math.floor(start/PERIOD_MS);
  const random=await secureMarketPlan(env.WORLD_MARKET_SECRET,worldId,at);
  const quotes=new Map();
  for(const period of random.keys()){
   const when=period*PERIOD_MS,event=core.worldEvent(when,worldId),prices={};
+  if(period<startPeriod)continue;
+  // Six ticks blend away from the previous known quote to avoid an
+  // abrupt revaluation of players' already-held shares at switchover.
+  const weight=Math.min(1,(period-startPeriod+1)/6);
   for(const asset of core.SHARE_CATALOG){
    const news=(event.effects[asset.sector]||1)-1;
-   prices[asset.id]=secureQuote(random,asset.id,when,core.SHARE_CATALOG,news);
+   const secure=secureQuote(random,asset.id,when,core.SHARE_CATALOG,news);
+   const old=core.stockPriceCents(asset.id,start-PERIOD_MS);
+   prices[asset.id]=Math.max(100,Math.round(old*(1-weight)+secure*weight));
   }
   quotes.set(period,prices);
  }
