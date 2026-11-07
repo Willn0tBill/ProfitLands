@@ -183,6 +183,22 @@ function stockPriceCents(id,at=Date.now()){
  const multiplier=Math.max(.65,Math.min(1.35,1+legacy+wave+news*.25));
  return Math.max(100,Math.round(info.baseCents*multiplier));
 }
+const MARKET_CONTEXT=Symbol('profitlands_secure_market');
+function setMarketContext(player,context){
+ if(player&&context)Object.defineProperty(player,MARKET_CONTEXT,{
+  value:context,writable:true,configurable:true,enumerable:true
+ });
+ return player;
+}
+function priceForPlayer(player,id,at=Date.now()){
+ const ctx=player?.[MARKET_CONTEXT];
+ if(ctx){
+  const period=Math.floor(at/900000);
+  const quote=ctx.quotes?.get(period)?.[id];
+  if(Number.isSafeInteger(quote)&&quote>=100)return quote;
+ }
+ return stockPriceCents(id,at);
+}
 function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  let value=Number(p.cash||0);
  for(const b of p.businesses||[]){
@@ -198,7 +214,7 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
   for(const id of Object.keys(SHARE_BASE_CENTS)){
    const count=Number(e.stocks?.[id]||0);
    if(Number.isSafeInteger(count)&&count>=0&&count<=1000000)
-    value+=Math.floor(count*stockPriceCents(id,at)/100);
+    value+=Math.floor(count*priceForPlayer(p,id,at)/100);
   }
   for(const price of e.properties||[])if(Number.isSafeInteger(price)&&price>0)value+=price;
   for(const holding of e.majorCompanies||[]){
@@ -527,4 +543,4 @@ function score(player,period,now){
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_BUSINESSES,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
  ensureFiscal,recordOperatingProfit,closeFiscalYear,
- byId,dayKey,weekKey,cleanName,valueOf,worldEvent,CITY_CATALOG,cityFactor,SHARE_CATALOG,stockPriceCents,corporationPerSecond,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
+ byId,dayKey,weekKey,cleanName,valueOf,worldEvent,CITY_CATALOG,cityFactor,SHARE_CATALOG,stockPriceCents,setMarketContext,priceForPlayer,corporationPerSecond,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
