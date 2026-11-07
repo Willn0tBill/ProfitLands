@@ -31,7 +31,8 @@ function bindRegionSelector(root){
   const blocked=$('worldChatBlockedList');if(blocked)blocked.replaceChildren();
   const moderator=$('worldChatModerator');if(moderator)moderator.hidden=true;
   if(online()?.selectWorld?.(next)){
-   ownPlayer=null;liveWallet=null;players=[];targetUid='';period='day';
+   ownPlayer=null;liveWallet=null;liveCorrection='';players=[];targetUid='';period='day';
+   chatNextAt=0;chatFailures=0;nextAutoRetryAt=0;autoFailures=0;
    latest++;empireStamp++;playersStamp++;lastWorldRefreshAt=0;
    render();
   }
@@ -50,7 +51,10 @@ const cash=value=>{
  return '$'+(number>=1e12?(number/1e12).toFixed(2)+'T':number>=1e9?(number/1e9).toFixed(2)+'B':number>=1e6?(number/1e6).toFixed(2)+'M':Math.round(number).toLocaleString('en-US'));
 };
 let period='day',targetUid='',players=[],ownPlayer=null,busy=false,latest=0,empireStamp=0,playersStamp=0,lastChatAt=0,mounted=false,lastWorldRefreshAt=0,worldRefreshing=false;
-let liveWallet=null;
+let liveWallet=null,liveCorrection='';
+let nextAutoRetryAt=0,autoFailures=0;
+const CHAT_POLL_MS=180000;
+let chatNextAt=0,chatFailures=0,chatRefreshing=false;
 const AUTO_SYNC_KEY='profitlands-world1-auto-sync-v1',AUTO_SYNC_MS=300000,LIVE_TICK_MS=500;
 // Opt-out remains respected; new players get the conservative 5-minute sync.
 let autoSyncEnabled=true;
@@ -126,16 +130,21 @@ function toggleAutoSync(){
  message(autoSyncEnabled?'Your live balance animates every half-second; the server verifies it every 5 minutes while World is visible.':'Server auto-sync disabled. Your live estimate still animates, and purchases are verified by the server.');
 }
 function autoSyncTick(){
- if(!autoSyncEnabled||!connected()||busy||worldRefreshing||
+ if(!autoSyncEnabled||!connected()||busy||worldRefreshing||Date.now()<nextAutoRetryAt||
   document.visibilityState==='hidden'||window.ProfitLandsWorkspace?.active?.()!=='world')return false;
  if(Date.now()-lastWorldRefreshAt<AUTO_SYNC_MS)return false;
  // Only the account ledger is needed for background balance correction.
  // Leaderboards/rivals are fetched on entry and explicit manual refresh.
  lastWorldRefreshAt=Date.now();
  worldRefreshing=true;
- void loadEmpire().catch(()=>{}).finally(()=>{
-  worldRefreshing=false;
- });
+ void loadEmpire().then(ok=>{
+  if(ok){autoFailures=0;nextAutoRetryAt=0;return}
+  autoFailures=Math.min(4,autoFailures+1);
+  nextAutoRetryAt=Date.now()+Math.min(3600000,AUTO_SYNC_MS*(2**autoFailures));
+ }).catch(()=>{
+  autoFailures=Math.min(4,autoFailures+1);
+  nextAutoRetryAt=Date.now()+Math.min(3600000,AUTO_SYNC_MS*(2**autoFailures));
+ }).finally(()=>{worldRefreshing=false});
  return true;
 }
 function pvpStatus(){
@@ -298,6 +307,20 @@ async function loadEmpire(){
    return '<button type="button" data-world-buy="'+esc(b.id)+'" title="'+esc(reason)+'" '+(locked?'disabled':'')+'>'+
     '<span>'+esc(b.name)+'<small id="worldBuyInfo-'+esc(b.id)+'">'+esc(reason)+'</small></span><strong>'+fmt(b.cost)+'</strong></button>';
   }).join('');
+  const previous=liveWallet;
+  liveCorrection='';
+  if(previous&&!busy&&previous.uid===player.uid&&previous.worldId===regionId()){
+   const age=Math.max(0,Math.min(21600,(Date.now()-previous.at)/1000));
+   const predicted=Math.max(0,Math.min(1e12,previous.cash+age*previous.rate));
+   const correction=Number(player.cash)-predicted;
+   // Underlying finance, market news, penalties and tax bills can change
+   // server-owned income. This label is a reconciliation, not a game credit.
+   if(Number.isFinite(correction)&&
+    Math.abs(correction)>Math.max(5,previous.rate*2))
+    liveCorrection='Server balance reconciled by '+
+     (correction>0?'+':'-')+cash(Math.abs(correction))+
+     ' (taxes, other activity or changing earnings may apply).';
+  }
   ownPlayer=player;
   liveWallet={uid:player.uid,worldId:regionId(),cash:Math.max(0,Number(player.cash)||0),
    netWorth:Math.max(0,Number(player.netWorth)||0),
@@ -307,6 +330,8 @@ async function loadEmpire(){
    '<div class="pl-online-wallet"><div><small>Cash · live estimate</small><strong id="worldLiveCash" aria-live="off">'+liveMoney(player.cash)+'</strong></div>'+
    '<div><small>Net worth · live estimate</small><strong id="worldLiveWorth" aria-live="off">'+liveMoney(player.netWorth)+'</strong></div></div>'+
    '<p class="pl-online-note">Estimated income: +'+fmt(player.incomePerSecond||0)+'/sec · Display animates every 0.5 sec without server requests. Server sync every 5 min while this World tab is visible.</p>'+
+   '<p class="pl-online-note" id="worldBalanceCorrection" role="status">'+esc(liveCorrection)+'</p>'+
+   '<p class="pl-online-note">Offline income accrues for up to 6 hours between visits. Returning later does not erase saved holdings, but earnings beyond the six-hour cap are not credited.</p>'+
    '<p class="pl-online-note">'+player.businesses.length+' / '+cap+' online businesses · Purchases are disabled when your verified balance is too low.</p>'+
    '<h4>My shops</h4><div class="pl-online-scores">'+(owned||'<p class="pl-online-empty">Buy your first online shop to earn cash.</p>')+'</div>'+
    '<h4>Buy an online business</h4><div class="pl-online-market">'+market+'</div><p class="pl-online-note">Displayed earnings are estimated between server syncs. Purchases and upgrades always use server-verified balances; refresh manually for up-to-date rankings and other players.</p>';
@@ -316,7 +341,15 @@ async function loadEmpire(){
   liveWalletTick();syncLabel();
   pvpStatus();updateButtons();
   return true;
- }catch(e){if(stamp===empireStamp&&root===$('worldStore'))root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150);return false}
+ }catch(e){
+  if(stamp===empireStamp&&root===$('worldStore')){
+   if(ownPlayer&&$('worldLiveCash')){
+    // Never destroy the active storefront just because one sync timed out.
+    message('Server sync unavailable. Estimated balances remain visible; purchases are still server-verified.');
+   }else root.textContent='Online empire unavailable: '+String(e?.message||'Retry connection').slice(0,150);
+  }
+  return false;
+ }
 }
 async function changeEmpire(action,value){
  if(!connected()||busy)return false;
@@ -421,7 +454,7 @@ function renderChatMessages(entries){
    report.onclick=async()=>{
     if(!window.confirm?.('Report and hide this message for yourself?'))return;
     report.disabled=true;
-    try{await online().reportMessage(msg.id);await refreshChat();chatStatus('Report received. Hidden for your account.')}
+    try{await online().reportMessage(msg.id);await refreshChat(true);chatStatus('Report received. Hidden for your account.')}
     catch(e){report.disabled=false;chatStatus('Report failed: '+String(e?.message||'Retry.'))}
    };
    const block=document.createElement('button');block.type='button';block.textContent='Block';
@@ -430,7 +463,7 @@ function renderChatMessages(entries){
     if(!window.confirm?.('Block this player in '+region().region+' chat?'))return;
     block.disabled=true;
     try{await online().blockChatUser(msg.uid);
-     await Promise.all([refreshChat(),refreshBlockedChat()]);
+     await Promise.all([refreshChat(true),refreshBlockedChat()]);
      chatStatus('Player blocked. You can unblock them below.');}
     catch(e){block.disabled=false;chatStatus('Block failed: '+String(e?.message||'Retry.'))}
    };
@@ -455,7 +488,7 @@ async function refreshBlockedChat(){
    button.textContent='Unblock '+String(person.displayName||'Player').slice(0,22);
    button.onclick=async()=>{
     button.disabled=true;
-    try{await online().unblockChatUser(person.uid);await Promise.all([refreshChat(),refreshBlockedChat()]);}
+    try{await online().unblockChatUser(person.uid);await Promise.all([refreshChat(true),refreshBlockedChat()]);}
     catch(e){button.disabled=false;chatStatus('Unblock failed. Retry.')}
    };
    list.appendChild(button);
@@ -486,7 +519,7 @@ async function refreshModerationQueue(){
     button.onclick=async()=>{
      button.disabled=true;
      try{await online().moderateChat(item.id,decision);
-      await Promise.all([refreshModerationQueue(),refreshChat()]);
+      await Promise.all([refreshModerationQueue(),refreshChat(true)]);
       chatStatus('Report '+(decision==='remove'?'removed':'dismissed')+'.');
      }catch(e){button.disabled=false;chatStatus('Moderation action failed.')}
     };
@@ -506,25 +539,38 @@ async function submitChat(){
  try{
   await online().sendChat(text);
   if(world!==regionId())return;
-  input.value='';await refreshChat();
+  input.value='';await refreshChat(true);
   chatStatus('Message sent · '+region().region);
  }catch(e){chatStatus('Message not sent: '+String(e?.message||'Please retry.'))}
  finally{if(world===regionId())input.disabled=false}
 }
-async function refreshChat(){
- if(!connected()||online()?.chatEnabled?.()!==true||typeof online().getChat!=='function')return false;
+async function refreshChat(force=false){
+ if(!connected()||online()?.chatEnabled?.()!==true||
+  typeof online().getChat!=='function'||chatRefreshing)return false;
+ if(!force&&Date.now()<chatNextAt)return false;
+ chatRefreshing=true;
  const world=regionId();
- try{const result=await online().getChat();
+ // Reserve the next slot before the network request, preventing duplicate
+ // requests from the render and visibility events.
+ chatNextAt=Date.now()+CHAT_POLL_MS;
+ try{
+  const result=await online().getChat();
   if(world===regionId()&&connected())renderChatMessages(result);
+  chatFailures=0;
   return true;
- }catch(e){chatStatus('Could not refresh chat.');return false}
+ }catch(e){
+  chatFailures=Math.min(4,chatFailures+1);
+  chatNextAt=Date.now()+Math.min(900000,CHAT_POLL_MS*(2**chatFailures));
+  chatStatus('Chat is temporarily unavailable. Automatic retries slow down when the server is busy.');
+  return false;
+ }finally{chatRefreshing=false}
 }
 function render(){
  if(!page())return false;
  if(!active()){liveWallet=null;page().innerHTML='<p class="pl-online-note">Multiplayer features appear only in multiplayer mode.</p>';updateChat();return false}
  if(!connected()){
   // Do not leave a previous account's balance or rivals visible.
-  ownPlayer=null;liveWallet=null;players=[];targetUid='';
+  ownPlayer=null;liveWallet=null;liveCorrection='';players=[];targetUid='';
   showUnavailable();
  }else if(!$('worldStore')){
   // Connect emits a serverupdate and also calls render. Mount the online
@@ -533,7 +579,7 @@ function render(){
   Promise.all([loadEmpire(),loadLeaderboard(),loadPlayers()]).then(results=>{
    if(connected()&&results.every(Boolean)&&$('worldStore'))syncLabel();
   }).catch(()=>{});
-  refreshChat();
+  // Chat is fetched only when its panel is open; do not poll closed chat.
  }
  updateChat();return true;
 }
@@ -544,13 +590,14 @@ function init(){
   const panel=$('worldChatPanel');if(!panel)return;
   panel.hidden=!panel.hidden;
   $('worldChatToggle').setAttribute('aria-expanded',String(!panel.hidden));
-  if(!panel.hidden){updateChat();refreshChat();refreshBlockedChat();refreshModerationQueue();$('worldChatInput')?.focus()}
+  if(!panel.hidden){updateChat();refreshChat(true);refreshBlockedChat();refreshModerationQueue();$('worldChatInput')?.focus()}
  });
  $('worldChatClose')?.addEventListener('click',()=>{
   $('worldChatPanel').hidden=true;$('worldChatToggle')?.setAttribute('aria-expanded','false');
  });
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
  $('worldChatRefreshReports')?.addEventListener('click',refreshModerationQueue);
+ $('worldChatRefresh')?.addEventListener('click',()=>void refreshChat(true));
  // Poll chat only while its panel is visible; no hidden-tab chatter.
  if(typeof window.setInterval==='function')window.setInterval(()=>{
   if(connected()&&online()?.chatEnabled?.()===true&&

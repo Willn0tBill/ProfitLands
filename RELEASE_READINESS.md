@@ -13,6 +13,14 @@ Updated: November 6, 2026
 
 The active World view now animates a clearly labelled **estimated** cash balance and worth every 500 milliseconds without making Workers requests. Automatic account-only server reconciliation is enabled by default every **five minutes** while visible (explicitly disableable), and any purchase refreshes server-verified balances immediately. Full leaderboards and rival lists are not polled by the half-second display timer. This separates responsive gameplay presentation from free-tier network costs and does not claim that projected earnings are authoritative.
 
+## Resilience hardening (November 6, 2026)
+
+- Low-cost **per-isolate** Worker burst shielding: 60 health probes/min/IP, 180 API requests/min/IP, 100 reads/min/authenticated user and 40 writes/min/authenticated user, with HTTP 429 plus Retry-After. No additional D1 writes. **This is not a globally enforced Cloudflare daily quota**.
+- Chat now polls at most once every three minutes when its panel is open/visible, with explicit manual Refresh messages and exponential backoff during failures. Chat actions themselves refresh after confirmation.
+- Five-minute balance sync progressively backs off after errors; failed syncs preserve the storefront. The live estimated wallet visibly reconciles unexpected server balance changes and explains its six-hour offline earnings cap.
+- Private D1 export script installed as a real Windows Scheduled Task at 3:15 AM on the owner's computer; successful export and a Task Scheduler-triggered execution tested. SHA-256-verified SQL snapshot restored in an isolated local D1 clone with 3 regions, 1 account and 4 receipts. See `CLOUDFLARE_BACKUP_RECOVERY.md`. The task requires the PC and Wrangler authentication to be available; it is not an always-on cloud backup.
+- Remaining: distributed/global request-flood protection, unpredictable server-secret market prices, inactive-account admission policy and a real-device multiplayer beta.
+
 ## What is implemented in this candidate
 
 - Three independent regional Cloudflare/D1 multiplayer worlds with server-validated sign-in, ledgers, purchases, 8 industry types, rankings, optional PvP, and player aliases.
@@ -38,7 +46,7 @@ The active World view now animates a clearly labelled **estimated** cash balance
 - Node.js regression suite and syntax checks on the isolated development copy.
 - Tests for server-owned economy actions, cash/inventory conservation, concurrent routes, route cleanup on company sale, quote-valued stock holdings, midnight/weekly mark-to-market, CJS/ESM server consistency, replay protection, cross-region isolation, company marketplace transfers, profile security, cloud save conflicts and account switching, profanity masking, chat reporting and emergency shutdown, and CrazyGames packaging.
 - Cloudflare/static asset and CrazyGames distributions build without deleting original source.
-- Local Node regression suite: **522 passing, 0 failing**, including V2 SQLite migration, authorization, atomicity, event, city-contract and loan-recovery tests. Both legacy and normalized V2 Cloudflare Workers passed isolated **real local D1 smoke tests**. A dry-run of the actual remote D1 export verified the existing world/player/receipt data and source checksums, without remote mutations. Two independently signed RS256 test accounts were verified through the full Worker API with in-memory SQLite. The static build and 35-country catalog validation succeeded. Recheck GitHub CI on this exact integration commit before any live-account test.
+- Local Node regression suite: **531 passing, 0 failing**, including V2 SQLite migration, authorization, atomicity, event, city-contract and loan-recovery tests. Both legacy and normalized V2 Cloudflare Workers passed isolated **real local D1 smoke tests**. A dry-run of the actual remote D1 export verified the existing world/player/receipt data and source checksums, without remote mutations. Two independently signed RS256 test accounts were verified through the full Worker API with in-memory SQLite. The static build and 35-country catalog validation succeeded. Recheck GitHub CI on this exact integration commit before any live-account test.
 
 ## Remaining acceptance gaps (multiplayer V2 production is live)
 

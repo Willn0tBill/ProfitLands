@@ -12,6 +12,7 @@ function harness(options={}){
  let now=1000000,visible='visible',view='world';
  const counts={me:0,board:0,players:0},intervals=[];
  const catalog=[{id:'coffee',name:'Coffee Shop',cost:500},{id:'hotel',name:'Hotel',cost:25000}];
+ let failMe=false;
  let player=Object.assign({
   uid:'qa-player',cash:1500,netWorth:1500,pvpEnabled:false,
   protectedUntil:0,nextAttackAt:0,businesses:[]
@@ -80,7 +81,7 @@ function harness(options={}){
  const online={
   isConnected:()=>true,
   getCatalog:()=>catalog,
-  getMyEmpire:async()=>{counts.me++;return {player:structuredClone(player)}},
+  getMyEmpire:async()=>{counts.me++;if(failMe)throw Error('network_down');return {player:structuredClone(player)}}, 
   getLeaderboard:async()=>{counts.board++;return []},
   getPlayers:async()=>{counts.players++;return structuredClone(rivals)},
   togglePvP:async()=>{
@@ -103,7 +104,7 @@ function harness(options={}){
  return {
   window,nodes,online,counts,prefs,intervals,settle,
   setTime:n=>now=n,setVisibility:s=>visible=s,setView:s=>view=s,
-  setPlayer:next=>player=next,setRivals:next=>rivals=next,
+  setPlayer:next=>player=next,setFailMe:value=>failMe=Boolean(value),setRivals:next=>rivals=next,
   element:id=>nodes.get(id),buttons:(id,key)=>nodes.get(id)?.querySelectorAll('[data-'+key+']')||[]
  };
 }
@@ -207,4 +208,55 @@ test('online upgrade buttons require server-verified affordability and respect t
  button=h.buttons('worldStore','world-upgrade')[0];
  assert.equal(button.disabled,true,'level 30 is the server upgrade cap');
  assert.match(h.element('worldStore').innerHTML,/Max level/);
+});
+
+test('an interrupted server refresh preserves the current world interface',async()=>{
+ const h=harness({player:{uid:'qa-player',cash:1000,netWorth:1500,
+  incomePerSecond:2,pvpEnabled:false,protectedUntil:0,
+  nextAttackAt:0,businesses:[{type:'coffee',level:1}]}});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ assert.match(h.element('worldStore').innerHTML,/My Online Empire/);
+ h.setFailMe(true);
+ h.setTime(1_020_000);
+ assert.equal(await h.window.ProfitLandsWorld.refresh(),false);
+ assert.match(h.element('worldStore').innerHTML,/My Online Empire/,
+  'offline refresh should not replace the entire storefront with an error');
+ assert.match(h.element('worldStatus').textContent,/world information could not be refreshed/i);
+});
+test('server cash corrections are visible and offline six-hour cap is explained',async()=>{
+ const initial={uid:'qa-player',cash:400,netWorth:500,
+  incomePerSecond:2,pvpEnabled:false,protectedUntil:0,nextAttackAt:0,businesses:[]};
+ const h=harness({player:initial});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ assert.match(h.element('worldStore').innerHTML,/up to 6 hours/i);
+ h.setPlayer({...initial,cash:402,netWorth:502});
+ h.setTime(1_020_000);
+ assert.equal(await h.window.ProfitLandsWorld.refresh(),true);
+ assert.match(h.element('worldStore').innerHTML,/Server balance reconciled by/);
+ assert.match(h.element('worldStore').innerHTML,/\-\$38/);
+});
+test('chat has an explicit manual refresh and long poll with backoff',()=>{
+ assert.match(source,/const CHAT_POLL_MS=180000/);
+ assert.match(source,/chatNextAt=Date\.now\(\)\+CHAT_POLL_MS/);
+ assert.match(source,/Math\.min\(900000,CHAT_POLL_MS\*\(2\*\*chatFailures\)\)/);
+ const html=fs.readFileSync(path.join(__dirname,'..','play','index.html'),'utf8');
+ assert.match(html,/id="worldChatRefresh"/);
+ assert.match(source,/refreshChat\(true\)/);
+});
+
+test('failed automatic synchronization backs off instead of hammering a failing Worker',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ h.setFailMe(true);
+ h.setTime(1_310_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,2);
+ h.setTime(1_630_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,
+  'a server error increases retry delay beyond the ordinary five minutes');
+ assert.equal(h.counts.me,2);
+ h.setFailMe(false);h.setTime(1_915_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,3);
 });

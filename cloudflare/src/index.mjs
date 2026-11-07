@@ -10,6 +10,7 @@ import achievements from './world-achievements.mjs';
 import {encodeLedger,decodeLedger} from './world-ledger.mjs';
 import {readNormalized,transactNormalized,migrateLegacy} from './world-store-v2.mjs';
 import {censorChat} from './chat-filter.mjs';
+import {checkIp,checkUid} from './world-rate-limit.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -75,7 +76,7 @@ function headers(request){
  }
  return h;
 }
-function json(request,data,status=200){return new Response(JSON.stringify(data),{status,headers:headers(request)})}
+function json(request,data,status=200,extra={}){return new Response(JSON.stringify(data),{status,headers:{...headers(request),...extra}})}
 function decodeB64(part){
  if(typeof part!=='string'||part.length>10000||!/^[A-Za-z0-9_-]+$/.test(part))err('unauthenticated','Malformed account token.',401);
  const padded=part.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-part.length%4)%4);
@@ -622,7 +623,15 @@ export default {
    if(!body||typeof body!=='object'||!ALL_ACTIONS.has(body.action))
     err('invalid-argument','Unknown world action.');
    const worldId=worldFor(request.method==='GET'?url.searchParams.get('worldId')||undefined:body.worldId);
+   const ipCheck=checkIp(request,body.action);
+   if(!ipCheck.ok)
+    return json(request,{error:{code:'resource-exhausted',message:'Too many requests from this connection. Retry shortly.'}},429,
+     {'Retry-After':String(ipCheck.retryAfter)});
    const uid=body.action==='health'?null:await identity(request);
+   const userCheck=checkUid(uid,body.action);
+   if(!userCheck.ok)
+    return json(request,{error:{code:'resource-exhausted',message:'Too many account requests. Retry shortly.'}},429,
+     {'Retry-After':String(userCheck.retryAfter)});
    const data=await dispatch(body.action,uid,body,env?.DB,worldId,env);
    return json(request,data);
   }catch(e){
