@@ -15,6 +15,7 @@ import {validateClientPayload} from './world-anticheat.mjs';
 import {checkDistributed} from './world-security-rate.mjs';
 import {secureMarketPlan,secureQuote,PERIOD_MS} from './world-secure-market.mjs';
 import {isParked,activeCount,parkOldest,reactivate} from './world-slots.mjs';
+import * as afk from './world-afk.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -232,7 +233,8 @@ function display(p,worldId=WORLD_ID){
    incomePerSecond:core.perSecond(p),enterprise:enterprise.summary(p),
    achievements:achievements.summary(p),
   pvpEnabled:p.pvpEnabled===true,protectedUntil:p.protectedUntil||0,
-  nextAttackAt:p.nextAttackAt||0,dayGain:p.dayGain||0,weekGain:p.weekGain||0};
+  nextAttackAt:p.nextAttackAt||0,dayGain:p.dayGain||0,weekGain:p.weekGain||0,
+  activity:afk.status(p)};
 }
 function requireValid(p){
  if(!Number.isSafeInteger(p.cash)||p.cash<0||p.cash>core.MAX_CASH||
@@ -267,6 +269,10 @@ function paid(state,uid,body,action,argument,apply,at,worldId=WORLD_ID){
   return result;
  }
  const response=apply();
+ // Only server-validated, non-replayed gameplay renews the activity lease.
+ // Reconnects, clicks, syncs, PvP toggles, chat, and settings changes do not.
+ if(afk.mark(state,uid,action,argument,at)&&response?.player)
+  response.player.activity=afk.status(state.players[uid],at);
  const receipt={...response};
  delete receipt.player;
  state.receipts[key]={at,action,parameter,result:receipt};
@@ -423,8 +429,12 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    const stored=state.players[uid];
    if(stored&&!isParked(stored)){
     const player=core.settle(stored,at);
-    player.lastActivityAt=at;
-    state.players[uid]=player;
+    // Legacy accounts receive one migration grace period on reconnect.
+    // Further register requests cannot keep an AFK account alive.
+    if(!Number.isSafeInteger(stored.lastActivityAt)||stored.lastActivityAt<=0){
+     player.lastActivityAt=at;
+     state.players[uid]=player;
+    }
     return {worldId,player:display(player,worldId),created:false};
    }
    // 90-day inactive accounts with no open listing, PvP, loan or tax
@@ -437,7 +447,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     return {worldId,player:display(player,worldId),created:false,resumed:true};
    }
    const player=core.fresh(uid,name,at);
-   player.worldId=worldId;player.lastActivityAt=at;
+   player.worldId=worldId;player.lastActivityAt=at;player.lastGameplayAt=at;
    state.players[uid]=player;
    return {worldId,player:display(player,worldId),created:true};
   },worldId,env,null,undefined,true);
@@ -447,7 +457,6 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  const affectedAccounts=typeof related==='string'&&UID.test(related)?[uid,related]:[uid];
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
-  p.lastActivityAt=at;
   if(action==='sendChat'){
    const screened=chatText(body.text),text=screened.text;
    if(Number(p.chatMutedUntil||0)>at)
