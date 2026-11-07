@@ -341,6 +341,10 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   return {ok:true,worldId,region:worldById(worldId).region,
     worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),
     version:env?.WORLD_STORAGE_V2==='enabled'?6:5,maintenance,
+    distributedSecurityActive:String(env?.SECURITY_D1_RATE_LIMIT||'').toLowerCase()==='enabled',
+    secureMarketActive:!!env?.WORLD_MARKET_SECRET&&
+     Number.isSafeInteger(Number(env?.WORLD_MARKET_START_AT))&&
+     Date.now()>=Number(env?.WORLD_MARKET_START_AT),
     enterpriseEnabled:true,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getAccountAchievements'){
