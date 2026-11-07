@@ -355,3 +355,38 @@ test('region IDs are strictly whitelisted, health exposes three worlds, cap is 6
 });
 
 test.after(()=>{globalThis.fetch=realFetch});
+
+
+test('full regions safely park dormant saves and reactivate them without breaching 64 active slots',async()=>{
+ const db=dbMock();
+ for(let i=0;i<64;i++){
+  const joined=await post(db,'register','slot-'+i);
+  assert.equal(joined.status,200,'account '+i+' can join');
+ }
+ const buy=await post(db,'buyBusiness','slot-0',{businessId:'coffee',requestId:rid(900)});
+ assert.equal(buy.status,200);
+ const originalBusiness=buy.body.player.businesses[0];
+ const old=Date.now()-95*86400000;
+ db.mutate(s=>{
+  for(const uid of ['slot-0','slot-1']){
+   const p=s.players[uid];
+   p.createdAtSeconds=Math.floor(old/1000);
+   p.lastSettledAt=old;
+   p.lastActivityAt=old;
+  }
+ });
+ const newcomer=await post(db,'register','slot-64');
+ assert.equal(newcomer.status,200);
+ assert.equal(newcomer.body.created,true);
+ assert.ok(db.read().players['slot-0'].parkedAt>0);
+ assert.equal(db.read().players['slot-0'].businesses[0].type,originalBusiness.type);
+ assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
+ const parkedMe=await post(db,'me','slot-0');
+ assert.equal(parkedMe.status,503);
+ const resumed=await post(db,'register','slot-0');
+ assert.equal(resumed.status,200);
+ assert.equal(resumed.body.resumed,true);
+ assert.equal(resumed.body.player.businesses[0].type,'coffee');
+ assert.equal(db.read().players['slot-1'].parkedAt>0);
+ assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
+});
