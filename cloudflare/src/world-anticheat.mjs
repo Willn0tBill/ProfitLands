@@ -3,7 +3,7 @@
  * It is intentionally not a replacement for operation-specific economy checks.
  */
 const FORBIDDEN_KEYS=new Set(['__proto__','prototype','constructor']);
-const CLIENT_STATE_KEYS=new Set(['cash','netWorth','incomePerSecond','player','players','receipts','state','wallet','balance','lastSettledAt','dayGain','weekGain']);
+const CLIENT_STATE_KEYS=new Set(['cash','netWorth','incomePerSecond','player','players','receipts','state','wallet','balance','lastSettledAt','dayGain','weekGain','lastActivityAt','lastGameplayAt','parkedAt','activity','afk']);
 function validateClientPayload(payload){
  if(!payload||Array.isArray(payload)||typeof payload!=='object')return false;
  const stack=[{value:payload,depth:0}];
