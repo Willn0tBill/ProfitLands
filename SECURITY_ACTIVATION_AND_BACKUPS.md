@@ -84,6 +84,14 @@ Once activated, keep the same secret. Rotating it unexpectedly produces
 different historical and current prices and must be treated as a separate
 market migration.
 
+## AFK and autoclicker resistance — no false human verification
+
+- The client marks the World view as **AFK after 15 minutes without qualifying input** or while the tab is hidden. It suspends *automatic* world sync, animated wallet updates and automatic chat polling; manual refresh, sign-in, purchases and normal game progress remain available.
+- Raw clicks, pointer-down events, synthetic DOM input (`isTrusted=false`), tiny pointer jitter and repeated held-key events **do not** reset that client AFK timer. Keyboard navigation, meaningful pointer movement and touch inputs are supported to avoid penalizing accessibility usage.
+- The backend independently records `lastGameplayAt` and `lastActivityAt` only after a **successful, server-validated and non-replayed** economic/gameplay operation. Automatic reads, connection retries, repeated registration, chat, settings-only operations, failed purchases and duplicate receipt replays never renew the server's meaningful-gameplay timer. New registrations and parked-account recoveries get an initial grace period.
+- This is **not infallible anti-bot detection**: OS-level autoclickers can produce trusted pointer events, and a bot with a legitimate Firebase account can automate actual allowed trades. Hiding a client status, forging a click, or inventing a heartbeat cannot change authoritative server activity, cash or receipts; Cloudflare per-user limits and distributed limits still govern economic operations.
+- No auto-ban, fake CAPTCHA, AFK tax or destructive save removal has been introduced. ProfitLands is an idle/economy game, so passive earnings still obey the existing six-hour offline cap. The 64-account active regional slots are *not* the number of simultaneously focused browser tabs; the separate 90-day safe parking policy handles long-term capacity.
+
 ## Non-destructive inactive player slots
 
 At the existing **64 active players per region** limit, joining or
