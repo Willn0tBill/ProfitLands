@@ -143,7 +143,9 @@ test('World 1 persists a registered player, keeps local client cash out and buys
  assert.equal(joined.status,200);assert.equal(joined.body.player.cash,1500);
  assert.equal(joined.body.player.uid,'user-one');
  assert.equal((await post(db,'register')).body.created,false);
- const bought=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1),cash:999999999});
+ const forged=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1),cash:999999999});
+ assert.equal(forged.status,400);assert.equal((await post(db,'me')).body.player.cash,1500);
+ const bought=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1)});
  assert.equal(bought.status,200);assert.equal(bought.body.player.cash,1000);
  assert.equal(bought.body.player.businesses[0].type,'coffee');
  const me=await post(db,'me');assert.equal(me.body.player.businesses.length,1);
