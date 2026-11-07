@@ -14,6 +14,7 @@ import {checkIp,checkUid} from './world-rate-limit.mjs';
 import {validateClientPayload} from './world-anticheat.mjs';
 import {checkDistributed} from './world-security-rate.mjs';
 import {secureMarketPlan,secureQuote,PERIOD_MS} from './world-secure-market.mjs';
+import {isParked,activeCount,parkOldest,reactivate} from './world-slots.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -209,6 +210,8 @@ async function transaction(db,change,worldId=WORLD_ID,env=null,receiptKey=null,a
 function playerOf(state,uid){
  const p=state.players[uid];
  if(!p||p.uid!==uid)err('failed-precondition','Join World 1 before using online features.',409);
+ if(isParked(p))err('resource-exhausted',
+  'Your account is safely parked. Rejoin this region when an active slot is available.',503);
  return p;
 }
 function display(p,worldId=WORLD_ID){
@@ -258,11 +261,11 @@ function paid(state,uid,body,action,argument,apply,at,worldId=WORLD_ID){
  return response;
 }
 function settleAll(state,at){
- return Object.values(state.players).map(p=>core.settle(p,at));
+ return Object.values(state.players).filter(p=>!isParked(p)).map(p=>core.settle(p,at));
 }
 function checkPlayerCount(state,worldId=WORLD_ID){
- if(Object.keys(state.players).length>=core.MAX_PLAYERS)
-  err('resource-exhausted',worldById(worldId).region+' world is full ('+core.MAX_PLAYERS+' players).',503);
+ if(activeCount(state)>=core.MAX_PLAYERS)
+  err('resource-exhausted',worldById(worldId).region+' world is full ('+core.MAX_PLAYERS+' active players). No inactive account is eligible for safe parking yet.',503);
 }
 // All text must be plain, short and free of off-platform contact information.
 // This screening is defense-in-depth, not a substitute for active moderation.
@@ -374,7 +377,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   const {state}=await rawWorld(db,false,worldId,env);
   playerOf(state,uid);
   const at=Date.now(),entries=[];
-  for(const seller of Object.values(state.players)){
+  for(const seller of Object.values(state.players).filter(p=>!isParked(p))){
    for(const [index,b] of (seller.businesses||[]).entries()){
     const listing=b.listing;
     if(!listing||!Number.isSafeInteger(listing.price)||listing.price<1||
@@ -401,10 +404,24 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  if(action==='register'){
   const name=await alias(uid);
   return transaction(db,(state,at)=>{
-   if(state.players[uid])return {worldId,player:display(core.settle(state.players[uid],at),worldId),created:false};
+   const stored=state.players[uid];
+   if(stored&&!isParked(stored)){
+    const player=core.settle(stored,at);
+    player.lastActivityAt=at;
+    state.players[uid]=player;
+    return {worldId,player:display(player,worldId),created:false};
+   }
+   // 90-day inactive accounts with no open listing, PvP, loan or tax
+   // are parked without deleting or altering their saved holdings.
+   if(activeCount(state)>=core.MAX_PLAYERS)parkOldest(state,at,uid);
    checkPlayerCount(state,worldId);
+   if(stored){
+    const player=reactivate(core.settle(stored,at),at);
+    state.players[uid]=player;
+    return {worldId,player:display(player,worldId),created:false,resumed:true};
+   }
    const player=core.fresh(uid,name,at);
-   player.worldId=worldId;
+   player.worldId=worldId;player.lastActivityAt=at;
    state.players[uid]=player;
    return {worldId,player:display(player,worldId),created:true};
   },worldId,env,null,undefined,true);
@@ -414,6 +431,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
  const affectedAccounts=typeof related==='string'&&UID.test(related)?[uid,related]:[uid];
  return transaction(db,(state,at)=>{
   const own=playerOf(state,uid),p=core.settle(own,at),seconds=Math.floor(at/1000);
+  p.lastActivityAt=at;
   if(action==='sendChat'){
    const screened=chatText(body.text),text=screened.text;
    if(Number(p.chatMutedUntil||0)>at)
