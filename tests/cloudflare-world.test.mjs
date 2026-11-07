@@ -387,6 +387,6 @@ test('full regions safely park dormant saves and reactivate them without breachi
  assert.equal(resumed.status,200);
  assert.equal(resumed.body.resumed,true);
  assert.equal(resumed.body.player.businesses[0].type,'coffee');
- assert.equal(db.read().players['slot-1'].parkedAt>0);
+ assert.ok(db.read().players['slot-1'].parkedAt>0);
  assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
 });
