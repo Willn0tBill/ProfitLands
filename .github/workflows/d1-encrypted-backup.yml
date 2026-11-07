@@ -15,6 +15,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.PROFITLANDS_D1_DATABASE_ID }}
       BACKUP_PASSPHRASE: ${{ secrets.PROFITLANDS_BACKUP_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v4
@@ -23,8 +24,8 @@ jobs:
           node-version: '22'
       - name: Validate backup credentials
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::error::Configure CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and PROFITLANDS_BACKUP_PASSPHRASE repository secrets."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$D1_DATABASE_ID" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Configure CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, PROFITLANDS_D1_DATABASE_ID and PROFITLANDS_BACKUP_PASSPHRASE secrets."
             exit 1
           fi
           if [ "${#BACKUP_PASSPHRASE}" -lt 24 ]; then
@@ -40,7 +41,9 @@ jobs:
           umask 077
           mkdir -p private-d1
           trap 'rm -rf private-d1' EXIT
-          ./cloudflare/node_modules/.bin/wrangler d1 export profitlands-world1 --remote --skip-confirmation --output private-d1/world.sql --config cloudflare/wrangler.toml
+          if ! [[ "$D1_DATABASE_ID" =~ ^[a-fA-F0-9-]{36}$ ]]; then echo "::error::Invalid D1 database ID."; exit 1; fi
+          printf 'name = "profitlands-backup"\\n[[d1_databases]]\\nbinding = "DB"\\ndatabase_name = "profitlands-world1"\\ndatabase_id = "%s"\\n' "$D1_DATABASE_ID" > private-d1/wrangler.toml
+          ./cloudflare/node_modules/.bin/wrangler d1 export profitlands-world1 --remote --skip-confirmation --output private-d1/world.sql --config private-d1/wrangler.toml
           test -s private-d1/world.sql
           grep -q 'world_players' private-d1/world.sql
           (cd private-d1 && sha256sum world.sql > SHA256SUMS && tar -czf backup.tar.gz world.sql SHA256SUMS)
