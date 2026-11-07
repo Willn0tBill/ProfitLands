@@ -42,7 +42,7 @@ jobs:
           mkdir -p private-d1
           trap 'rm -rf private-d1' EXIT
           if ! [[ "$D1_DATABASE_ID" =~ ^[a-fA-F0-9-]{36}$ ]]; then echo "::error::Invalid D1 database ID."; exit 1; fi
-          printf 'name = "profitlands-backup"\\n[[d1_databases]]\\nbinding = "DB"\\ndatabase_name = "profitlands-world1"\\ndatabase_id = "%s"\\n' "$D1_DATABASE_ID" > private-d1/wrangler.toml
+          printf 'name = "profitlands-backup"\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "profitlands-world1"\ndatabase_id = "%s"\n' "$D1_DATABASE_ID" > private-d1/wrangler.toml
           ./cloudflare/node_modules/.bin/wrangler d1 export profitlands-world1 --remote --skip-confirmation --output private-d1/world.sql --config private-d1/wrangler.toml
           test -s private-d1/world.sql
           grep -q 'world_players' private-d1/world.sql
