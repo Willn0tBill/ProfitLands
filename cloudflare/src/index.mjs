@@ -12,6 +12,7 @@ import {readNormalized,transactNormalized,migrateLegacy} from './world-store-v2.
 import {censorChat} from './chat-filter.mjs';
 import {checkIp,checkUid} from './world-rate-limit.mjs';
 import {validateClientPayload} from './world-anticheat.mjs';
+import {checkDistributed} from './world-security-rate.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -635,6 +636,14 @@ export default {
    if(!userCheck.ok)
     return json(request,{error:{code:'resource-exhausted',message:'Too many account requests. Retry shortly.'}},429,
      {'Retry-After':String(userCheck.retryAfter)});
+   if(String(env?.SECURITY_D1_RATE_LIMIT||'').toLowerCase()==='enabled'){
+    let distributed;
+    try{distributed=await checkDistributed(env?.DB,uid,worldId,body)}
+    catch(e){err('unavailable','Security request validation is temporarily unavailable.',503)}
+    if(!distributed.ok)return json(request,{error:{code:'resource-exhausted',
+     message:'Too many sensitive actions. Try again shortly.'}},429,
+     {'Retry-After':String(distributed.retryAfter)});
+   }
    const data=await dispatch(body.action,uid,body,env?.DB,worldId,env);
    return json(request,data);
   }catch(e){
