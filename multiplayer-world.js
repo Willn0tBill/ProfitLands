@@ -56,6 +56,43 @@ let nextAutoRetryAt=0,autoFailures=0;
 const CHAT_POLL_MS=180000;
 let chatNextAt=0,chatFailures=0,chatRefreshing=false;
 const AUTO_SYNC_KEY='profitlands-world1-auto-sync-v1',AUTO_SYNC_MS=300000,LIVE_TICK_MS=500;
+// AFK affects unnecessary sync/poll traffic, never saved money or businesses.
+// Repeated clicks and fake DOM events are NOT treated as evidence of activity.
+// This is a courtesy idle guard, not proof of humanity: OS-level automation
+// can synthesize genuine input, so financial integrity stays server-owned.
+const AFK_IDLE_MS=15*60*1000,AFK_POINTER_DISTANCE=32;
+let lastInteractionAt=Date.now(),lastPointerPosition=null;
+function afkStatus(){
+ const away=document.visibilityState==='hidden'||Date.now()-lastInteractionAt>=AFK_IDLE_MS;
+ return {away,idleSeconds:Math.max(0,Math.floor((Date.now()-lastInteractionAt)/1000))};
+}
+function updateAfkStatus(){
+ const label=$('worldAfkStatus');
+ if(!label)return;
+ const value=afkStatus().away?
+  'AFK · Automatic world sync and chat polling paused. Your saved empire and offline earnings are safe. Move, type, or interact to resume.':
+  'Active · World updates pause after 15 minutes without interaction. Repeated clicks alone do not count.';
+ if(label.textContent!==value)label.textContent=value;
+}
+function trustedActivity(event){
+ if(!active()||document.visibilityState==='hidden'||event?.isTrusted!==true)return false;
+ if(event.type==='pointermove'){
+  const x=Number(event.clientX),y=Number(event.clientY);
+  if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+  const last=lastPointerPosition;
+  if(last&&Math.hypot(x-last.x,y-last.y)<AFK_POINTER_DISTANCE)return false;
+  lastPointerPosition={x,y};
+ }else if(event.type==='keydown'){
+  if(event.repeat||['Shift','Control','Alt','Meta'].includes(event.key))return false;
+ }else if(event.type!=='touchstart'&&event.type!=='wheel')return false;
+ lastInteractionAt=Date.now();updateAfkStatus();
+ return true;
+}
+function confirmedGameplay(){
+ // Called only after an actual verified server purchase or upgrade succeeds.
+ lastInteractionAt=Date.now();updateAfkStatus();
+}
+
 // Opt-out remains respected; new players get the conservative 5-minute sync.
 let autoSyncEnabled=true;
 try{autoSyncEnabled=window.localStorage?.getItem(AUTO_SYNC_KEY)!=='0'}catch(e){}
@@ -65,7 +102,7 @@ const liveMoney=value=>{
  return amount<1000000?'$'+amount.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):cash(amount);
 };
 function liveWalletTick(){
- if(!liveWallet||!connected()||busy||document.visibilityState==='hidden'||
+ if(!liveWallet||!connected()||busy||afkStatus().away||
   window.ProfitLandsWorkspace?.active?.()!=='world'||liveWallet.uid!==ownPlayer?.uid||
   liveWallet.worldId!==regionId())return false;
  const elapsed=Math.min(21600,Math.max(0,(Date.now()-liveWallet.at)/1000));
@@ -130,7 +167,7 @@ function toggleAutoSync(){
  message(autoSyncEnabled?'Your live balance animates every half-second; the server verifies it every 5 minutes while World is visible.':'Server auto-sync disabled. Your live estimate still animates, and purchases are verified by the server.');
 }
 function autoSyncTick(){
- if(!autoSyncEnabled||!connected()||busy||worldRefreshing||Date.now()<nextAutoRetryAt||
+ if(!autoSyncEnabled||!connected()||busy||worldRefreshing||Date.now()<nextAutoRetryAt||afkStatus().away||
   document.visibilityState==='hidden'||window.ProfitLandsWorkspace?.active?.()!=='world')return false;
  if(Date.now()-lastWorldRefreshAt<AUTO_SYNC_MS)return false;
  // Only the account ledger is needed for background balance correction.
@@ -330,6 +367,7 @@ async function loadEmpire(){
    '<div class="pl-online-wallet"><div><small>Cash · live estimate</small><strong id="worldLiveCash" aria-live="off">'+liveMoney(player.cash)+'</strong></div>'+
    '<div><small>Net worth · live estimate</small><strong id="worldLiveWorth" aria-live="off">'+liveMoney(player.netWorth)+'</strong></div></div>'+
    '<p class="pl-online-note">Estimated income: +'+fmt(player.incomePerSecond||0)+'/sec · Display animates every 0.5 sec without server requests. Server sync every 5 min while this World tab is visible.</p>'+
+   '<p class="pl-online-note" id="worldAfkStatus" role="status" aria-live="polite"></p>'+
    '<p class="pl-online-note" id="worldBalanceCorrection" role="status">'+esc(liveCorrection)+'</p>'+
    '<p class="pl-online-note">Offline income accrues for up to 6 hours between visits. Returning later does not erase saved holdings, but earnings beyond the six-hour cap are not credited.</p>'+
    '<p class="pl-online-note">'+player.businesses.length+' / '+cap+' online businesses · Purchases are disabled when your verified balance is too low.</p>'+
@@ -338,7 +376,7 @@ async function loadEmpire(){
   root.querySelectorAll('[data-world-buy]').forEach(button=>button.onclick=()=>changeEmpire('buy',button.dataset.worldBuy));
   root.querySelectorAll('[data-world-upgrade]').forEach(button=>button.onclick=()=>changeEmpire('upgrade',Number(button.dataset.worldUpgrade)));
   window.ProfitLandsWorldExtended?.render?.(player,root);
-  liveWalletTick();syncLabel();
+  updateAfkStatus();liveWalletTick();syncLabel();
   pvpStatus();updateButtons();
   return true;
  }catch(e){
@@ -358,6 +396,7 @@ async function changeEmpire(action,value){
   if(action==='buy')await online().buyBusiness(value);
   else if(action==='upgrade')await online().upgradeBusiness(value);
   else return false;
+  confirmedGameplay();
   message('Online empire updated. Your in-game cash was verified by the server.');
   await Promise.all([loadEmpire(),loadLeaderboard()]);
   return true;
@@ -547,7 +586,7 @@ async function submitChat(){
 async function refreshChat(force=false){
  if(!connected()||online()?.chatEnabled?.()!==true||
   typeof online().getChat!=='function'||chatRefreshing)return false;
- if(!force&&Date.now()<chatNextAt)return false;
+ if(!force&&(afkStatus().away||Date.now()<chatNextAt))return false;
  chatRefreshing=true;
  const world=regionId();
  // Reserve the next slot before the network request, preventing duplicate
@@ -598,15 +637,21 @@ function init(){
  $('worldChatForm')?.addEventListener('submit',e=>{e.preventDefault();submitChat()});
  $('worldChatRefreshReports')?.addEventListener('click',refreshModerationQueue);
  $('worldChatRefresh')?.addEventListener('click',()=>void refreshChat(true));
+ // Pointerdown/click intentionally don't reset AFK: a static autoclicker
+ // can generate thousands of clicks without any real navigation.
+ for(const event of ['pointermove','keydown','touchstart','wheel'])
+  document.addEventListener?.(event,trustedActivity,{passive:true});
+ document.addEventListener?.('visibilitychange',updateAfkStatus);
  // Poll chat only while its panel is visible; no hidden-tab chatter.
  if(typeof window.setInterval==='function')window.setInterval(()=>{
   if(connected()&&online()?.chatEnabled?.()===true&&
-    !$('worldChatPanel')?.hidden&&document.visibilityState!=='hidden')void refreshChat();
+    !$('worldChatPanel')?.hidden&&!afkStatus().away)void refreshChat();
  },30000);
  // Display-only 500 ms ticking never touches Workers or D1.
  if(typeof window.setInterval==='function')window.setInterval(liveWalletTick,LIVE_TICK_MS);
  // Server updates happen only every 5 minutes, while World is visible.
  if(typeof window.setInterval==='function')window.setInterval(autoSyncTick,15000);
+ if(typeof window.setInterval==='function')window.setInterval(updateAfkStatus,15000);
  window.addEventListener('profitlands:viewchange',event=>{updateChat();if(event.detail?.view==='world')render()});
  window.addEventListener('profitlands:serverupdate',()=>{if(window.ProfitLandsWorkspace?.active?.()==='world')render();else updateChat()});
  // A restored session changes connection instructions without needing another sign-in.
@@ -616,6 +661,7 @@ function init(){
  updateChat();
 }
 window.ProfitLandsWorld={render,updateChat,attack,defend,online:connected,period:()=>period,
- refresh:refreshWorld,autoSyncIfDue:autoSyncTick,autoSyncEnabled:()=>autoSyncEnabled,liveWalletTick};
+ refresh:refreshWorld,autoSyncIfDue:autoSyncTick,autoSyncEnabled:()=>autoSyncEnabled,liveWalletTick,
+ afkStatus,trustedActivity};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
