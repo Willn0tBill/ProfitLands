@@ -471,3 +471,39 @@ test('V2 multi-account concurrency stress conserves 64 concurrent purchases and 
   console.log('V2_SQLITE_CONCURRENT_32_ACCOUNTS_64_TRANSACTIONS_PASS',elapsed,'ms');
  }finally{db.close()}
 });
+
+
+test('normalized D1 preserves dormant accounts and their businesses during 64-slot turnover',async()=>{
+ const db=new D1Sqlite();
+ try{
+  await dispatch('register','inactive-0',{},db,'world1');
+  await migrateExistingRegion(db,'world1');
+  await dispatch('buyBusiness','inactive-0',{businessId:'coffee',requestId:rid(1001)},db,'world1',env);
+  for(let i=1;i<64;i++){
+   const who=i===1?'inactive-1':'member-'+i;
+   await dispatch('register',who,{},db,'world1',env);
+  }
+  const old=Date.now()-95*86400000;
+  for(const uid of ['inactive-0','inactive-1']){
+   const record=db.get('SELECT payload FROM world_players WHERE world_id=? AND uid=?','world1',uid);
+   const p=JSON.parse(record.payload);
+   p.lastActivityAt=old;p.createdAtSeconds=Math.floor(old/1000);p.lastSettledAt=old;
+   db.sqlite.prepare('UPDATE world_players SET payload=?,version=version+1 WHERE world_id=? AND uid=?')
+    .run(JSON.stringify(p),'world1',uid);
+  }
+  const admitted=await dispatch('register','member-64',{},db,'world1',env);
+  assert.equal(admitted.created,true);
+  let state=(await readNormalized(db,'world1')).state;
+  assert.equal(state.players['inactive-0'].parkedAt>0,true);
+  assert.equal(state.players['inactive-0'].businesses.length,1);
+  assert.equal(Object.values(state.players).filter(p=>!p.parkedAt).length,64);
+  await assert.rejects(dispatch('me','inactive-0',{},db,'world1',env),/safely parked/);
+  const resumed=await dispatch('register','inactive-0',{},db,'world1',env);
+  assert.equal(resumed.resumed,true);
+  assert.equal(resumed.player.businesses[0].type,'coffee');
+  state=(await readNormalized(db,'world1')).state;
+  assert.equal(state.players['inactive-1'].parkedAt>0,true);
+  assert.equal(Object.values(state.players).filter(p=>!p.parkedAt).length,64);
+  assert.equal(Object.keys(state.players).length,65,'all stored accounts remain recoverable');
+ }finally{db.close()}
+});
