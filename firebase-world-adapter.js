@@ -211,6 +211,7 @@ window.ProfitLandsOnline={
  isConfigured:ready,endpoint,chatEnabled:()=>chatEnabled,getCatalog:()=>catalog.slice(),
  getMyEmpire:()=>request('me'),
  getLeaderboard:period=>request('getLeaderboard',{period}),
+ getAccountAchievements:()=>request('getAccountAchievements'),
  getPlayers:()=>request('getPlayers'),
  getListings:()=>request('getListings'),
  buyListedCompany:(sellerUid,index,maxPrice)=>paid('buyListedCompany',{sellerUid,index,maxPrice}),

@@ -70,6 +70,39 @@ const BUSINESS_ECONOMICS=Object.freeze({
  dealership:{revenue:12687,expense:7900},factory:{revenue:67207,expense:41000},
  software:{revenue:196733,expense:170000},logistics:{revenue:1283757,expense:770000}
 });
+// Simulated regional city economy; real city names but gameplay-model inputs,
+// not claims of up-to-date rents. Existing no-city sites keep the old baseline.
+const CITY_CATALOG=Object.freeze([
+ {id:'new-york',name:'New York',region:'world1',demand:1.14,rent:1.27,industries:{software:1.13,hotel:1.10}},
+ {id:'los-angeles',name:'Los Angeles',region:'world1',demand:1.12,rent:1.18,industries:{hotel:1.13,gamestore:1.11}},
+ {id:'chicago',name:'Chicago',region:'world1',demand:1.03,rent:1.02,industries:{logistics:1.13,factory:1.08}},
+ {id:'houston',name:'Houston',region:'world1',demand:1.02,rent:.90,industries:{factory:1.12,dealership:1.08}},
+ {id:'miami',name:'Miami',region:'world1',demand:1.06,rent:1.12,industries:{hotel:1.17,restaurant:1.09}},
+ {id:'seattle',name:'Seattle',region:'world1',demand:1.09,rent:1.16,industries:{software:1.18,coffee:1.10}},
+ {id:'london',name:'London',region:'world-europe',demand:1.13,rent:1.25,industries:{software:1.12,hotel:1.12}},
+ {id:'paris',name:'Paris',region:'world-europe',demand:1.10,rent:1.20,industries:{hotel:1.19,restaurant:1.11}},
+ {id:'berlin',name:'Berlin',region:'world-europe',demand:1.06,rent:1.03,industries:{software:1.14,factory:1.07}},
+ {id:'amsterdam',name:'Amsterdam',region:'world-europe',demand:1.06,rent:1.14,industries:{logistics:1.17,hotel:1.07}},
+ {id:'madrid',name:'Madrid',region:'world-europe',demand:1.02,rent:.92,industries:{hotel:1.12,restaurant:1.10}},
+ {id:'warsaw',name:'Warsaw',region:'world-europe',demand:1.04,rent:.84,industries:{factory:1.15,logistics:1.08}},
+ {id:'tokyo',name:'Tokyo',region:'world-asia',demand:1.16,rent:1.20,industries:{gamestore:1.17,software:1.12}},
+ {id:'seoul',name:'Seoul',region:'world-asia',demand:1.12,rent:1.13,industries:{software:1.18,gamestore:1.13}},
+ {id:'singapore',name:'Singapore',region:'world-asia',demand:1.14,rent:1.24,industries:{logistics:1.18,software:1.12}},
+ {id:'shanghai',name:'Shanghai',region:'world-asia',demand:1.08,rent:1.08,industries:{factory:1.15,logistics:1.13}},
+ {id:'mumbai',name:'Mumbai',region:'world-asia',demand:1.03,rent:.79,industries:{software:1.15,restaurant:1.11}},
+ {id:'bangkok',name:'Bangkok',region:'world-asia',demand:1.06,rent:.85,industries:{hotel:1.17,restaurant:1.10}}
+].map(c=>Object.freeze({...c,industries:Object.freeze(c.industries)})));
+function cityFactor(cityId,sector,worldId='world1'){
+ if(!cityId)return 1;
+ const city=CITY_CATALOG.find(x=>x.id===cityId&&x.region===worldId);
+ const economics=BUSINESS_ECONOMICS[sector];
+ if(!city||!economics)return 1;
+ const margin=economics.revenue-economics.expense;
+ if(margin<=0)return 1;
+ const local=economics.revenue*city.demand*(city.industries[sector]||1)-
+  economics.expense*city.rent;
+ return Math.max(.4,Math.min(1.5,local/margin));
+}
 const US_COUNTRY=COUNTRIES.find(c=>c.id==='us');
 function countryMargin(countryId,sector,revenue,expense){
  const p=COUNTRIES.find(c=>c.id===countryId)||US_COUNTRY;
@@ -125,13 +158,32 @@ const valueOf=business=>{
  if(!def||!Number.isSafeInteger(business.level)||business.level<1||business.level>30)return 0;
  return Math.round(def.cost*(1+(business.level-1)*.15));
 };
-const SHARE_BASE_CENTS=Object.freeze({nova:4250,harbor:2480,atlas:6720,skyline:3140});
+// Four legacy tickers retain their baseline values. Four newer simulated
+// public offerings unlock through earned net worth, not a client-supplied flag.
+const SHARE_CATALOG=Object.freeze([
+ {id:'nova',name:'NovaTech',ticker:'NVT',baseCents:4250,sector:'software',volatility:.035,ipoThreshold:0},
+ {id:'harbor',name:'Harbor Foods',ticker:'HFD',baseCents:2480,sector:'restaurant',volatility:.025,ipoThreshold:0},
+ {id:'atlas',name:'Atlas Energy',ticker:'ATE',baseCents:6720,sector:'factory',volatility:.03,ipoThreshold:0},
+ {id:'skyline',name:'Skyline Motors',ticker:'SKM',baseCents:3140,sector:'dealership',volatility:.04,ipoThreshold:0},
+ {id:'aerovent',name:'AeroVent Logistics',ticker:'AVL',baseCents:8400,sector:'logistics',volatility:.045,ipoThreshold:50000},
+ {id:'verdant',name:'Verdant Power',ticker:'VRD',baseCents:13500,sector:'factory',volatility:.055,ipoThreshold:150000},
+ {id:'pulse',name:'Pulse Hospitality',ticker:'PLS',baseCents:5600,sector:'hotel',volatility:.06,ipoThreshold:500000},
+ {id:'quantum',name:'Quantum Cloud',ticker:'QCL',baseCents:22000,sector:'software',volatility:.075,ipoThreshold:2000000}
+].map(s=>Object.freeze(s)));
+const SHARE_BASE_CENTS=Object.freeze(Object.fromEntries(
+ SHARE_CATALOG.map(s=>[s.id,s.baseCents])));
 function stockPriceCents(id,at=Date.now()){
- const base=SHARE_BASE_CENTS[id];
- if(!base||!Number.isSafeInteger(at)||at<0)return 0;
+ const info=SHARE_CATALOG.find(s=>s.id===id);
+ if(!info||!Number.isSafeInteger(at)||at<0)return 0;
  const period=Math.floor(at/900000);
  const seed=id.split('').reduce((acc,c)=>acc+c.charCodeAt(0),0);
- return Math.max(100,Math.round(base*(100+((period*7+seed)%19)-9)/100));
+ const legacy=((period*7+seed)%19-9)/100;
+ // Quote movement is deterministic and region-news-sensitive. Quotes cannot
+ // be forged through the browser, and repeated polling returns the same price.
+ const wave=Math.sin((period+seed)*.137)*info.volatility;
+ const news=(worldEvent(at).effects[info.sector]||1)-1;
+ const multiplier=Math.max(.65,Math.min(1.35,1+legacy+wave+news*.25));
+ return Math.max(100,Math.round(info.baseCents*multiplier));
 }
 function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  let value=Number(p.cash||0);
@@ -162,6 +214,23 @@ function worth(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.n
  }
  return Math.max(0,Math.min(MAX_CASH,Math.round(value)));
 }
+function corporationPerSecond(type,p,at=Date.now()){
+ const corp=MAJOR_CORPORATIONS.find(c=>c.id===type);
+ if(!corp)return 0;
+ const country=p.enterprise?.country||'us';
+ const base=countryMargin(country,corp.id,corp.rev,corp.expense);
+ // Preserve the original local-corporation rate for existing saves.
+ if(type==='local')return Math.floor(base/60);
+ const sectors={regional:'factory',national:'logistics',global:'software',
+  conglomerate:'dealership',mega:'software',empire:'logistics'};
+ const tier=MAJOR_CORPORATIONS.findIndex(c=>c.id===type);
+ const risk=Math.min(.11,.02+tier*.011);
+ const day=Math.floor(at/86400000);
+ const cycle=Math.sin((day+tier*17)*.71)*risk;
+ const sectorEffect=worldEvent(at,p.worldId||WORLD_ID).effects[sectors[type]]||1;
+ const adjusted=base*(1+cycle+(sectorEffect-1)*.30);
+ return Math.max(0,Math.floor(adjusted/60));
+}
 function perSecond(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Date.now()){
  let income=0;
  const event=worldEvent(at,p.worldId||WORLD_ID);
@@ -178,16 +247,18 @@ function perSecond(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Da
   // Company-level upgrades and branch-level upgrades are independent.
   // Upgraded sites must actually raise passive revenue rather than only
   // changing their resale value. Preserve legacy single-site income.
+  const siteCityFactor=Array.isArray(business.sites)?
+   business.sites.reduce((sum,site)=>sum+cityFactor(site.cityId,def.id,p.worldId||WORLD_ID),0)/sites:1;
   const siteLevelBonus=Array.isArray(business.sites)?
    business.sites.reduce((sum,site)=>sum+
     Math.max(0,Math.min(29,Number(site.level||1)-1))*.22,0)/sites:0;
-  const mult=Math.min(24,(1+(sites-1)*.65)*(1+siteLevelBonus)*
+  const mult=Math.min(24,(1+(sites-1)*.65)*(1+siteLevelBonus)*siteCityFactor*
    (1+workers*.018)*training*(business.manager?1.18:1)*
    (1+marketing*.015)*(1+efficiency*.014));
   const economics=BUSINESS_ECONOMICS[def.id];
   const margin=economics?countryMargin(profile.id,def.id,economics.revenue,economics.expense):def.baseProfit;
   const base=Math.floor(margin*(1+(business.level-1)*.22)/60);
-  const enhanced=workers>0||sites>1||siteLevelBonus>0||business.manager||marketing>0||efficiency>0||
+  const enhanced=workers>0||sites>1||siteCityFactor!==1||siteLevelBonus>0||business.manager||marketing>0||efficiency>0||
    training!==1||profile.id!=='us';
   const rawIncome=enhanced?Math.max(0,Math.ceil(base*mult-workers*.005)):base;
   const effect=event.effects[def.id]||1;
@@ -195,10 +266,11 @@ function perSecond(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Da
  }
  for(const price of e?.properties||[])if(Number.isFinite(price))income+=Math.floor(price/180000);
  for(const holding of e?.majorCompanies||[]){
-  const corp=MAJOR_CORPORATIONS.find(x=>x.id===holding?.type);
-  if(corp)income+=Math.floor(countryMargin(profile.id,corp.id,corp.rev,corp.expense)/60);
+  income+=corporationPerSecond(holding?.type,p,at);
  }
- return Math.max(0,Math.min(250_000_000,income));
+ const prestige=Number.isSafeInteger(e?.prestigeRank)&&e.prestigeRank>0?
+  Math.min(3,Math.log2(e.prestigeRank+1)*.18):0;
+ return Math.max(0,Math.min(250_000_000,(prestige>0?Math.ceil(income*(1+prestige)):income)));
 }
 const FISCAL_YEAR_MS=365*86400000;
 function ensureFiscal(p){
@@ -456,6 +528,6 @@ function score(player,period,now){
 }
 module.exports={WORLD_ID,MAX_PLAYERS,MAX_BUSINESSES,MAX_CASH,MAX_OFFLINE_SECONDS,START_CASH,BUSINESS_TYPES,MAJOR_CORPORATIONS,COUNTRIES,BUSINESS_ECONOMICS,countryMargin,
  ensureFiscal,recordOperatingProfit,closeFiscalYear,
- byId,dayKey,weekKey,cleanName,valueOf,worldEvent,stockPriceCents,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
+ byId,dayKey,weekKey,cleanName,valueOf,worldEvent,CITY_CATALOG,cityFactor,SHARE_CATALOG,stockPriceCents,corporationPerSecond,worth,perSecond,fresh,settle,buyBusiness,upgradeBusiness,score,credit,debit};
 
 export default module.exports;

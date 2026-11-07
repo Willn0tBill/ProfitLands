@@ -4,6 +4,7 @@ import {webcrypto} from 'node:crypto';
 import {createRequire} from 'node:module';
 import core from '../cloudflare/src/world-core.mjs';
 import enterprise from '../cloudflare/src/world-enterprise.mjs';
+import achievements from '../cloudflare/src/world-achievements.mjs';
 import {dispatch} from '../cloudflare/src/index.mjs';
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const cjsCore=createRequire(import.meta.url)('../functions/world-core.js');
@@ -55,7 +56,7 @@ test('legacy online businesses gain additive enterprise defaults without losing 
  assert.equal(p.cash,before);
  assert.equal(p.businesses[0].sites.length,1);
  assert.equal(core.worth(p),before+core.valueOf(p.businesses[0]));
- assert.equal(info.quotes.length,4);
+ assert.equal(info.quotes.length,8);
 });
 test('staff, management, marketing, efficiency and branch expansion affect real server income',()=>{
  let p=player(),income=core.perSecond(p);
@@ -958,4 +959,42 @@ test('all eighteen singleplayer world-event themes appear in a server-owned 24-d
  }
  assert.equal(core.worldEvent(start,'world1').id,
   core.worldEvent(start+24*86400000,'world1').id,'cycle repeats deterministically');
+});
+
+test('regional city economics are server owned, region isolated and preserve legacy branch income',()=>{
+ let p=player(1_000_000);
+ p.worldId='world1';
+ const originalIncome=core.perSecond(p,t);
+ const neutral=structuredClone(p);
+ neutral.businesses[0].sites=[{level:1,stock:0,price:100,autoRestock:false}];
+ assert.equal(core.perSecond(neutral,t),originalIncome);
+ assert.ok(core.CITY_CATALOG.filter(x=>x.region==='world1').length>=6);
+ const wrong=enterprise.apply(p,'openBranch',{index:0,cityId:'tokyo'},t);
+ assert.equal(wrong.error,'invalid_city');
+ assert.equal(p.businesses.length,1,'invalid region must not modify input');
+ const added=enterprise.apply(p,'openBranch',{index:0,cityId:'chicago'},t);
+ assert.equal(added.ok,true);
+ let withCity=added.player;
+ assert.equal(withCity.businesses[0].sites[1].cityId,'chicago');
+ assert.equal(core.cityFactor('chicago','coffee','world1'),
+  cjsCore.cityFactor('chicago','coffee','world1'));
+ const cityIncome=core.perSecond(withCity,t);
+ const industrial=structuredClone(withCity);
+ industrial.businesses[0].type='factory';
+ const snapshot=structuredClone(industrial);
+ snapshot.businesses[0].sites[1].cityId='new-york';
+ assert.notEqual(core.perSecond(snapshot,t),core.perSecond(industrial,t),
+  'different local operating costs should change actual earned income');
+ const noCross=enterprise.apply(withCity,'relocateBranch',
+  {index:0,site:1,cityId:'london'},t);
+ assert.equal(noCross.error,'invalid_city');
+ const stock=withCity.businesses[0].sites[1].stock=23;
+ const moved=enterprise.apply(withCity,'relocateBranch',
+  {index:0,site:1,cityId:'houston'},t);
+ assert.equal(moved.ok,true);
+ assert.equal(moved.player.businesses[0].sites[1].stock,stock);
+ assert.equal(moved.player.businesses[0].sites[1].cityId,'houston');
+ assert.equal(enterprise.apply(moved.player,'relocateBranch',
+  {index:0,site:1,cityId:'houston'},t).error,'already_in_city');
+ assert.equal(core.perSecond(moved.player,t),cjsCore.perSecond(moved.player,t));
 });

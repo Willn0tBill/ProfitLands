@@ -111,6 +111,8 @@ test('isolated build removes external account scripts, links, and broken relativ
     const html=fs.readFileSync(path.join(output,'index.html'),'utf8');
     assert.match(html,/name="profitlands-platform" content="crazygames"/);
     assert.match(html,/crazygames-sdk-v3\.js/);
+    assert.equal((html.match(/crazygames-sdk-v3\.js/g)||[]).length,1,
+     'SDK must only be loaded once to prevent competing initialization');
     assert.match(html,/crazygames\.css/);
     assert.match(html,/crazygames-coach\.css/);
     assert.match(html,/crazygames-coach\.js/);

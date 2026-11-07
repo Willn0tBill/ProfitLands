@@ -436,3 +436,38 @@ test('two signed Firebase-style accounts safely trade through the real HTTP API 
   db.close();
  }
 });
+
+test('V2 multi-account concurrency stress conserves 64 concurrent purchases and 64 receipts',async()=>{
+ const db=new D1Sqlite();
+ try{
+  for(let i=0;i<32;i++)
+   await dispatch('register','load-'+String(i).padStart(3,'0'),{},db,'world1');
+  await migrateExistingRegion(db,'world1');
+  const start=performance.now();
+  const tasks=[];
+  for(let i=0;i<32;i++){
+   const who='load-'+String(i).padStart(3,'0');
+   tasks.push(dispatch('buyBusiness',who,{
+    businessId:'coffee',requestId:rid(2000+i*2)},db,'world1',env));
+   tasks.push(dispatch('buyBusiness',who,{
+    businessId:'coffee',requestId:rid(2001+i*2)},db,'world1',env));
+  }
+  const results=await Promise.all(tasks);
+  assert.equal(results.length,64);
+  const snapshot=await readNormalized(db,'world1');
+  assert.equal(Object.keys(snapshot.state.players).length,32);
+  assert.equal(Object.keys(snapshot.state.receipts).length,64);
+  for(const p of Object.values(snapshot.state.players)){
+   assert.equal(p.businesses.length,2);
+   assert.equal(p.cash,500);
+  }
+  const after=await Promise.all(tasks.map((_,i)=>dispatch('buyBusiness',
+   'load-'+String(Math.floor(i/2)).padStart(3,'0'),
+   {businessId:'coffee',requestId:rid(2000+i)},db,'world1',env)));
+  assert.ok(after.every(x=>x.replayed===true));
+  assert.equal((await readNormalized(db,'world1')).state.players['load-000'].cash,500);
+  const elapsed=Math.round(performance.now()-start);
+  assert.ok(elapsed<15000,'local transactional load should not hang');
+  console.log('V2_SQLITE_CONCURRENT_32_ACCOUNTS_64_TRANSACTIONS_PASS',elapsed,'ms');
+ }finally{db.close()}
+});

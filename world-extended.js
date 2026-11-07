@@ -3,7 +3,7 @@
  */
 (function(){
  'use strict';
- let tab='operations',chosenCompany=0,chosenSite=0,pending=false;
+ let tab='operations',chosenCompany=0,chosenSite=0,chosenCity='',pending=false;
  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=value=>window.ProfitLandsMoney?.format?.(value)||'$'+Number(value||0).toLocaleString('en-US');
  const btn=(op,label,args={},disabled=false,subtitle='')=>
@@ -18,6 +18,12 @@
   const sites=Array.isArray(b.sites)&&b.sites.length?b.sites:[{level:1,stock:0,price:100,autoRestock:false}];
   chosenSite=Math.min(Math.max(0,chosenSite),sites.length-1);
   const site=sites[chosenSite]||sites[0];
+  const cities=s.cityCatalog||[];
+  if(!cities.some(c=>c.id===chosenCity))chosenCity=cities[0]?.id||'';
+  const chosen=cities.find(c=>c.id===site.cityId);
+  const cityOptions=cities.map(c=>'<option value="'+esc(c.id)+'" '+
+   (c.id===chosenCity?'selected':'')+'>'+esc(c.name)+
+   ' (Demand '+Math.round(c.demand*100)+'%, Rent '+Math.round(c.rent*100)+'%)</option>').join('');
   const siteOptions=sites.map((x,idx)=>'<option value="'+idx+'" '+(idx===chosenSite?'selected':'')+'>Branch '+(idx+1)+' · Level '+esc(x.level||1)+'</option>').join('');
   return '<div class="pl-advanced-company"><label for="plAdvancedCompany">Company</label><select id="plAdvancedCompany">'+
    p.businesses.map((x,idx)=>'<option value="'+idx+'" '+(idx===i?'selected':'')+'>'+
@@ -31,10 +37,13 @@
    btn('appointManager','Appoint manager',{index:i},!!b.manager,'Boost business output')+
    btn('runMarketing','Marketing campaign',{index:i},false,'Raises customer demand')+
    btn('upgradeEfficiency','Improve efficiency',{index:i},false,'Raises net earnings')+
-   btn('openBranch','Open another location',{index:i},sites.length>=(s.siteCap||8),'Expands this company')+
-   '</div><div class="pl-advanced-company"><label for="plAdvancedSite">Manage location</label><select id="plAdvancedSite">'+siteOptions+
+   btn('openBranch','Open another location',{index:i,cityId:chosenCity},sites.length>=(s.siteCap||16)||!chosenCity,'Opens in selected city at its local rent')+
+   '</div><div class="pl-advanced-company"><label for="plCitySelector">New location / relocation city</label><select id="plCitySelector">'+cityOptions+
+   '</select></div><div class="pl-advanced-company"><label for="plAdvancedSite">Manage location</label><select id="plAdvancedSite">'+siteOptions+
    '</select></div><div class="pl-advanced-metrics">'+summary('Level',site.level||1)+summary('Inventory',site.stock||0)+
-   summary('Auto restock',site.autoRestock?'On':'Off')+'</div><div class="pl-advanced-grid">'+
+   summary('Auto restock',site.autoRestock?'On':'Off')+summary('City',chosen?.name||'Original district')+'</div><div class="pl-advanced-grid">'+
+   btn('relocateBranch','Relocate selected branch',{index:i,site:chosenSite,cityId:chosenCity},
+    !chosenCity||site.cityId===chosenCity,'Costs relocation fees; keeps current inventory')+
    btn('upgradeBranch','Upgrade branch',{index:i,site:chosenSite},Number(site.level)>=30,'Investment in this location')+
    btn('restockBranch','Order 100 stock',{index:i,site:chosenSite,quantity:100},Number(site.stock)>4900,'Funds deducted by server')+
    btn('setPrice','Value pricing (80%)',{index:i,site:chosenSite,percent:80},false,'Affects verified retail stock sales')+
@@ -47,15 +56,15 @@
  const cityWorkOrders=s=>{
   const c=s.cityContracts||{},active=c.active;
   let content='<h4>City work orders</h4>'+
-   '<p class="pl-online-note">Accept one contract, then complete a new paid server-verified action. Progress from before acceptance never counts. One reward per UTC day.</p>';
+   '<p class="pl-online-note">Accept one contract, complete each required paid action in order, then claim the verified reward. Earlier actions and request replays never count. One work-order reward per UTC day.</p>';
   if(active){
    content+='<div class="pl-advanced-metrics">'+
-    summary('Accepted',active.title)+summary('Progress',active.progress? '1 / 1':'0 / 1')+
+    summary('Accepted',active.title)+summary('Progress',(active.progress||0)+' / '+(active.total||1))+
     summary('Reward',fmt(active.reward))+'</div>';
    if(active.status==='claimed')content+='<p class="pl-online-note">Today\'s city contract was paid. More work orders become available next UTC day.</p>';
    else content+='<div class="pl-advanced-grid">'+
     btn('claimCityContract','Claim '+fmt(active.reward),{},!c.canClaim,
-      active.progress?'Verified work completed':'Complete '+active.detail+' first')+'</div>';
+      c.canClaim?'Verified work completed':'Next: '+(active.nextAction||active.detail))+'</div>';
   }else if((c.offers||[]).length){
    content+='<div class="pl-advanced-grid">'+c.offers.map(x=>
     btn('acceptCityContract',x.title,{contractId:x.id},false,
@@ -140,13 +149,13 @@
    return '<div class="pl-advanced-metrics">'+
     summary('Current holdings value',fmt(holdingsValue))+
     summary('Available cash',fmt(p.cash))+'</div>'+
-    '<p class="pl-online-note">Regional market prices are calculated by the server. Shares and sales are owned by your online account, not a local save.</p>'+
+    '<p class="pl-online-note">Regional stock quotes include simulated news-driven volatility, 15-minute changes and new public offerings unlocked through earned worth. Purchases, holdings and 2% sale spread are verified by the server.</p>'+
     '<div class="pl-advanced-list">'+stocks.map(t=>{
      const shares=Number(s.stocks?.[t.id]||0),price=Number(t.priceCents||0)/100;
      return '<article class="pl-advanced-market"><div><strong>'+esc(t.ticker)+' · '+esc(t.name)+'</strong>'+
-      '<small>'+fmt(price)+' / share · '+shares+' owned</small></div><div>'+
-      btn('buyShares','Buy 1',{stockId:t.id,quantity:1},p.cash<price)+
-      btn('buyShares','Buy 10',{stockId:t.id,quantity:10},p.cash<price*10)+
+      '<small>'+fmt(price)+' / share · '+shares+' owned • '+(Number(t.changePercent)>=0?'+':'')+esc(t.changePercent||0)+'% / 15 min'+(t.ipoThreshold?' • IPO unlock '+fmt(t.ipoThreshold):'')+'</small></div><div>'+
+      btn('buyShares','Buy 1',{stockId:t.id,quantity:1},p.cash<price||p.netWorth<(t.ipoThreshold||0))+
+      btn('buyShares','Buy 10',{stockId:t.id,quantity:10},p.cash<price*10||p.netWorth<(t.ipoThreshold||0))+
       btn('sellShares','Sell 1',{stockId:t.id,quantity:1},shares<1)+'</div></article>';
     }).join('')+'</div>'+
     (p.businesses.length?'<div class="pl-advanced-company"><label for="plAdvancedCompany">Your company for sale</label>'+
@@ -193,12 +202,12 @@
    const owned=new Set(holdings.map(x=>x.type));
    const profit=holdings.reduce((sum,x)=>{
     const corp=catalog.find(c=>c.id===x.type);
-    return sum+(corp?.profitPerMinute||0);
+    return sum+(corp?.currentProfitPerMinute||corp?.profitPerMinute||0);
    },0);
    return '<p class="pl-online-note">These are the original singleplayer corporate tiers with the same purchase prices, unlock requirements and baseline operating margins. The regional server verifies ownership and cash.</p>'+
     '<div class="pl-advanced-metrics">'+
     summary('Corporations owned',holdings.length+' / '+catalog.length)+
-    summary('Baseline corporate profit',fmt(profit)+'/minute')+
+    summary('Current corporate profit',fmt(profit)+'/minute')+
     summary('Empire worth',fmt(p.netWorth))+'</div>'+
     '<div class="pl-advanced-list">'+catalog.map(c=>{
      const has=owned.has(c.id),unlocked=p.netWorth>=c.req;
@@ -206,16 +215,18 @@
      const label=has?'Owned':!unlocked?'Requires '+fmt(c.req):'Acquire '+c.name;
      return '<article class="pl-advanced-market"><div><strong>'+esc(c.name)+
       '</strong><small>Unlock '+fmt(c.req)+' · Purchase '+fmt(c.price)+
-      ' · Baseline profit '+fmt(c.profitPerMinute)+'/minute</small></div>'+
+      ' · Baseline '+fmt(c.profitPerMinute)+'/minute · Current '+fmt(c.currentProfitPerMinute||c.profitPerMinute)+'/minute'+(c.volatile?' · Market-sensitive':'')+'</small></div>'+
       btn('buyMajorCorporation',label,{corporationId:c.id},unavailable,
        has?'Already in your portfolio':'Funded by server-owned cash')+'</article>';
     }).join('')+'</div>';
   },
   growth:(p,s)=>{
    const research=s.researchCatalog||[];
+   const prestige=s.prestige||{};
    return '<div class="pl-advanced-metrics">'+summary('Completed contracts',s.contractsCompleted||0)+
     summary('Staff hired',s.metrics?.hires||0)+summary('Trades made',s.metrics?.trades||0)+
-    summary('Online trophies',(p.achievements?.earned||0)+' / 131,072')+'</div>'+
+    summary('Online trophies',(p.achievements?.earned||0)+' / 131,072')+
+    summary('Empire ascensions',prestige.rank||0)+'</div>'+
     '<div class="pl-advanced-grid">'+research.map(r=>btn('buyResearch',r.name,{researchId:r.id},
      (s.research||[]).includes(r.id)||p.cash<r.cost,'One-time research · '+fmt(r.cost))).join('')+
     btn('claimContract','Claim daily city contract',{},
@@ -223,7 +234,16 @@
     s.lastQualifyingActionDay!==new Date().toISOString().slice(0,10),
     'Complete a paid business, hiring or trade action today')+'</div>'+
     cityWorkOrders(s)+
-    '<p class="pl-online-note">Online achievement ranks are computed from server-owned activity, matching the 131,072 possible industry/track/tier combinations. Merging them with your singleplayer account trophies is still an independent task.</p>'+ 
+    '<h4>Empire ascension</h4><p class="pl-online-note">Continue growing beyond the cash and company limits by completing a full empire cycle. Ascension resets your current online holdings, companies, research and cash to $1,500, preserves earned trophy ranks and lifetime metrics, and grants a permanent passive-income bonus in the next cycle. Outstanding loans and tax bills must be resolved first.</p>'+
+    '<div class="pl-advanced-metrics">'+summary('Current rank',prestige.rank||0)+
+     summary('Required empire worth',fmt(prestige.target||0))+
+     summary('Income multiplier',(Number(prestige.multiplier||1)*100).toFixed(1)+'%')+
+     summary('Outstanding provisional tax',fmt(prestige.pendingOperatingTax||0))+'</div>'+
+    '<div class="pl-advanced-grid">'+btn('ascendEmpire','Ascend to next empire',{},!prestige.canAscend,
+     'Permanent rank progression: all current assets reset')+'</div>'+
+    '<div class="pl-advanced-grid"><button type="button" class="pl-advanced-action" id="plShowAccountTrophies"><strong>View account trophies across regions</strong><small>Merge verified ranks without double counting the same trophy</small></button></div>'+
+    '<div id="plAccountTrophiesResult" class="pl-online-note" role="status"></div>'+
+    '<p class="pl-online-note">Account-wide trophies combine your verified ranks from all three online regions. Local offline singleplayer trophies are kept separate for security until a trusted cloud ownership migration is available.</p>'+ 
     '<div class="pl-advanced-company"><label for="plCountrySelector">Home country</label><select id="plCountrySelector" '+(p.businesses.length?'disabled':'')+'>'+
     (s.countryCatalog||[]).map(c=>
      '<option value="'+esc(c.id)+'" '+(s.country===c.id?'selected':'')+'>'+
@@ -310,12 +330,30 @@
   section.querySelector('#plAdvancedSite')?.addEventListener('change',event=>{
    chosenSite=Number(event.target.value)||0;replace(player,host);
   });
+  section.querySelector('#plCitySelector')?.addEventListener('change',event=>{
+   chosenCity=event.target.value;replace(player,host);
+  });
+  section.querySelector('#plShowAccountTrophies')?.addEventListener('click',async()=>{
+   const node=section.querySelector('#plAccountTrophiesResult');
+   if(!node)return;
+   node.textContent='Loading server-verified account trophy ranks...';
+   try{
+    const combined=await window.ProfitLandsOnline.getAccountAchievements();
+    if(!node.isConnected)return;
+    node.textContent=(combined.earned||0)+' of '+(combined.total||131072)+
+     ' account-wide online trophies • '+(combined.regions||[]).map(r=>r.region+
+     ': '+r.earned).join(' • ');
+   }catch(e){if(node.isConnected)node.textContent='Trophy summary unavailable: '+
+    String(e?.message||'Please retry').slice(0,120)}
+  });
   section.querySelector('#plCountrySelector')?.addEventListener('change',event=>{
    const choice=section.querySelector('[data-enterprise-op="setCountry"]');
    if(choice)choice.dataset.paramCountry=event.target.value;
   });
   section.querySelectorAll('[data-enterprise-op]').forEach(button=>{
    button.onclick=()=>{
+    if(button.dataset.enterpriseOp==='ascendEmpire'&&
+     !window.confirm('ASCEND EMPIRE? This permanently resets current regional cash, companies, shares, research, property and inventory to begin a new empire cycle with $1,500. Lifetime trophies and prestige rank remain. Continue?'))return;
     if(button.dataset.enterpriseOp==='fileBankruptcy'&&
      !window.confirm('This will permanently liquidate all your online businesses, investments and properties, resolve your game debts, and reset your online cash to the bankruptcy allowance. Continue?'))return;
     const params={};

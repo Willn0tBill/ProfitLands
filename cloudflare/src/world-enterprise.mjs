@@ -5,16 +5,12 @@
 import core from './world-core.mjs';
 import cityContracts from './world-city-contracts.mjs';
 import bankruptcy from './world-bankruptcy.mjs';
+import ascension from './world-ascension.mjs';
 
 const MAX_COMPANIES=core.MAX_BUSINESSES;
 const MAX_SITES_PER_COMPANY=16;
 const MAX_WORKERS_PER_COMPANY=100;
-const STOCKS=Object.freeze([
- {id:'nova',name:'NovaTech',ticker:'NVT',price:4250},
- {id:'harbor',name:'Harbor Foods',ticker:'HFD',price:2480},
- {id:'atlas',name:'Atlas Energy',ticker:'ATE',price:6720},
- {id:'skyline',name:'Skyline Motors',ticker:'SKM',price:3140}
-]);
+const STOCKS=Object.freeze(core.SHARE_CATALOG.map(s=>({...s,price:s.baseCents})));
 const RESEARCH=Object.freeze([
  {id:'workforce',name:'Workforce Training',cost:10000},
  {id:'logistics',name:'Distribution Networks',cost:50000},
@@ -26,7 +22,7 @@ const COUNTRY_IDS=new Set(core.COUNTRIES.map(x=>x.id));
 const DEFAULTS=()=>({
  country:'us',stocks:{},majorCompanies:[],loanDebt:0,loanPrincipal:0,
  loanIssuedAt:0,loanDueAt:0,repaymentAuto:false,
- bankruptcyCount:0,lastBankruptcyAt:0,
+ bankruptcyCount:0,lastBankruptcyAt:0,prestigeRank:0,prestigeTrophies:{},
  properties:[],warehouse:0,warehouseStock:0,trucks:0,research:[],
  cityContract:null,lastCityRewardAt:0,cityCompleted:0,
  lastContractDay:'',contractsCompleted:0,routes:[],metrics:{purchases:0,hires:0,supplyOrders:0,trades:0,branches:0}
@@ -122,13 +118,23 @@ function propertyPerSecond(p){
 function summary(p,now=Date.now()){
  const s=ensure(p);
  return {...s,stocks:Object.fromEntries(STOCKS.map(x=>[x.id,Number(s.stocks[x.id]||0)])),
-  quotes:STOCKS.map(x=>({id:x.id,name:x.name,ticker:x.ticker,priceCents:stockPriceCents(x.id,now)})),
-  researchCatalog:RESEARCH,majorCatalog:core.MAJOR_CORPORATIONS.map(x=>({...x,profitPerMinute:x.rev-x.expense})),
+  quotes:STOCKS.map(x=>{
+   const current=stockPriceCents(x.id,now);
+   const old=stockPriceCents(x.id,Math.max(0,now-900000));
+   return {id:x.id,name:x.name,ticker:x.ticker,priceCents:current,
+    previousCents:old,changePercent:old?Math.round((current/old-1)*10000)/100:0,
+    ipoThreshold:x.ipoThreshold,sector:x.sector,volatility:x.volatility};
+  }),
+  researchCatalog:RESEARCH,majorCatalog:core.MAJOR_CORPORATIONS.map(x=>({...x,profitPerMinute:x.rev-x.expense,
+   currentProfitPerMinute:core.corporationPerSecond(x.id,p,now)*60,
+   volatile:x.id!=='local'})),
   countryCatalog:core.COUNTRIES.map(({id,name,region,taxRate,loanRate,inflationPct})=>({id,name,region,taxRate,loanRate,inflationPct})),
   fiscalRate:core.COUNTRIES.find(c=>c.id===s.country)?.taxRate??.255,
   loanStatus:s.loanDebt>0?(s.loanDueAt>0?(now>=s.loanDueAt?'Overdue':'Due'):'Legacy loan'):'Clear',
   bankruptcy:bankruptcy.assessment(p,now),
+  prestige:ascension.status(p,now),
   cityContracts:cityContracts.summary(p,now),
+  cityCatalog:core.CITY_CATALOG.filter(c=>c.region===(p.worldId||core.WORLD_ID)),
   worldEvent:core.worldEvent(now,p.worldId||core.WORLD_ID),
   companyCap:MAX_COMPANIES,siteCap:MAX_SITES_PER_COMPANY};
 }
@@ -136,6 +142,9 @@ function trade(p,t,qty,mode,now){
  if(!t||!positiveInt(qty,1000000))return error('invalid_stock_trade');
  const s=ensure(p),before=Number(s.stocks[t.id]||0),price=stockPriceCents(t.id,now);
  if(mode==='buy'){
+  // New public offerings are unlocked only by current server-estimated worth.
+  if(t.ipoThreshold>0&&core.worth(p,now)<t.ipoThreshold)
+   return error('ipo_worth_required');
   if(before+qty>1000000)return error('stock_holding_limit');
   const total=Math.ceil(qty*price/100);
   if(!Number.isSafeInteger(total)||!spend(p,total))return error('insufficient_cash');
@@ -166,6 +175,7 @@ function apply(player,operation,args={},now=Date.now()){
  const b=chosen?.b,t=chosen?.t;
  const qty=args.quantity;
  if(operation==='fileBankruptcy')return bankruptcy.file(p,now);
+ if(operation==='ascendEmpire')return ascension.ascend(p,now);
  if(operation==='acceptCityContract')return cityContracts.accept(p,args.contractId,now);
  if(operation==='claimCityContract')return cityContracts.claim(p,now);
  if(operation==='buyMajorCorporation'){
@@ -214,10 +224,28 @@ function apply(player,operation,args={},now=Date.now()){
  }
  if(operation==='openBranch'){
   if(!chosen||b.sites.length>=MAX_SITES_PER_COMPANY)return error('branch_limit');
-  const cost=Math.max(500,Math.ceil(t.cost*(2+b.sites.length)));
+  const city=core.CITY_CATALOG.find(x=>x.id===args.cityId&&
+   x.region===(p.worldId||core.WORLD_ID));
+  if(args.cityId!==undefined&&!city)return error('invalid_city');
+  const cost=Math.max(500,Math.ceil(t.cost*(2+b.sites.length)*(city?.rent||1)));
   if(!spend(p,cost))return error('insufficient_cash');
-  b.sites.push({level:1,stock:0,price:100,autoRestock:false});
+  b.sites.push({level:1,stock:0,price:100,autoRestock:false,...(city?{cityId:city.id}:{})});
   e.metrics.branches++;return {ok:true,player:p,cost};
+ }
+ if(operation==='relocateBranch'){
+  if(!chosen||!nonnegInt(args.site,MAX_SITES_PER_COMPANY-1)||!b.sites[args.site])
+   return error('unknown_branch');
+  const city=core.CITY_CATALOG.find(x=>x.id===args.cityId&&
+   x.region===(p.worldId||core.WORLD_ID));
+  if(!city)return error('invalid_city');
+  const site=b.sites[args.site];
+  if(site.cityId===city.id)return error('already_in_city');
+  // Transferring an existing branch is expensive enough to prevent free
+  // daily demand arbitrage. Existing inventory and progress are preserved.
+  const cost=Math.max(750,Math.ceil(t.cost*1.5*city.rent));
+  if(!spend(p,cost))return error('insufficient_cash');
+  site.cityId=city.id;
+  return {ok:true,player:p,cost};
  }
  if(operation==='upgradeBranch'){
   if(!chosen||!nonnegInt(args.site,MAX_SITES_PER_COMPANY-1)||!b.sites[args.site])return error('unknown_branch');

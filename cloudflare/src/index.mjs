@@ -39,8 +39,8 @@ const CHAT_RETENTION_MS=24*60*60*1000;
 const CHAT_REPORT_LIMIT=2;
 const CHAT_BLOCK_LIMIT=48;
 const READ_ONLY_ACTIONS=new Set(['health','me','getLeaderboard','getPlayers',
- 'getListings','getChat','getBlockedChatUsers','getChatReports']);
-const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers','getListings',
+ 'getListings','getChat','getBlockedChatUsers','getChatReports','getAccountAchievements']);
+const ALL_ACTIONS=new Set(['health','register','me','getLeaderboard','getPlayers','getListings','getAccountAchievements',
  'buyListedCompany',
  'buyBusiness','upgradeBusiness','enterpriseAction','togglePvP','requestAttack','requestDefense',
  'getChat','getBlockedChatUsers','sendChat','reportMessage','blockChatUser','unblockChatUser',
@@ -300,6 +300,32 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     version:env?.WORLD_STORAGE_V2==='enabled'?6:5,maintenance,
     enterpriseEnabled:true,catalog:core.BUSINESS_TYPES};
  }
+ if(action==='getAccountAchievements'){
+  // Combined account-wide ranks are the highest earned rank for each track
+  // across independent server-verified regions. Never sum duplicate trophies.
+  // No cross-region mutation, money transfer, or client-authored rank input.
+  const regions=[];
+  for(const world of WORLDS){
+   const {state}=await rawWorld(db,false,world.id,env,[uid]);
+   const player=state.players?.[uid];
+   if(player)regions.push({worldId:world.id,region:world.region,
+    summary:achievements.summary(player)});
+  }
+  if(!regions.length)err('failed-precondition','Join a world first.',409);
+  const sectors=core.BUSINESS_TYPES.map(({id,name})=>{
+   const ranks={};
+   for(const item of regions){
+    const found=item.summary.sectors.find(s=>s.id===id);
+    for(const [track,rank] of Object.entries(found?.ranks||{}))
+     ranks[track]=Math.max(Number(ranks[track]||0),Math.max(0,Number(rank)||0));
+   }
+   return {id,name,ranks,earned:Object.values(ranks).reduce((a,b)=>a+b,0)};
+  });
+  return {source:'server_verified_regions',total:131072,
+   earned:sectors.reduce((sum,s)=>sum+s.earned,0),
+   sectors,regions:regions.map(({worldId,region,summary})=>
+    ({worldId,region,earned:summary.earned}))};
+ }
  if(action==='getChat'||action==='getBlockedChatUsers'){
   const {state}=await rawWorld(db,false,worldId,env,
    action==='getChat'?[uid]:undefined);
@@ -481,19 +507,19 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
    if(typeof body.operation!=='string'||body.operation.length>40)
     err('invalid-argument','Choose a supported online enterprise operation.');
    const allowed=new Set(['hireStaff','appointManager','runMarketing','upgradeEfficiency',
-    'openBranch','upgradeBranch','restockBranch','setAutoRestock','setPrice',
+    'openBranch','relocateBranch','upgradeBranch','restockBranch','setAutoRestock','setPrice',
     'warehouseOrder','deliverWarehouseStock','setSupplyRoute','clearSupplyRoute','buyWarehouse',
     'buyTruck','buyResearch','buyShares','sellShares','borrowLoan','repayLoan',
     'setAutoDebtRepayment',
     'listCompany','cancelCompanyListing',
     'buyProperty','setCountry','claimContract','buyMajorCorporation','payTax',
-    'acceptCityContract','claimCityContract','fileBankruptcy']);
+    'acceptCityContract','claimCityContract','fileBankruptcy','ascendEmpire']);
    if(!allowed.has(body.operation))err('invalid-argument','Unknown enterprise operation.');
    const args={
     index:body.index,site:body.site,quantity:body.quantity,enabled:body.enabled,
     percent:body.percent,price:body.price,
     stockId:body.stockId,amount:body.amount,researchId:body.researchId,country:body.country,
-     corporationId:body.corporationId,contractId:body.contractId
+     corporationId:body.corporationId,contractId:body.contractId,cityId:body.cityId
    };
    return paid(state,uid,body,action,{operation:body.operation,args},()=>{
     const worthBefore=core.worth(p);
@@ -512,8 +538,14 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
     }
     // Net-worth ranking changes must not classify borrowing or trading as gains.
     const delta=core.worth(next)-worthBefore;
-    next.dayGain=p.dayGain+delta;
-    next.weekGain=p.weekGain+delta;
+    if(body.operation==='ascendEmpire'||body.operation==='fileBankruptcy'){
+     // A deliberate empire reset begins a new scoring cycle; the forgiven
+     // assets and liabilities are neither earnings nor negative ranking P&L.
+     next.dayGain=0;next.weekGain=0;
+    }else{
+     next.dayGain=p.dayGain+delta;
+     next.weekGain=p.weekGain+delta;
+    }
     state.players[uid]=next;
     return {ok:true,replayed:false,operation:body.operation,
      cost:result.cost||0,reward:result.reward||0,

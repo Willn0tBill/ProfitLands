@@ -63,7 +63,9 @@ function summary(p){
   const stats=sectorStats(p,item.id);
   const ranks={};let earned=0;
   for(const track of TRACKS){
-   const rank=rankFor(track,stats[track[1]]);
+   const current=rankFor(track,stats[track[1]]);
+   const lifetime=Number(p.enterprise?.prestigeTrophies?.[item.id]?.[track[0]]||0);
+   const rank=Math.max(current,Number.isSafeInteger(lifetime)?Math.max(0,Math.min(MAX_RANK,lifetime)):0);
    ranks[track[0]]=rank;earned+=rank;
   }
   return {id:item.id,name:item.name,earned,ranks};
