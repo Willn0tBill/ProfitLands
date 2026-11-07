@@ -135,8 +135,8 @@ function showUnavailable(){
  check();
 }
 function renderRules(){
- return '<div class="pl-online-info"><h4>World 1 alpha rules</h4>'+
-  '<p>Americas, Europe and Asia each have their own server-owned cash, shops, purchases and rankings, with 64 accounts per world, 40 businesses per player, and six hours of offline earnings. Switching regions does not transfer money or shops.</p>'+
+ return '<div class="pl-online-info"><h4>Regional multiplayer rules</h4>'+
+  '<p>Americas, Europe and Asia each have their own server-owned cash, shops, purchases and rankings, with up to 128 accounts per world, 80 businesses per player, 16 locations per company, and six hours of offline earnings. Switching regions does not transfer money or shops.</p>'+
   '<p>PvP is optional, spends in-game money and has newcomer protection, cooldowns and temporary shields. Attacks reduce earnings for a limited time; they do not delete businesses or steal saved games.</p>'+
   '<p>Regional chat masks profanity automatically and provides reporting, player blocking, spam protection and an emergency shutdown. Automatic World refresh is opt-in to protect the free server quota.</p></div>';
 }

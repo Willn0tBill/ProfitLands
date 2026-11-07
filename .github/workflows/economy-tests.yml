@@ -158,6 +158,9 @@ jobs:
           node --check cloudflare/src/world-city-contracts.mjs
           node --check cloudflare/src/world-bankruptcy.mjs
           node --check cloudflare/scripts/verify-v2-backup.mjs
+          node --check cloudflare/scripts/prepare-live-v2-sql.mjs
+          node --check cloudflare/scripts/smoke-real-firebase-local.mjs
+          node --check scripts/browser-smoke.mjs
           node --check cloudflare/src/migration-admin.mjs
           node --check cloudflare/src/world-core.mjs
           node --check cloudflare/src/pvp-rules.mjs

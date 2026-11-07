@@ -107,7 +107,11 @@ function incomeMultiplier(b,p){
  const marketing=Math.max(0,Math.min(30,Number(b.marketing||0)));
  const efficiency=Math.max(0,Math.min(30,Number(b.efficiency||0)));
  const training=p.enterprise?.research?.includes('workforce')?1.1:1;
- return Math.min(12,(1+(sites-1)*.65)*(1+workers*.018)*training*(b.manager?1.18:1)*
+ const siteBonus=Array.isArray(b.sites)?
+  b.sites.reduce((sum,site)=>sum+
+   Math.max(0,Math.min(29,Number(site.level||1)-1))*.22,0)/sites:0;
+ return Math.min(24,(1+(sites-1)*.65)*(1+siteBonus)*
+  (1+workers*.018)*training*(b.manager?1.18:1)*
   (1+marketing*.015)*(1+efficiency*.014));
 }
 function propertyPerSecond(p){

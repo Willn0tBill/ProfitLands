@@ -918,3 +918,44 @@ test('borrowed money cannot be transferred to another player through the marketp
  assert.equal(after.receipts['buyer-loan:'+ '9'.repeat(32)],undefined,
   'rejected transfers must never be recorded as paid receipts');
 });
+
+test('branch-level upgrades increase actual online passive income, not merely displayed value',()=>{
+ let p=player(1000000);
+ const baseline=core.perSecond(p,t);
+ p=mutate(p,'upgradeBranch',{index:0,site:0});
+ assert.equal(p.businesses[0].sites[0].level,2);
+ assert.ok(core.perSecond(p,t)>baseline,'the original branch level must raise real earning rate');
+ const upgraded=core.perSecond(p,t);
+ p=mutate(p,'openBranch',{index:0});
+ const twoSites=core.perSecond(p,t);
+ p=mutate(p,'upgradeBranch',{index:0,site:1});
+ assert.ok(core.perSecond(p,t)>twoSites,'every extra upgraded branch must improve income');
+ assert.equal(core.perSecond(p,t),cjsCore.perSecond(p,t));
+ const at=t+60000;
+ const settled=core.settle(p,at);
+ const repeat=core.settle(settled,at);
+ assert.equal(repeat.cash,settled.cash,'refresh cannot pay an interval twice');
+ assert.ok(settled.cash>p.cash);
+ assert.ok(upgraded>baseline);
+});
+
+test('all eighteen singleplayer world-event themes appear in a server-owned 24-day regional news cycle',()=>{
+ const start=Date.UTC(2026,10,1);
+ const events=Array.from({length:24},(_,i)=>core.worldEvent(start+i*86400000,'world1'));
+ assert.equal(new Set(events.map(e=>e.id)).size,24,'each daily scenario should occur once in a cycle');
+ const themes=['consumer_boom','consumer_slowdown','rent_crisis','rent_relief',
+  'wage_surge','shipping','supply_shortage','tech_boom','travel_boom',
+  'market_panic','investor_confidence','credit_tight','stimulus','wildfire',
+  'flood','storm','drought','revitalization'];
+ for(const theme of themes)assert.ok(events.some(e=>e.id===theme),theme+' must be reachable');
+ for(let i=0;i<24;i++){
+  assert.equal(events[i].id,cjsCore.worldEvent(start+i*86400000,'world1').id);
+  assert.equal(events[i].endsAt,start+(i+1)*86400000);
+  for(const [sector,mult] of Object.entries(events[i].effects)){
+   assert.ok(core.BUSINESS_TYPES.some(b=>b.id===sector),'event uses real industry sector');
+   assert.ok(mult>=.8&&mult<=1.2,'event shocks must stay balanced');
+  }
+ }
+ assert.equal(core.worldEvent(start,'world1').id,
+  core.worldEvent(start+24*86400000,'world1').id,'cycle repeats deterministically');
+});

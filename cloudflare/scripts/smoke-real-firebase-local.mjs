@@ -8,6 +8,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
+import {randomBytes,randomUUID} from 'node:crypto';
 import worker,{migrateExistingRegion} from '../src/index.mjs';
 const dir=dirname(fileURLToPath(import.meta.url));
 const root=resolve(dir,'../..');
@@ -38,13 +39,28 @@ class D1 {
  }
 }
 async function registerTemporary(){
- const r=await fetch(signupUrl,{method:'POST',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({returnSecureToken:true})});
- const data=await r.json();
- if(!r.ok)throw Error('Temporary Firebase sign-in unavailable: '+(data.error?.message||r.status));
- if(!data.idToken||!data.localId)throw Error('Firebase returned no account token.');
- ids.push(data.idToken);
- return data.idToken;
+ // Anonymous signup is disabled in this project. Test the already-enabled
+ // providers; never mutate Firebase Auth provider or security settings.
+ const attempts=[
+  {returnSecureToken:true},
+  {email:'profitlands-qa-'+randomUUID().replaceAll('-','')+'@example.invalid',
+   password:randomBytes(32).toString('base64url'),returnSecureToken:true}
+ ];
+ let latest='provider_unavailable';
+ for(const request of attempts){
+  const r=await fetch(signupUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify(request)});
+  const data=await r.json();
+  if(!r.ok){
+   latest=data.error?.message||String(r.status);
+   if(latest==='ADMIN_ONLY_OPERATION'||latest==='OPERATION_NOT_ALLOWED')continue;
+   throw Error('Temporary Firebase signup rejected: '+latest);
+  }
+  if(!data.idToken||!data.localId)throw Error('Firebase returned no account token.');
+  ids.push(data.idToken);
+  return data.idToken;
+ }
+ throw Error('Temporary Firebase sign-in unavailable: '+latest);
 }
 const activeDb=new D1();
 const rid=n=>String(n).padStart(32,'0');
@@ -64,6 +80,20 @@ try{
  await migrateExistingRegion(activeDb,'world1');
  const a=await registerTemporary();
  const b=await registerTemporary();
+ // Real production Worker: validate genuine Firebase JWT authentication
+ // without registering or mutating a single production account.
+ for(const token of [a,b]){
+  const response=await fetch('https://profitlands-world1.winotbill.workers.dev/api',{
+   method:'POST',
+   headers:{Origin:'https://willn0tbill.github.io',
+    'Content-Type':'application/json',Authorization:'Bearer '+token},
+   body:JSON.stringify({action:'me',worldId:'world-asia'})
+  });
+  const result=await response.json();
+  assert.equal(response.status,409,'Live Worker must accept the JWT, then reject an unregistered player');
+  assert.equal(result.error?.code,'failed-precondition');
+ }
+ console.log('TWO_REAL_FIREBASE_USERS_LIVE_WORKER_READONLY_AUTH_PASS');
  const [first,second]=await Promise.all([
   call(a,'register'),call(b,'register')
  ]);

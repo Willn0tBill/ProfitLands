@@ -28,13 +28,36 @@ const WORLD_EVENTS=Object.freeze([
  {id:'consumer_boom',title:'Consumer Spending Surges',detail:'Shoppers and diners are spending more today.',effects:{coffee:1.08,restaurant:1.08,gamestore:1.08}},
  {id:'technology_boom',title:'Technology Sector Rallies',detail:'Software companies are seeing stronger demand.',effects:{software:1.12}},
  {id:'shipping_delay',title:'Supply Routes Disrupted',detail:'Manufacturing and logistics face a temporary slowdown.',effects:{factory:.93,logistics:.91}},
- {id:'consumer_slowdown',title:'Consumer Spending Slows',detail:'Retail demand is slightly softer today.',effects:{coffee:.95,restaurant:.95,gamestore:.95,dealership:.96}}
+ {id:'consumer_slowdown',title:'Consumer Spending Slows',detail:'Retail demand is slightly softer today.',effects:{coffee:.95,restaurant:.95,gamestore:.95,dealership:.96}},
+ // Rotating server-owned economic and natural events from the singleplayer
+ // catalog. Sector impacts are modest and checked on each UTC settlement.
+ {id:'rent_crisis',title:'Commercial Rents Rise',detail:'Rising commercial rents squeeze hospitality and storefront margins.',effects:{coffee:.94,restaurant:.93,hotel:.95,gamestore:.97}},
+ {id:'rent_relief',title:'Commercial Rent Pressure Eases',detail:'Easier rents help smaller storefront businesses operate.',effects:{coffee:1.06,restaurant:1.05,hotel:1.03}},
+ {id:'wage_surge',title:'Labor Costs Increase',detail:'Staffing costs squeeze labor-heavy businesses.',effects:{restaurant:.94,hotel:.95,factory:.96,logistics:.95}},
+ {id:'supply_shortage',title:'Key Materials Become Scarce',detail:'Industrial supply shortages slow production and transport.',effects:{factory:.86,dealership:.91,logistics:.90}},
+ {id:'market_panic',title:'Markets Turn Cautious',detail:'Lower consumer confidence slows discretionary spending.',effects:{dealership:.89,gamestore:.93,software:.94}},
+ {id:'investor_confidence',title:'Investor Confidence Improves',detail:'Investment confidence lifts technology and industrial demand.',effects:{software:1.07,factory:1.05,dealership:1.04}},
+ {id:'credit_tight',title:'Lenders Tighten Credit',detail:'More restrictive lending slows capital-intensive expansion.',effects:{dealership:.93,hotel:.95,factory:.96}},
+ {id:'stimulus',title:'Economic Support Announced',detail:'Broad economic support increases consumer demand.',effects:{coffee:1.05,restaurant:1.07,gamestore:1.05,hotel:1.03}},
+ {id:'wildfire',title:'Wildfires Disrupt Western Regions',detail:'Local transport disruption reduces tourism and logistics throughput.',effects:{logistics:.88,hotel:.90,restaurant:.96}},
+ {id:'flood',title:'Flooding Disrupts Waterfront Markets',detail:'Flooding interrupts shipments and tourism.',effects:{logistics:.91,hotel:.94,factory:.95}},
+ {id:'storm',title:'Severe Storms Disrupt Commerce',detail:'Severe weather delays transportation and local spending.',effects:{logistics:.93,hotel:.95,restaurant:.95}},
+ {id:'drought',title:'Drought Raises Production Costs',detail:'Food and manufacturing supply costs rise.',effects:{coffee:.94,restaurant:.94,factory:.95}},
+ {id:'revitalization',title:'New Commercial District Opens',detail:'New districts create demand for local shops and hospitality.',effects:{coffee:1.07,restaurant:1.06,hotel:1.05}},
+ {id:'shipping',title:'Shipping Routes Disrupted',detail:'Transport delays raise costs for factories and distributors.',effects:{factory:.94,logistics:.89}},
+ {id:'tech_boom',title:'Technology Sector Rallies',detail:'New technology projects increase software demand.',effects:{software:1.14}},
+ {id:'travel_expansion',title:'Tourism Expansion',detail:'Additional travel bookings lift hospitality demand.',effects:{hotel:1.13,logistics:1.03}},
+ {id:'regional_spending',title:'Neighborhood Shopping Boom',detail:'Local shops see a burst of consumer spending.',effects:{coffee:1.07,restaurant:1.05,gamestore:1.09}},
+ {id:'factory_investment',title:'Industrial Investment Grows',detail:'New equipment purchases support manufacturing and transportation.',effects:{factory:1.09,logistics:1.05}}
 ]);
 function worldEvent(at=Date.now(),worldId=WORLD_ID){
  const time=Number.isSafeInteger(at)&&at>=0?at:Date.now();
  const day=Math.floor(time/86400000);
  const regionOffset=worldId==='world-europe'?2:worldId==='world-asia'?4:0;
- const event=WORLD_EVENTS[(day+regionOffset)%WORLD_EVENTS.length];
+ // Six-day blocks rotate between four sets of events, so the current
+ // week retains its existing event schedule while broader news cycles in.
+ const block=Math.floor(day/6)%4;
+ const event=WORLD_EVENTS[block*6+(day+regionOffset)%6];
  return {id:event.id,title:event.title,detail:event.detail,effects:event.effects,
   day:dayKey(time),endsAt:(day+1)*86400000};
 }
@@ -150,12 +173,19 @@ function perSecond(p,at=Number.isSafeInteger(p.lastSettledAt)?p.lastSettledAt:Da
   const marketing=Math.max(0,Math.min(30,Number(business.marketing||0)));
   const efficiency=Math.max(0,Math.min(30,Number(business.efficiency||0)));
   const training=e?.research?.includes('workforce')?1.1:1;
-  const mult=Math.min(12,(1+(sites-1)*.65)*(1+workers*.018)*training*
-   (business.manager?1.18:1)*(1+marketing*.015)*(1+efficiency*.014));
+  // Company-level upgrades and branch-level upgrades are independent.
+  // Upgraded sites must actually raise passive revenue rather than only
+  // changing their resale value. Preserve legacy single-site income.
+  const siteLevelBonus=Array.isArray(business.sites)?
+   business.sites.reduce((sum,site)=>sum+
+    Math.max(0,Math.min(29,Number(site.level||1)-1))*.22,0)/sites:0;
+  const mult=Math.min(24,(1+(sites-1)*.65)*(1+siteLevelBonus)*
+   (1+workers*.018)*training*(business.manager?1.18:1)*
+   (1+marketing*.015)*(1+efficiency*.014));
   const economics=BUSINESS_ECONOMICS[def.id];
   const margin=economics?countryMargin(profile.id,def.id,economics.revenue,economics.expense):def.baseProfit;
   const base=Math.floor(margin*(1+(business.level-1)*.22)/60);
-  const enhanced=workers>0||sites>1||business.manager||marketing>0||efficiency>0||
+  const enhanced=workers>0||sites>1||siteLevelBonus>0||business.manager||marketing>0||efficiency>0||
    training!==1||profile.id!=='us';
   const rawIncome=enhanced?Math.max(0,Math.ceil(base*mult-workers*.005)):base;
   const effect=event.effects[def.id]||1;
