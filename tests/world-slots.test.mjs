@@ -34,7 +34,7 @@ test('park policy respects PvP, live listings, tax, age and account activity',()
  p.businesses[0].listing={price:50,expiresAt:at+1000};
  assert.equal(mayPark(p,at),false);
  p.businesses[0].listing.expiresAt=at-1;assert.equal(mayPark(p,at),true);
- p.lastActiveAt=at-1000;assert.equal(mayPark(p,at),false);
+ p.lastActivityAt=at-1000;assert.equal(mayPark(p,at),false);
 });
 test('parked accounts cannot be silently selected again or affect active cap',()=>{
  const p=account('dormant',at-IDLE_MS-5000),state={players:{dormant:p,active:account('active',at)}};
