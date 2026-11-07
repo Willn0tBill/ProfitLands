@@ -28,6 +28,7 @@ on:
       - 'desktop/**'
       - 'account-trophies.js'
       - 'firebase-auth.js'
+      - 'cloud-sync-guard.js'
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'quick-switch.css'
@@ -46,6 +47,8 @@ on:
       - 'world1-config.js'
       - 'firebase-world-adapter.js'
       - 'multiplayer-world.js'
+      - 'world-extended.js'
+      - 'world-extended.css'
       - 'tests/**'
       - '.github/workflows/economy-tests.yml'
   pull_request:
@@ -74,6 +77,7 @@ on:
       - 'desktop/**'
       - 'account-trophies.js'
       - 'firebase-auth.js'
+      - 'cloud-sync-guard.js'
       - 'steam-achievement-map.js'
       - 'quick-switch.js'
       - 'quick-switch.css'
@@ -92,6 +96,8 @@ on:
       - 'world1-config.js'
       - 'firebase-world-adapter.js'
       - 'multiplayer-world.js'
+      - 'world-extended.js'
+      - 'world-extended.css'
       - 'tests/**'
   workflow_dispatch:
 
@@ -127,6 +133,7 @@ jobs:
           node --check achievement-engine.js
           node --check account-trophies.js
           node --check steam-achievement-map.js
+          node --check cloud-sync-guard.js
           node --check firebase-auth.js
           node --check platform.js
           node --check desktop/main.cjs
@@ -137,10 +144,24 @@ jobs:
           node --check trade-ui.js
           node --check firebase-world-adapter.js
           node --check multiplayer-world.js
+          node --check world-extended.js
+          node --check crazygames.js
+          node --check crazygames-coach.js
+          node --check cloudflare/src/chat-filter.mjs
+          node --check cloudflare/src/world-enterprise.mjs
+          node --check cloudflare/src/world-achievements.mjs
           node --check functions/world-core.js
           node --check functions/pvp-rules.js
           node --check functions/index.js
           node --check cloudflare/src/index.mjs
+          node --check cloudflare/src/world-store-v2.mjs
+          node --check cloudflare/src/world-city-contracts.mjs
+          node --check cloudflare/src/world-bankruptcy.mjs
+          node --check cloudflare/scripts/verify-v2-backup.mjs
+          node --check cloudflare/scripts/prepare-live-v2-sql.mjs
+          node --check cloudflare/scripts/smoke-real-firebase-local.mjs
+          node --check scripts/browser-smoke.mjs
+          node --check cloudflare/src/migration-admin.mjs
           node --check cloudflare/src/world-core.mjs
           node --check cloudflare/src/pvp-rules.mjs
       - name: Verify Firebase server dependency resolution

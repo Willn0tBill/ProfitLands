@@ -84,7 +84,7 @@ async function request(db,action,uid='user-one',extra={},options={}){
  if(authorization)headers.set('Authorization',authorization);
  return worker.fetch(new Request(base+'/api',{
   method:'POST',headers,body:JSON.stringify({action,...extra})
- }),{DB:db});
+ }),{DB:db,...(options.env||{})});
 }
 async function post(db,action,uid,extra={},opts={}){
  const response=await request(db,action,uid,extra,opts);
@@ -105,7 +105,7 @@ test('public health works without user identity but protected actions need signe
  const db=dbMock();
  const health=await post(db,'health',null);
  assert.equal(health.status,200);assert.equal(health.body.worldId,'world1');
- assert.equal(health.body.chatEnabled,false,'no configured moderator means chat stays closed');
+ assert.equal(health.body.chatEnabled,true,'automated masking and report controls permit chat without staffed moderators');
  assert.ok(health.body.catalog.length>=8);
  assert.equal(health.headers.get('Access-Control-Allow-Origin'),webOrigin);
  const noAuth=await post(db,'register',null);
@@ -143,7 +143,9 @@ test('World 1 persists a registered player, keeps local client cash out and buys
  assert.equal(joined.status,200);assert.equal(joined.body.player.cash,1500);
  assert.equal(joined.body.player.uid,'user-one');
  assert.equal((await post(db,'register')).body.created,false);
- const bought=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1),cash:999999999});
+ const forged=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1),cash:999999999});
+ assert.equal(forged.status,400);assert.equal((await post(db,'me')).body.player.cash,1500);
+ const bought=await post(db,'buyBusiness','user-one',{businessId:'coffee',requestId:rid(1)});
  assert.equal(bought.status,200);assert.equal(bought.body.player.cash,1000);
  assert.equal(bought.body.player.businesses[0].type,'coffee');
  const me=await post(db,'me');assert.equal(me.body.player.businesses.length,1);
@@ -239,7 +241,11 @@ test('the Cloudflare rules match the established Firebase server economics and a
  const duplicate=readFileSync(join(root,'cloudflare/src/world-core.mjs'),'utf8');
  const prior=readFileSync(join(root,'functions/pvp-rules.js'),'utf8');
  const copied=readFileSync(join(root,'cloudflare/src/pvp-rules.mjs'),'utf8');
- assert.ok(duplicate.includes(original));
+ const aligned=duplicate
+  .replace("import COUNTRIES from './country-catalog.mjs';\n",'')
+  .replace("const module={exports:{}};\n'use strict';",
+   "'use strict';\nconst COUNTRIES=require('./country-catalog.js');");
+ assert.ok(aligned.includes(original),'Cloudflare and Firebase core logic must remain in sync');
  assert.ok(copied.includes(prior));
  assert.equal(core.MAX_PLAYERS,64);
  assert.ok(rules.ATTACKS.length>=3);
@@ -349,3 +355,97 @@ test('region IDs are strictly whitelisted, health exposes three worlds, cap is 6
 });
 
 test.after(()=>{globalThis.fetch=realFetch});
+
+
+test('full regions safely park dormant saves and reactivate them without breaching 64 active slots',async()=>{
+ const db=dbMock();
+ for(let i=0;i<64;i++){
+  const joined=await post(db,'register','slot-'+i);
+  assert.equal(joined.status,200,'account '+i+' can join');
+ }
+ const buy=await post(db,'buyBusiness','slot-0',{businessId:'coffee',requestId:rid(900)});
+ assert.equal(buy.status,200);
+ const originalBusiness=buy.body.player.businesses[0];
+ const old=Date.now()-95*86400000;
+ db.mutate(s=>{
+  for(const uid of ['slot-0','slot-1']){
+   const p=s.players[uid];
+   p.createdAtSeconds=Math.floor(old/1000);
+   p.lastSettledAt=old;
+   p.lastActivityAt=old;
+  }
+ });
+ const newcomer=await post(db,'register','slot-64');
+ assert.equal(newcomer.status,200);
+ assert.equal(newcomer.body.created,true);
+ assert.ok(db.read().players['slot-0'].parkedAt>0);
+ assert.equal(db.read().players['slot-0'].businesses[0].type,originalBusiness.type);
+ assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
+ const parkedMe=await post(db,'me','slot-0');
+ assert.equal(parkedMe.status,503);
+ const resumed=await post(db,'register','slot-0');
+ assert.equal(resumed.status,200);
+ assert.equal(resumed.body.resumed,true);
+ assert.equal(resumed.body.player.businesses[0].type,'coffee');
+ assert.ok(db.read().players['slot-1'].parkedAt>0);
+ assert.equal(Object.values(db.read().players).filter(p=>!p.parkedAt).length,64);
+});
+
+
+test('authenticated market trading uses unpublished secret quotes and preserves payment replay',async()=>{
+ const db=dbMock(),tick=900000;
+ const start=(Math.floor(Date.now()/tick)-3)*tick;
+ const secret=Buffer.alloc(32,0x5a).toString('base64');
+ const config={WORLD_MARKET_SECRET:secret,WORLD_MARKET_START_AT:String(start)};
+ const joined=await post(db,'register','secure-market',{}, {env:config});
+ assert.equal(joined.status,200);
+ const trading=await post(db,'enterpriseAction','secure-market',{
+  operation:'buyShares',stockId:'harbor',quantity:1,requestId:rid(201)
+ },{env:config});
+ assert.equal(trading.status,200,JSON.stringify(trading.body));
+ const price=trading.body.player.enterprise.quotes.find(q=>q.id==='harbor').priceCents;
+ assert.equal(trading.body.cost,Math.ceil(price/100));
+ assert.equal(trading.body.player.enterprise.stocks.harbor,1);
+ assert.equal(JSON.stringify(trading.body).includes(secret),false);
+ const replay=await post(db,'enterpriseAction','secure-market',{
+  operation:'buyShares',stockId:'harbor',quantity:1,requestId:rid(201)
+ },{env:config});
+ assert.equal(replay.status,200);
+ assert.equal(replay.body.replayed,true);
+ assert.equal(replay.body.player.enterprise.stocks.harbor,1);
+});
+
+
+test('AFK cannot be renewed by reconnect, chats, toggles, reads, failed purchases or replay',async()=>{
+ const db=dbMock();
+ assert.equal((await post(db,'register','autoclick-user')).status,200);
+ const idle=Date.now()-16*60*1000;
+ db.mutate(s=>{
+  const p=s.players['autoclick-user'];
+  p.lastGameplayAt=idle;p.lastActivityAt=idle;
+ });
+ const reconnect=await post(db,'register','autoclick-user');
+ assert.equal(reconnect.status,200);
+ assert.equal(reconnect.body.player.activity.afk,true);
+ assert.equal((await post(db,'me','autoclick-user')).body.player.activity.afk,true);
+ assert.equal((await post(db,'sendChat','autoclick-user',{text:'hello from QA'})).status,200);
+ assert.equal((await post(db,'togglePvP','autoclick-user')).status,200);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+ const rejected=await post(db,'buyBusiness','autoclick-user',{
+  businessId:'not-a-business',requestId:rid(301)});
+ assert.equal(rejected.status,409);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+ const order={businessId:'coffee',requestId:rid(302)};
+ const bought=await post(db,'buyBusiness','autoclick-user',order);
+ assert.equal(bought.status,200);
+ assert.equal(bought.body.player.activity.afk,false);
+ assert.ok(db.read().players['autoclick-user'].lastActivityAt>idle);
+ db.mutate(s=>{
+  const p=s.players['autoclick-user'];p.lastActivityAt=idle;p.lastGameplayAt=idle;
+ });
+ const replay=await post(db,'buyBusiness','autoclick-user',order);
+ assert.equal(replay.status,200);
+ assert.equal(replay.body.replayed,true);
+ assert.equal(replay.body.player.activity.afk,true);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+});

@@ -12,6 +12,7 @@ function harness(options={}){
  let now=1000000,visible='visible',view='world';
  const counts={me:0,board:0,players:0},intervals=[];
  const catalog=[{id:'coffee',name:'Coffee Shop',cost:500},{id:'hotel',name:'Hotel',cost:25000}];
+ let failMe=false;
  let player=Object.assign({
   uid:'qa-player',cash:1500,netWorth:1500,pvpEnabled:false,
   protectedUntil:0,nextAttackAt:0,businesses:[]
@@ -80,7 +81,7 @@ function harness(options={}){
  const online={
   isConnected:()=>true,
   getCatalog:()=>catalog,
-  getMyEmpire:async()=>{counts.me++;return {player:structuredClone(player)}},
+  getMyEmpire:async()=>{counts.me++;if(failMe)throw Error('network_down');return {player:structuredClone(player)}}, 
   getLeaderboard:async()=>{counts.board++;return []},
   getPlayers:async()=>{counts.players++;return structuredClone(rivals)},
   togglePvP:async()=>{
@@ -101,9 +102,9 @@ function harness(options={}){
  listeners.DOMContentLoaded();
  const settle=()=>new Promise(resolve=>setImmediate(resolve));
  return {
-  window,nodes,online,counts,prefs,intervals,settle,
+  window,nodes,online,counts,prefs,intervals,settle,listeners,
   setTime:n=>now=n,setVisibility:s=>visible=s,setView:s=>view=s,
-  setPlayer:next=>player=next,setRivals:next=>rivals=next,
+  setPlayer:next=>player=next,setFailMe:value=>failMe=Boolean(value),setRivals:next=>rivals=next,
   element:id=>nodes.get(id),buttons:(id,key)=>nodes.get(id)?.querySelectorAll('[data-'+key+']')||[]
  };
 }
@@ -115,18 +116,19 @@ test('World 1 renders wallet once and does not double-query server on repeat ren
  h.window.ProfitLandsWorld.render();await h.settle();
  assert.deepEqual(h.counts,{me:1,board:1,players:1},'connection event must not fetch the same records twice');
 });
-test('market prices and upgrades reflect the server wallet and 40-shop cap',async()=>{
+test('market prices and upgrades reflect the server wallet and 80-business cap',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
  const getBuy=id=>h.buttons('worldStore','world-buy').find(b=>b.dataset.worldBuy===id);
  assert.equal(getBuy('coffee').disabled,false,'$1500 can purchase a $500 coffee shop');
  assert.equal(getBuy('hotel').disabled,true,'$1500 cannot purchase a $25,000 hotel');
  assert.match(h.element('worldStore').innerHTML,/Need \$23,500 more/);
  h.setPlayer({uid:'qa-player',cash:100000,netWorth:100000,pvpEnabled:false,
-  protectedUntil:0,nextAttackAt:0,businesses:Array.from({length:40},()=>({type:'coffee',level:1}))});
+  protectedUntil:0,nextAttackAt:0,enterprise:{companyCap:80,siteCap:16},
+  businesses:Array.from({length:80},()=>({type:'coffee',level:1}))});
  h.setTime(1_011_000); // manual refresh has a 10-second server quota guard
  await h.window.ProfitLandsWorld.refresh();await h.settle();
  assert.equal(getBuy('coffee').disabled,true);
- assert.match(h.element('worldStore').innerHTML,/40-shop alpha cap reached/);
+ assert.match(h.element('worldStore').innerHTML,/80-business limit reached/);
 });
 test('PvP is visibly off by default and updates only after a server-confirmed toggle',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
@@ -138,25 +140,56 @@ test('PvP is visibly off by default and updates only after a server-confirmed to
  assert.equal(h.element('worldPvpToggle').textContent,'Turn PvP off');
  assert.equal(h.buttons('worldContent','pvp-attack')[0].disabled,true,'target is still opted out');
 });
-test('opt-in auto-sync respects a visible active World view and 2-minute interval',async()=>{
+test('default background sync fetches only the player every five minutes in the visible World view',async()=>{
  const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
- assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),false);
- assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
- h.element('worldAutoSync').onclick();
  assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),true);
- assert.equal(h.prefs.get('profitlands-world1-auto-sync-v1'),'1');
  assert.equal(h.element('worldAutoSync').attributes['aria-pressed'],'true');
- h.setTime(1_130_000);h.setVisibility('hidden');
+ assert.ok(h.intervals.some(x=>x.delay===500),'the local money display ticks every half-second');
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
+ h.setTime(1_301_000);h.setVisibility('hidden');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
  h.setVisibility('visible');h.setView('businesses');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
  h.setView('world');
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
  await h.settle();
- assert.deepEqual(h.counts,{me:2,board:2,players:2});
- assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'never poll again immediately');
+ assert.deepEqual(h.counts,{me:2,board:1,players:1},
+  'background sync fetches only own account, not leaderboards or all rivals');
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'no extra request immediately');
  h.element('worldAutoSync').onclick();
  assert.equal(h.window.ProfitLandsWorld.autoSyncEnabled(),false);
+ assert.equal(h.prefs.get('profitlands-world1-auto-sync-v1'),'0');
+ h.setTime(2_000_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'opt-out persists');
+});
+test('half-second live wallet updates without Workers requests or client-side money mutation',async()=>{
+ const h=harness({player:{
+  uid:'qa-player',cash:400,netWorth:500,incomePerSecond:2,
+  pvpEnabled:false,protectedUntil:0,nextAttackAt:0,businesses:[]}});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ const before={...h.counts};
+ assert.equal(h.element('worldLiveCash').textContent,'$400.00');
+ h.setTime(1_000_500);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$401.00');
+ assert.equal(h.element('worldLiveWorth').textContent,'$501.00');
+ assert.deepEqual(h.counts,before,'500 ms animation sends zero network requests');
+ const coffee=h.buttons('worldStore','world-buy').find(x=>x.dataset.worldBuy==='coffee');
+ assert.equal(coffee.disabled,true);
+ h.setTime(1_050_000);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$500.00');
+ assert.equal(coffee.disabled,false,'a projected affordable shop can ask the server to approve purchase');
+ assert.deepEqual(h.counts,before,'projected affordability is read-only');
+ h.setVisibility('hidden');h.setTime(1_060_000);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ assert.equal(h.element('worldLiveCash').textContent,'$500.00');
+ h.setVisibility('visible');h.setView('businesses');
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ h.setView('world');
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),true);
+ assert.equal(h.element('worldLiveCash').textContent,'$520.00');
+ assert.deepEqual(h.counts,before);
 });
 
 test('online upgrade buttons require server-verified affordability and respect the level cap',async()=>{
@@ -175,4 +208,106 @@ test('online upgrade buttons require server-verified affordability and respect t
  button=h.buttons('worldStore','world-upgrade')[0];
  assert.equal(button.disabled,true,'level 30 is the server upgrade cap');
  assert.match(h.element('worldStore').innerHTML,/Max level/);
+});
+
+test('an interrupted server refresh preserves the current world interface',async()=>{
+ const h=harness({player:{uid:'qa-player',cash:1000,netWorth:1500,
+  incomePerSecond:2,pvpEnabled:false,protectedUntil:0,
+  nextAttackAt:0,businesses:[{type:'coffee',level:1}]}});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ assert.match(h.element('worldStore').innerHTML,/My Online Empire/);
+ h.setFailMe(true);
+ h.setTime(1_020_000);
+ assert.equal(await h.window.ProfitLandsWorld.refresh(),false);
+ assert.match(h.element('worldStore').innerHTML,/My Online Empire/,
+  'offline refresh should not replace the entire storefront with an error');
+ assert.match(h.element('worldStatus').textContent,/world information could not be refreshed/i);
+});
+test('server cash corrections are visible and offline six-hour cap is explained',async()=>{
+ const initial={uid:'qa-player',cash:400,netWorth:500,
+  incomePerSecond:2,pvpEnabled:false,protectedUntil:0,nextAttackAt:0,businesses:[]};
+ const h=harness({player:initial});
+ h.window.ProfitLandsWorld.render();await h.settle();
+ assert.match(h.element('worldStore').innerHTML,/up to 6 hours/i);
+ h.setPlayer({...initial,cash:402,netWorth:502});
+ h.setTime(1_020_000);
+ assert.equal(await h.window.ProfitLandsWorld.refresh(),true);
+ assert.match(h.element('worldStore').innerHTML,/Server balance reconciled by/);
+ assert.match(h.element('worldStore').innerHTML,/\-\$38/);
+});
+test('chat has an explicit manual refresh and long poll with backoff',()=>{
+ assert.match(source,/const CHAT_POLL_MS=180000/);
+ assert.match(source,/chatNextAt=Date\.now\(\)\+CHAT_POLL_MS/);
+ assert.match(source,/Math\.min\(900000,CHAT_POLL_MS\*\(2\*\*chatFailures\)\)/);
+ const html=fs.readFileSync(path.join(__dirname,'..','play','index.html'),'utf8');
+ assert.match(html,/id="worldChatRefresh"/);
+ assert.match(source,/refreshChat\(true\)/);
+});
+
+test('failed automatic synchronization backs off instead of hammering a failing Worker',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ h.setFailMe(true);
+ h.setTime(1_310_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,2);
+ h.setTime(1_630_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,
+  'a server error increases retry delay beyond the ordinary five minutes');
+ assert.equal(h.counts.me,2);
+ h.setFailMe(false);h.setTime(1_915_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'AFK disables background retries');
+ h.window.ProfitLandsWorld.trustedActivity({type:'keydown',key:'Enter',repeat:false,isTrusted:true});
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,3);
+});
+
+
+test('AFK ignores autoclicking and forged DOM events, pausing only background requests',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ const startingReads={...h.counts};
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ assert.match(h.element('worldAfkStatus').textContent,/Active/);
+ h.setTime(1_901_000);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ // Even a million clicks at one location should not count as presence.
+ for(let i=0;i<300;i++)
+  h.window.ProfitLandsWorld.trustedActivity({type:'click',isTrusted:true,clientX:5,clientY:10});
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',isTrusted:false,clientX:800,clientY:300}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.deepEqual(h.counts,startingReads,'AFK checks never make Worker calls');
+ // Genuine keyboard input (including accessibility navigation) resumes.
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'Tab',repeat:false,isTrusted:true}),true);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ assert.match(h.element('worldAfkStatus').textContent,/Active/);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,startingReads.me+1);
+});
+
+test('AFK ignores stationary pointer movement and keyboard auto-repeat; supports touch',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ h.setTime(1_901_000);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'ArrowDown',repeat:true,isTrusted:true}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',clientX:100,clientY:100,isTrusted:true}),true);
+ h.setTime(2_802_000);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',clientX:102,clientY:102,isTrusted:true}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'touchstart',isTrusted:true}),true);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ h.setVisibility('hidden');
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'Tab',isTrusted:true}),false,'hidden tabs cannot claim interaction');
 });
