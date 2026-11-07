@@ -350,7 +350,8 @@ function credit(p,amount){
  p.cash+=add;
  const gain=worth(p)-before;
  p.dayGain+=gain;p.weekGain+=gain;
- return gain;
+ // Report actual cash credited even when net worth is clipped at zero.
+  return add;
 }
 function debit(p,amount){
  if(!number(amount)||p.cash<amount)return false;

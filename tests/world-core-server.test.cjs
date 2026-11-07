@@ -173,3 +173,14 @@ test('PvP fractional remainder carries correctly from 1ms poll into the next',()
  assert.equal(next.incomeMilliRemainder,1);
  assert.equal(next.incomeSubMilliRemainder,76);
 });
+
+test('cash credits report the actual payout when debt clamps net worth to zero',()=>{
+ const debtor=startup();
+ debtor.enterprise={loanDebt:1_000_000,stocks:{},properties:[],majorCompanies:[],warehouse:0,trucks:0};
+ assert.equal(core.worth(debtor),0);
+ const before=debtor.cash;
+ assert.equal(core.credit(debtor,250),250,'rewards must reflect money delivered, not clamped valuation');
+ assert.equal(debtor.cash,before+250);
+ assert.equal(core.worth(debtor),0,'being underwater should not counterfeit a wealth gain');
+ assert.equal(core.credit(debtor,0),0);
+});

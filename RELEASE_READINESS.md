@@ -15,6 +15,8 @@ The active World view now animates a clearly labelled **estimated** cash balance
 
 ## Resilience hardening (November 6, 2026)
 
+- **Live QA caught and corrected a financial payout bug:** rewards credited actual cash to a debtor but the claim response reported 0 when net worth was floored at zero. `core.credit` now reports the cash actually delivered, preserving net-worth-based leaderboard accounting. A debt-specific regression test was added; verified live two-account cleanup was not affected.
+
 - Low-cost **per-isolate** Worker burst shielding: 60 health probes/min/IP, 180 API requests/min/IP, 100 reads/min/authenticated user and 40 writes/min/authenticated user, with HTTP 429 plus Retry-After. No additional D1 writes. **This is not a globally enforced Cloudflare daily quota**.
 - Chat now polls at most once every three minutes when its panel is open/visible, with explicit manual Refresh messages and exponential backoff during failures. Chat actions themselves refresh after confirmation.
 - Five-minute balance sync progressively backs off after errors; failed syncs preserve the storefront. The live estimated wallet visibly reconciles unexpected server balance changes and explains its six-hour offline earnings cap.
@@ -46,7 +48,7 @@ The active World view now animates a clearly labelled **estimated** cash balance
 - Node.js regression suite and syntax checks on the isolated development copy.
 - Tests for server-owned economy actions, cash/inventory conservation, concurrent routes, route cleanup on company sale, quote-valued stock holdings, midnight/weekly mark-to-market, CJS/ESM server consistency, replay protection, cross-region isolation, company marketplace transfers, profile security, cloud save conflicts and account switching, profanity masking, chat reporting and emergency shutdown, and CrazyGames packaging.
 - Cloudflare/static asset and CrazyGames distributions build without deleting original source.
-- Local Node regression suite: **531 passing, 0 failing**, including V2 SQLite migration, authorization, atomicity, event, city-contract and loan-recovery tests. Both legacy and normalized V2 Cloudflare Workers passed isolated **real local D1 smoke tests**. A dry-run of the actual remote D1 export verified the existing world/player/receipt data and source checksums, without remote mutations. Two independently signed RS256 test accounts were verified through the full Worker API with in-memory SQLite. The static build and 35-country catalog validation succeeded. Recheck GitHub CI on this exact integration commit before any live-account test.
+- Local Node regression suite: **532 passing, 0 failing**, including V2 SQLite migration, authorization, atomicity, event, city-contract and loan-recovery tests. Both legacy and normalized V2 Cloudflare Workers passed isolated **real local D1 smoke tests**. A dry-run of the actual remote D1 export verified the existing world/player/receipt data and source checksums, without remote mutations. Two independently signed RS256 test accounts were verified through the full Worker API with in-memory SQLite. The static build and 35-country catalog validation succeeded. Recheck GitHub CI on this exact integration commit before any live-account test.
 
 ## Remaining acceptance gaps (multiplayer V2 production is live)
 
