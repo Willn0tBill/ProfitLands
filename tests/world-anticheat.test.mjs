@@ -11,7 +11,8 @@ test('legitimate world and enterprise requests pass request-shape guard',()=>{
 });
 test('forged client economic state and prototype pollution keys are refused',()=>{
  for(const key of ['cash','balance','wallet','netWorth','player','players',
-  'incomePerSecond','lastSettledAt','receipts','state','dayGain','weekGain']){
+  'incomePerSecond','lastSettledAt','receipts','state','dayGain','weekGain',
+  'lastActivityAt','lastGameplayAt','parkedAt','activity','afk']){
   assert.equal(validateClientPayload({action:'me',[key]:123}),false,key);
  }
  assert.equal(validateClientPayload(JSON.parse('{"action":"me","__proto__":{"admin":true}}')),false);
