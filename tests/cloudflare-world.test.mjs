@@ -414,3 +414,38 @@ test('authenticated market trading uses unpublished secret quotes and preserves 
  assert.equal(replay.body.replayed,true);
  assert.equal(replay.body.player.enterprise.stocks.harbor,1);
 });
+
+
+test('AFK cannot be renewed by reconnect, chats, toggles, reads, failed purchases or replay',async()=>{
+ const db=dbMock();
+ assert.equal((await post(db,'register','autoclick-user')).status,200);
+ const idle=Date.now()-16*60*1000;
+ db.mutate(s=>{
+  const p=s.players['autoclick-user'];
+  p.lastGameplayAt=idle;p.lastActivityAt=idle;
+ });
+ const reconnect=await post(db,'register','autoclick-user');
+ assert.equal(reconnect.status,200);
+ assert.equal(reconnect.body.player.activity.afk,true);
+ assert.equal((await post(db,'me','autoclick-user')).body.player.activity.afk,true);
+ assert.equal((await post(db,'sendChat','autoclick-user',{text:'hello from QA'})).status,200);
+ assert.equal((await post(db,'togglePvP','autoclick-user')).status,200);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+ const rejected=await post(db,'buyBusiness','autoclick-user',{
+  businessId:'not-a-business',requestId:rid(301)});
+ assert.equal(rejected.status,409);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+ const order={businessId:'coffee',requestId:rid(302)};
+ const bought=await post(db,'buyBusiness','autoclick-user',order);
+ assert.equal(bought.status,200);
+ assert.equal(bought.body.player.activity.afk,false);
+ assert.ok(db.read().players['autoclick-user'].lastActivityAt>idle);
+ db.mutate(s=>{
+  const p=s.players['autoclick-user'];p.lastActivityAt=idle;p.lastGameplayAt=idle;
+ });
+ const replay=await post(db,'buyBusiness','autoclick-user',order);
+ assert.equal(replay.status,200);
+ assert.equal(replay.body.replayed,true);
+ assert.equal(replay.body.player.activity.afk,true);
+ assert.equal(db.read().players['autoclick-user'].lastActivityAt,idle);
+});
