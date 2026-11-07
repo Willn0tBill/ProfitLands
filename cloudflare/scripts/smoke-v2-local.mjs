@@ -84,7 +84,7 @@ try{
  assert.ok(ready,'V2 Worker failed startup: '+logs.join('').slice(-2500));
  const health=await get(base,'/health');
  assert.equal(health.body.version,6);
- assert.equal(health.body.maxPlayers,128);
+ assert.equal(health.body.maxPlayers,64);
  assert.equal(health.body.enterpriseEnabled,true);
  assert.equal(health.headers.get('access-control-allow-origin'),
   'https://profitlands.winotbill.workers.dev');

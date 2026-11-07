@@ -13,7 +13,7 @@ test('World 1 starts each identity with independent, server-created money',()=>{
  assert.equal(a.cash,1500);
  assert.deepEqual(a.businesses,[]);
  assert.notEqual(a.uid,b.uid);
- assert.equal(core.MAX_PLAYERS,128);
+ assert.equal(core.MAX_PLAYERS,64);
  assert.equal(core.worth(a),1500);
 });
 test('online purchases debit exactly the server catalog cost and preserve player input',()=>{

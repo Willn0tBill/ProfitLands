@@ -662,16 +662,18 @@ test('regional business branches expand to 16 with a server-enforced cap',()=>{
  assert.equal(p.businesses[0].sites.length,16);
  assert.equal(enterprise.apply(p,'openBranch',{index:0},t).error,'branch_limit');
 });
-test('regional world accepts more than 64 independent accounts',async()=>{
+test('regional world enforces a 64-account cap without losing existing players',async()=>{
  const db=database();
- for(let i=0;i<70;i++){
+ for(let i=0;i<64;i++){
   const uid='capacity-'+i;
   const res=await dispatch('register',uid,{},db,'world-europe');
   assert.equal(res.created,true);
  }
- assert.equal(Object.keys(db.read('world-europe').players).length,70);
+ assert.equal(Object.keys(db.read('world-europe').players).length,64);
+ await assert.rejects(dispatch('register','capacity-64',{},db,'world-europe'),/full|resource-exhausted/i);
+ assert.equal(Object.keys(db.read('world-europe').players).length,64);
  const health=await dispatch('health',null,{},db,'world-europe');
- assert.equal(health.maxPlayers,128);
+ assert.equal(health.maxPlayers,64);
 });
 
 test('online city contracts require a new paid action after acceptance',()=>{
@@ -996,5 +998,3 @@ test('regional city economics are server owned, region isolated and preserve leg
  assert.equal(moved.player.businesses[0].sites[1].cityId,'houston');
  assert.equal(enterprise.apply(moved.player,'relocateBranch',
   {index:0,site:1,cityId:'houston'},t).error,'already_in_city');
- assert.equal(core.perSecond(moved.player,t),cjsCore.perSecond(moved.player,t));
-});

@@ -2,7 +2,7 @@
 const COUNTRIES=require('./country-catalog.js');
 // Deterministic server-only alpha economy. The browser never supplies earnings, cash or worth.
 const WORLD_ID='world1';
-const MAX_PLAYERS=128;
+const MAX_PLAYERS=64;
 const MAX_BUSINESSES=80;
 const MAX_CASH=1_000_000_000_000;
 const MAX_OFFLINE_SECONDS=6*3600;
