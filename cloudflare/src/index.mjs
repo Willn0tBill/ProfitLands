@@ -11,6 +11,7 @@ import {encodeLedger,decodeLedger} from './world-ledger.mjs';
 import {readNormalized,transactNormalized,migrateLegacy} from './world-store-v2.mjs';
 import {censorChat} from './chat-filter.mjs';
 import {checkIp,checkUid} from './world-rate-limit.mjs';
+import {validateClientPayload} from './world-anticheat.mjs';
 
 const PROJECT_ID='wtvstudios-5b40f';
 const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -620,7 +621,9 @@ export default {
     if(raw.length>8192)err('invalid-argument','Request body too large.');
     try{body=JSON.parse(raw)}catch(e){err('invalid-argument','Invalid request JSON.')}
    }
-   if(!body||typeof body!=='object'||!ALL_ACTIONS.has(body.action))
+   if(!validateClientPayload(body))
+     err('invalid-argument','Malformed or unauthorized game state in request.');
+    if(!ALL_ACTIONS.has(body.action))
     err('invalid-argument','Unknown world action.');
    const worldId=worldFor(request.method==='GET'?url.searchParams.get('worldId')||undefined:body.worldId);
    const ipCheck=checkIp(request,body.action);
