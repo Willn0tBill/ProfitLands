@@ -102,7 +102,7 @@ function harness(options={}){
  listeners.DOMContentLoaded();
  const settle=()=>new Promise(resolve=>setImmediate(resolve));
  return {
-  window,nodes,online,counts,prefs,intervals,settle,
+  window,nodes,online,counts,prefs,intervals,settle,listeners,
   setTime:n=>now=n,setVisibility:s=>visible=s,setView:s=>view=s,
   setPlayer:next=>player=next,setFailMe:value=>failMe=Boolean(value),setRivals:next=>rivals=next,
   element:id=>nodes.get(id),buttons:(id,key)=>nodes.get(id)?.querySelectorAll('[data-'+key+']')||[]
@@ -256,7 +256,58 @@ test('failed automatic synchronization backs off instead of hammering a failing 
   'a server error increases retry delay beyond the ordinary five minutes');
  assert.equal(h.counts.me,2);
  h.setFailMe(false);h.setTime(1_915_000);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false,'AFK disables background retries');
+ h.window.ProfitLandsWorld.trustedActivity({type:'keydown',key:'Enter',repeat:false,isTrusted:true});
  assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
  await h.settle();
  assert.equal(h.counts.me,3);
+});
+
+
+test('AFK ignores autoclicking and forged DOM events, pausing only background requests',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ const startingReads={...h.counts};
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ assert.match(h.element('worldAfkStatus').textContent,/Active/);
+ h.setTime(1_901_000);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),false);
+ assert.equal(h.window.ProfitLandsWorld.liveWalletTick(),false);
+ // Even a million clicks at one location should not count as presence.
+ for(let i=0;i<300;i++)
+  h.window.ProfitLandsWorld.trustedActivity({type:'click',isTrusted:true,clientX:5,clientY:10});
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',isTrusted:false,clientX:800,clientY:300}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.deepEqual(h.counts,startingReads,'AFK checks never make Worker calls');
+ // Genuine keyboard input (including accessibility navigation) resumes.
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'Tab',repeat:false,isTrusted:true}),true);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ assert.match(h.element('worldAfkStatus').textContent,/Active/);
+ assert.equal(h.window.ProfitLandsWorld.autoSyncIfDue(),true);
+ await h.settle();
+ assert.equal(h.counts.me,startingReads.me+1);
+});
+
+test('AFK ignores stationary pointer movement and keyboard auto-repeat; supports touch',async()=>{
+ const h=harness();h.window.ProfitLandsWorld.render();await h.settle();
+ h.setTime(1_901_000);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'ArrowDown',repeat:true,isTrusted:true}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',clientX:100,clientY:100,isTrusted:true}),true);
+ h.setTime(2_802_000);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'pointermove',clientX:102,clientY:102,isTrusted:true}),false);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'touchstart',isTrusted:true}),true);
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,false);
+ h.setVisibility('hidden');
+ assert.equal(h.window.ProfitLandsWorld.afkStatus().away,true);
+ assert.equal(h.window.ProfitLandsWorld.trustedActivity({
+  type:'keydown',key:'Tab',isTrusted:true}),false,'hidden tabs cannot claim interaction');
 });
