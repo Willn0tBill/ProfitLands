@@ -185,7 +185,7 @@ html.pl-motion-v3:not(.pl-motion-lite) body.pl-play-page #gameScreen .pl-workspa
  animation-delay:40ms;
 }
 html.pl-motion-v3 body.pl-play-page #gameScreen .pl-motion-value{
- animation:plMotionValuePop 400ms cubic-bezier(.18,.8,.25,1) both!important;
+ animation:plStableValue 280ms ease-out both!important;
 }
 html.pl-motion-v3 body.pl-play-page #gameScreen .pl-workspace-panels .business-card:focus-visible,
 html.pl-motion-v3 body.pl-play-page #gameScreen .pl-workspace-panels .business-card:hover{
@@ -265,3 +265,8 @@ html.pl-reduced-motion.pl-motion-v3 body.pl-play-page *:before,
 html.pl-reduced-motion.pl-motion-v3 body.pl-play-page *:after{
  animation:none!important;transition:none!important;scroll-behavior:auto!important;
 }
+
+/* Live HUD values should not cause their parent cards to animate or disappear. */
+@keyframes plStableValue{from{color:#a9f5c4}to{color:inherit}}
+html.pl-motion-v3 body.pl-play-page #gameScreen #hudStats .stat,
+html.pl-motion-v3 body.pl-play-page #gameScreen #hudStats .stat-main{animation:none!important}
