@@ -18,7 +18,7 @@
       const exponent=Math.max(4,positive.e+1);
       const target=big.parse('1e'+exponent);
       const lower=big.parse('1e'+(exponent-1));
-      let percent=positive.e<3?0:(positive.e<exponent-1?0:Math.max(0,Math.min(99.999999,(positive.m-1)/9*100)));
+      let percent=positive.e<3?Math.max(0,Math.min(99.999999,big.number(positive)/10000*100)):(positive.e<exponent-1?0:Math.max(0,Math.min(99.999999,(positive.m-1)/9*100)));
       if(positive.e>=exponent)percent=99.999;
       return {
         current:big.number(positive),currentRaw:big.raw(positive),
@@ -30,7 +30,7 @@
     const n=Math.max(0,Number(netWorth)||0),log=n>0?Math.log10(n):0;
     const exponent=Math.max(4,Math.floor(log+1e-12)+1),lower=10**Math.max(3,exponent-1),target=10**exponent;
     return {current:n,previous:lower,target,targetLabel:format(target),currentLabel:format(n),
-      percent:Number.isFinite(target)?Math.max(0,Math.min(99.999,(n-lower)/(target-lower)*100)):0,exponent,endless:true};
+      percent:Number.isFinite(target)?Math.max(0,Math.min(99.999,exponent===4?n/target*100:(n-lower)/(target-lower)*100)):0,exponent,endless:true};
   }
   function render(value){
     const m=milestone(value),label=document.getElementById('goalStatus'),bar=document.getElementById('goalProgressFill');
