@@ -147,6 +147,7 @@ test('successful arcade round grants one bounded solo earnings boost',()=>{
  api.press('serve',undefined,now+1);
  assert.equal(api.complete(now+1000),true);
  assert.equal(h.state.arcade.boostUntil,now+61000);
+ assert.equal(h.state.arcade.boostType,'rush');
  assert.equal(h.state.arcade.lastBoostAt,now+1000);
  api.stop();
  assert.equal(api.start('rush',now+2000),true);
@@ -161,4 +162,21 @@ test('multiplayer arcade rounds never grant client-controlled boosts',()=>{
  const now=Date.now();
  api.start('rush',now);api.press('serve',undefined,now+1);api.complete(now+1000);
  assert.equal(h.state.arcade.boostUntil,undefined);
+});
+
+test('each mini-game grants a distinct nonstacking power-up',()=>{
+ const cases=[['rush','Profit Surge',60000],['dispatch','Efficiency Drive',120000],['desk','Safety Net',90000]];
+ for(const [id,name,duration] of cases){
+  const h=harness(),api=h.api,now=Date.now();
+  h.state.businesses=[{type:'coffee',locations:[{}]}];
+  assert.equal(api.start(id,now),true);
+  if(id==='rush')api.press('serve',undefined,now+1);
+  if(id==='dispatch')api.press('route',api.getSession().destination,now+1);
+  if(id==='desk')api.press('choose',0,now+1);
+  api.complete(now+1000);
+  assert.equal(h.state.arcade.boostType,id);
+  assert.equal(h.state.arcade.boostUntil,now+1000+duration);
+  assert.equal(api.activePowerup(now+2000).name,name);
+  assert.equal(api.activePowerup(now+1001+duration),null);
+ }
 });
