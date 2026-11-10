@@ -23,7 +23,7 @@ const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
 let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,guideMeter=null,questSteps=[],advancedDisclosure=null,growDisclosure=null;
-let sidebarNextTitle=null,sidebarNextMeta=null,sidebarNextButton=null;
+let sidebarNextCard=null,sidebarNextTitle=null,sidebarNextMeta=null,sidebarNextButton=null;
 const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
 const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
@@ -102,6 +102,8 @@ function show(id,{focus=false,remember=true}={}){
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
+ // Overview already contains the full mission card; avoid duplicate guidance in the sidebar.
+ if(sidebarNextCard)sidebarNextCard.hidden=id==='overview';
  if(view.group==='ADVANCED'&&advancedDisclosure)advancedDisclosure.open=true;
  if(view.group==='GROW'&&growDisclosure)growDisclosure.open=true;
  for(const [key,section]of viewMap){
@@ -190,6 +192,7 @@ function makeNav(){
  }
  const actions=element('div','pl-workspace-sidebar-actions');
  const card=element('div','pl-workspace-next-card');
+ sidebarNextCard=card;
  card.appendChild(element('span','pl-workspace-next-eyebrow','✦ NEXT MOVE'));
  sidebarNextTitle=element('strong','pl-workspace-next-title','Open your first shop');
  sidebarNextMeta=element('span','pl-workspace-next-meta','0 / 3 goals complete');
