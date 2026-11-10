@@ -204,7 +204,8 @@ function resultScreen(){
  '<span class="pl-arcade-overline">ROUND COMPLETE</span><h3>'+g.name+'</h3>'+
  '<p>You finished with <b>'+s.score+'</b> point'+(s.score===1?'':'s')+'.</p>'+
  '<div class="pl-arcade-result-amount">'+(earned?'+'+fmt(earned):'Practice round')+'</div>'+
- '<p>'+(earned?'The cash reward was added to your existing empire and saved.':'No reward paid for this round (low score or reward limit reached).')+'</p>'+
+ '<p>'+(earned?'The cash reward was added to your existing empire and saved.':'No reward paid for this round (low score or reward limit reached).')+'</p>'+ 
+ (s.boost?'<p class="pl-arcade-boost" role="status">⚡ Bonus unlocked: 2× positive operating income for 60 seconds!</p>':'')+
  '<div class="pl-arcade-result-buttons"><button type="button" data-arcade-back>Return to arcade</button>'+
  '<button type="button" data-arcade-retry="'+s.id+'">Play again</button></div></section>';
 }
