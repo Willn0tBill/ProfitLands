@@ -394,7 +394,7 @@
     const arcade=state.arcade,kind=arcade?.boostType;
     const durations={rush:60000,rush_pro:30000,dispatch:120000,dispatch_pro:90000,desk:90000,desk_pro:180000};
     const valid=state.playType!=='multi'&&Object.prototype.hasOwnProperty.call(durations,kind)&&
-      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind];
+      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+(Number.isFinite(arcade.boostDuration)?arcade.boostDuration:durations[kind]*1.5);
     if(valid){
       const before=realized;
       if(kind==='rush'&&realized>0)realized*=2;
