@@ -15,9 +15,14 @@ const ROTATING=[
  {id:'team-leader',title:'Team Leader',description:'Employ 5 workers.',target:5,reward:160,value:s=>(s.businesses||[]).reduce((n,b)=>n+(b.locationManagementVersion===1?(b.locations||[]).reduce((x,l)=>x+Math.max(0,Number(l.workers)||0),0):Math.max(0,Number(b.workers)||0)),0)}
 ];
 const EVENT_DURATION_MS=5*60*1000;
+function wealthDuration(cash){
+ const amount=Math.max(0,Number(cash)||0);
+ const scale=amount<10000?1.5:amount<100000?1.25:amount<1000000?1:amount<100000000?.85:.75;
+ return Math.round(EVENT_DURATION_MS*scale);
+}
 const EVENTS=[
- {id:'supplier',title:'Supplier Negotiation',description:'Bulk supplies cost cash upfront but reduce operating pressure for five active minutes.',options:[
-  {name:'Negotiate bulk supplies',cost:80,multiplier:1.12,description:'Pay $80 now; positive operating income +12% for 5 minutes.'},
+ {id:'supplier',title:'Supplier Negotiation',description:'Bulk supplies cost cash upfront but reduce operating pressure for a wealth-adjusted duration.',options:[
+  {name:'Negotiate bulk supplies',cost:80,multiplier:1.12,description:'Pay $80 now; positive operating income +12% for a wealth-adjusted duration.'},
   {name:'Preserve liquidity',cost:0,multiplier:1,description:'No upfront cost or operating modifier.'}]},
  {id:'marketing',title:'Neighborhood Campaign',description:'Advertising can lift earnings, but it only pays off if your empire is profitable.',options:[
   {name:'Run local campaign',cost:100,multiplier:1.18,description:'Pay $100 now; positive operating income +18% for 5 minutes.'},
@@ -59,7 +64,7 @@ function claim(id,now=Date.now()){
 }
 function decisionEffect(now=Date.now()){
  const s=window.state,c=s?.challengeCenter;
- if(!s||s.playType==='multi'||!s.started||!c||!Number.isInteger(c.eventChoice)||!Number.isFinite(c.eventUntil)||c.eventUntil<=now||c.eventUntil>now+EVENT_DURATION_MS)return null;
+ if(!s||s.playType==='multi'||!s.started||!c||!Number.isInteger(c.eventChoice)||!Number.isFinite(c.eventUntil)||c.eventUntil<=now||c.eventUntil>now+EVENT_DURATION_MS*1.5)return null;
  const event=EVENTS.find(e=>e.id===c.eventId),option=event?.options[c.eventChoice];
  if(!option||!Number.isFinite(option.multiplier))return null;
  return {id:event.id,name:option.name,multiplier:option.multiplier,remainingMs:c.eventUntil-now};
@@ -73,9 +78,10 @@ function decide(option,now=Date.now()){
  if(choice.cost){if(window.ProfitLandsMoney?.spend)window.ProfitLandsMoney.spend(choice.cost);else s.cash-=choice.cost}
  c.eventChoice=option;
  c.eventId=e.id;
- c.eventUntil=now+EVENT_DURATION_MS;
+ c.eventDuration=wealthDuration(cash);
+ c.eventUntil=now+c.eventDuration;
  if(!Array.isArray(s.news))s.news=[];
- s.news.push('BUSINESS DECISION — '+e.title+': '+choice.name+'. '+choice.description);
+ s.news.push('BUSINESS DECISION — '+e.title+': '+choice.name+'. '+choice.description+' Duration: '+Math.round(c.eventDuration/1000)+' seconds.');
  window.save?.();window.render?.();render();
  return true;
 }
@@ -87,7 +93,7 @@ function render(now=Date.now()){
  root.innerHTML='<header class="pl-center-head"><div><small>YOUR DAILY MISSIONS</small><h3>Challenge Center</h3><p>Complete contracts, claim rewards, and master mini-games to earn temporary advantages.</p></div><span>'+data.claimed.length+' / '+data.contracts.length+' claimed today</span></header>'+
  '<div class="pl-center-status">'+(p?'<strong>⚡ '+p.name+'</strong><span>'+p.description+' · '+Math.ceil(p.remainingMs/1000)+'s remaining</span>':'<strong>No active power-up</strong><span>Complete a rewarding Arcade round to unlock one.</span>')+'</div>'+
  '<div class="pl-center-contracts">'+data.contracts.map(q=>'<article><div><strong>'+q.title+'</strong><p>'+q.description+'</p><small>'+q.value+' / '+q.target+' · Reward '+fmt(q.reward)+'</small></div><button type="button" data-center-claim="'+q.id+'" '+(q.claimed||q.value<q.target?'disabled':'')+'>'+(q.claimed?'Claimed':q.value>=q.target?'Claim reward':'In progress')+'</button></article>').join('')+'</div>'+
- '<section class="pl-center-decision"><strong>Today’s Business Decision · '+data.event.title+'</strong><p>'+data.event.description+'</p><div class="pl-center-options">'+data.event.options.map((o,i)=>'<button type="button" data-center-decision="'+i+'" '+(data.eventChoice!==null?'disabled':'')+'>'+o.name+' · '+o.description+'</button>').join('')+'</div>'+(data.eventChoice!==null?'<small>Decision completed. '+(data.decisionEffect?'Effect active · '+Math.ceil(data.decisionEffect.remainingMs/1000)+'s left.':'Effect expired or no modifier selected.')+'</small>':'<small>One decision per day. Effects last 5 active minutes; upfront costs are not guaranteed to pay off.</small>')+'</section>'+ 
+ '<section class="pl-center-decision"><strong>Today’s Business Decision · '+data.event.title+'</strong><p>'+data.event.description+'</p><div class="pl-center-options">'+data.event.options.map((o,i)=>'<button type="button" data-center-decision="'+i+'" '+(data.eventChoice!==null?'disabled':'')+'>'+o.name+' · '+o.description+'</button>').join('')+'</div>'+(data.eventChoice!==null?'<small>Decision completed. '+(data.decisionEffect?'Effect active · '+Math.ceil(data.decisionEffect.remainingMs/1000)+'s left.':'Effect expired or no modifier selected.')+'</small>':'<small>One decision per day. Duration scales with available cash at activation (3m 45s–7m 30s); upfront costs may not pay off.</small>')+'</section>'+ 
  '<p class="pl-center-history">Arcade record: '+Math.max(0,Number(history.played)||0)+' rounds · '+fmt(Math.max(0,Number(history.earned)||0))+' earned. Daily contracts reset at 00:00 UTC. Rewards are one-time per contract per day.</p>';
 }
 function init(){
@@ -97,6 +103,6 @@ function init(){
  window.setInterval?.(()=>{if(document.visibilityState!=='hidden'&&window.ProfitLandsWorkspace?.active?.()==='arcade')render()},10000);
  render();
 }
-window.ProfitLandsChallengeCenter={CONTRACTS,ROTATING,EVENTS,activeContracts,dailyEvent,dayKey,ensure,status,claim,decide,decisionEffect,render};
+window.ProfitLandsChallengeCenter={CONTRACTS,ROTATING,EVENTS,activeContracts,dailyEvent,dayKey,ensure,status,claim,decide,decisionEffect,wealthDuration,render};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
