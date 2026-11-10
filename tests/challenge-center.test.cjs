@@ -91,3 +91,33 @@ test('wealth tiers scale duration and lock it at activation',()=>{
  h.state.cash=1000000000;
  assert.equal(h.api.decisionEffect(day+300000).remainingMs,150000);
 });
+
+test('balanced strategy decisions persist bounded business reputation without duplicate rewards',()=>{
+ const h=harness(),day=Date.parse('2026-11-11T12:00:00Z');
+ const event=h.api.dailyEvent(day),change=event.options[0].reputation||0;
+ h.state.businesses[0].reputation=99;
+ assert.equal(h.api.decide(0,day),true);
+ assert.equal(h.state.businesses[0].reputation,Math.min(100,99+change));
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.businesses[0].reputation,Math.min(100,99+change));
+});
+test('reputation choices cannot mutate businesses in multiplayer',()=>{
+ const h=harness(),day=Date.parse('2026-11-11T12:00:00Z');
+ h.state.businesses[0].reputation=50;
+ h.state.playType='multi';
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.businesses[0].reputation,50);
+});
+
+test('reputation demand is capped, solo-only and integrated into location revenue',()=>{
+ const economy=fs.readFileSync(path.join(__dirname,'../economy-system.js'),'utf8');
+ assert.ok(economy.includes("state.playType==='multi'?1:1+(reputation-50)*.0016"));
+ assert.ok(economy.includes('demand*reputationDemand*f.countryRevenue'));
+ assert.ok(economy.includes('Math.max(0,Math.min(100,b.reputation))'));
+});
+test('Challenge Center script and styles use valid separate HTML lines',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../play/index.html'),'utf8');
+ assert.ok(html.includes('challenge-center.js'));
+ assert.ok(html.includes('challenge-center.css'));
+ assert.equal(html.includes('\\\\n  <script src="../challenge-center.js'),false);
+});
