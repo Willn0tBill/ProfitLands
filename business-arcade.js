@@ -79,6 +79,11 @@ const POWERUPS=Object.freeze({
  desk:{name:'Safety Net',description:'Prevents negative operating cash flow',duration:90000},
  desk_pro:{name:'Crisis Shield',description:'Prevents negative operating cash flow',duration:180000}
 });
+function wealthDuration(base,cash){
+ const amount=Math.max(0,Number(cash)||0);
+ const scale=amount<10000?1.5:amount<100000?1.25:amount<1000000?1:amount<100000000?.85:.75;
+ return Math.round(base*scale);
+}
 function powerupFor(id,score){
  const perfect=(id==='rush'&&score>=20)||(id==='dispatch'&&score===8)||(id==='desk'&&score===5);
  return perfect?id+'_pro':id;
@@ -87,15 +92,17 @@ function awardBoost(id,now=Date.now(),score=0){
  const st=window.state,p=ensure(),type=powerupFor(id,score),effect=POWERUPS[type];
  if(!st||st.playType==='multi'||!p||!effect||!Array.isArray(st.businesses)||!st.businesses.length)return null;
  if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return null;
+ const cash=Number(window.ProfitLandsMoney?.balance?.()??st.cash);
+ p.boostDuration=wealthDuration(effect.duration,cash);
  p.boostType=type;
- p.boostUntil=now+effect.duration;
+ p.boostUntil=now+p.boostDuration;
  p.lastBoostAt=now;
- return effect;
+ return {...effect,duration:p.boostDuration};
 }
 function activePowerup(now=Date.now()){
  const st=window.state,p=st?.arcade;
- if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+POWERUPS[p.boostType].duration)return null;
- return {...POWERUPS[p.boostType],type:p.boostType,remainingMs:p.boostUntil-now};
+ if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+(Number.isFinite(p.boostDuration)?p.boostDuration:POWERUPS[p.boostType].duration*1.5))return null;
+ return {...POWERUPS[p.boostType],duration:p.boostDuration||POWERUPS[p.boostType].duration,type:p.boostType,remainingMs:p.boostUntil-now};
 }
 function boostActive(now=Date.now()){return Boolean(activePowerup(now))}
 function complete(now=Date.now()){
@@ -274,6 +281,6 @@ function init(){
  // Optional invitation; never interrupts the current action or opens a modal.
  window.setInterval?.(()=>maybeInvite(),90000);
 }
-window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,powerupFor,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
+window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,powerupFor,wealthDuration,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
