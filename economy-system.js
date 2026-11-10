@@ -392,14 +392,16 @@
     realized+=((state.property||0)*12)*multiplier;
     // Solo-only, bounded arcade perks. Never applied to multiplayer or PvP.
     const arcade=state.arcade,kind=arcade?.boostType;
-    const durations={rush:60000,dispatch:120000,desk:90000};
+    const durations={rush:60000,rush_pro:30000,dispatch:120000,dispatch_pro:90000,desk:90000,desk_pro:180000};
     const valid=state.playType!=='multi'&&Object.prototype.hasOwnProperty.call(durations,kind)&&
       Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind];
     if(valid){
       const before=realized;
       if(kind==='rush'&&realized>0)realized*=2;
+      if(kind==='rush_pro'&&realized>0)realized*=3;
       if(kind==='dispatch'&&realized>0)realized*=1.5;
-      if(kind==='desk'&&realized<0)realized=0;
+      if(kind==='dispatch_pro'&&realized>0)realized*=1.75;
+      if((kind==='desk'||kind==='desk_pro')&&realized<0)realized=0;
       arcade.boostEarned=(Number(arcade.boostEarned)||0)+Math.max(0,realized-before);
     }
     if(!Number.isFinite(realized))return 0;
