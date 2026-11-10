@@ -35,16 +35,33 @@ function evaluate(){
  }
  return{businesses:businesses.length,locations:sites.length,workers:totalWorkers,perSecond:earning,actions,economy,events:events.length,best,worst,tasks:tasks.slice(0,3)};
 }
+function challenges(s,summary){
+ const branches=summary.locations,workers=summary.workers,businesses=summary.businesses;
+ const pool=[
+  {id:'launch',title:'Launch Day',description:'Open your first business to get the city moving.',target:1,value:businesses,view:'businesses',action:'Open marketplace'},
+  {id:'team',title:'Build Your Crew',description:'Hire 3 employees across your businesses.',target:3,value:workers,view:'businesses',action:'Manage staffing'},
+  {id:'network',title:'Neighborhood Network',description:'Grow your portfolio to 3 operating branches.',target:3,value:branches,view:'businesses',action:'Expand branches'},
+  {id:'chain',title:'Chain Reaction',description:'Own 5 operating branches.',target:5,value:branches,view:'businesses',action:'Build a chain'},
+  {id:'workforce',title:'People Power',description:'Grow your team to 15 employees.',target:15,value:workers,view:'businesses',action:'Hire employees'},
+  {id:'portfolio',title:'Diversify',description:'Own 3 different businesses.',target:3,value:businesses,view:'businesses',action:'Explore businesses'}
+ ];
+ const pending=pool.filter(x=>x.value<x.target);
+ const completed=pool.length-pending.length;
+ const selected=pending.slice(0,3);
+ return {completed,total:pool.length,selected:selected.length?selected:[{id:'complete',title:'Empire Builder',description:'All growth challenges complete. Try the Arcade or refine your operations.',target:1,value:1,view:'arcade',action:'Visit Arcade'}]};
+}
 function render(){
  const root=$('executiveContent'),s=window.state;
  if(!root||!s)return;
  const o=evaluate();
+ const missions=challenges(s,o);
  const money=n=>(n>=0?'+':'')+fmt(n);
  root.innerHTML='<div class="pl-executive-intro"><div><span>WtvI / PROFITLANDS COMMAND</span><h3>Executive Briefing</h3><p>Decide what to improve next. Updated from your active empire, not a static demo.</p></div><button type="button" data-executive-view="businesses">Business portfolio →</button></div>'+
  '<div class="pl-executive-kpis">'+[
  ['BUSINESSES',o.businesses.toLocaleString('en-US')],['BRANCHES',o.locations.toLocaleString('en-US')],
  ['EMPLOYEES',o.workers.toLocaleString('en-US')],['NET CASH FLOW',money(o.perSecond)+'/sec']
  ].map(a=>'<div><small>'+a[0]+'</small><strong>'+esc(a[1])+'</strong></div>').join('')+'</div>'+
+ '<section class="pl-executive-challenges" aria-label="Empire challenges"><header><h4>Empire Challenges</h4><span>'+missions.completed+' / '+missions.total+' completed</span></header><div class="pl-executive-challenge-grid">'+missions.selected.map(c=>'<article><strong>'+esc(c.title)+'</strong><p>'+esc(c.description)+'</p><div class="pl-challenge-meter" role="progressbar" aria-label="'+esc(c.title)+' progress" aria-valuemin="0" aria-valuemax="'+c.target+'" aria-valuenow="'+Math.min(c.target,c.value)+'"><span style="width:'+Math.min(100,Math.round(100*c.value/c.target))+'%"></span></div><small>'+Math.min(c.target,c.value)+' / '+c.target+'</small><button type="button" data-executive-view="'+c.view+'">'+esc(c.action)+' →</button></article>').join('')+'</div></section>'+ 
  '<div class="pl-executive-lower"><section><header><h4>Priority Actions</h4><span>'+o.tasks.length+' recommendations</span></header>'+
  o.tasks.map(t=>'<article class="pl-executive-task"><div><strong>'+esc(t.title)+'</strong><p>'+esc(t.detail)+'</p></div>'+
  '<button type="button" data-executive-view="'+t.view+'" '+(t.bi===undefined?'':'data-executive-business="'+t.bi+'"')+' '+(t.li===undefined?'':'data-executive-location="'+t.li+'"')+'>'+esc(t.action)+' →</button></article>').join('')+'</section>'+
@@ -72,7 +89,7 @@ function init(){
  window.addEventListener('profitlands:viewchange',e=>{if(e.detail?.view==='overview')render()});
  window.setInterval(()=>{if(window.ProfitLandsWorkspace?.active?.()==='overview'&&document.visibilityState==='visible')render()},12000);
 }
-window.ProfitLandsExecutive={evaluate,render};
+window.ProfitLandsExecutive={evaluate,challenges,render};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
 else init();
 })();
