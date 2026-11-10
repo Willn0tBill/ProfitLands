@@ -218,6 +218,15 @@ function render(){
  }else if(view==='playing')root.innerHTML=gameScreen();
  else root.innerHTML=resultScreen();
 }
+function maybeInvite(now=Date.now()){
+ const st=window.state,p=ensure();
+ if(!st?.started||st.playType==='multi'||!st.businesses?.length||document.visibilityState==='hidden'||session||!p)return false;
+ if(window.ProfitLandsWorkspace?.active?.()==='arcade'||available(now)===0)return false;
+ if(Number(p.lastInviteAt)>now-5*60*1000)return false;
+ p.lastInviteAt=now;
+ window.toast?.('Arcade challenge available! Visit Business Arcade for a chance to earn a 60-second 2× income boost.');
+ return true;
+}
 function init(){
  const root=$('arcadeContent');
  if(!root)return;
@@ -244,7 +253,9 @@ function init(){
   if(e.detail?.view!=='arcade'&&session&&view==='playing')stop();
  });
  render();
+ // Optional invitation; never interrupts the current action or opens a modal.
+ window.setInterval?.(()=>maybeInvite(),90000);
 }
-window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,getSession:()=>session,GAMES};
+window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,maybeInvite,getSession:()=>session,GAMES};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
