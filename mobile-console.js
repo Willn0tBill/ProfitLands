@@ -66,6 +66,7 @@ function draw(){
  if(!dock||!grid)return;
  const multi=isOnline();
  lastMode=multi?'online':'solo';
+ dock.dataset.mode=lastMode;
  dock.replaceChildren();
  const tabs=multi?primaryOnline:primarySolo;
  for(const tab of tabs)dock.appendChild(navButton(tab));
