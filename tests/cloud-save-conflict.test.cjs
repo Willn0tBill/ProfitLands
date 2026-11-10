@@ -8,7 +8,7 @@ function device(shared){
  const auth={onAuthStateChanged:fn=>callback=fn};
  const firebase={initializeApp(){},auth:()=>auth,firestore:()=>db};firebase.firestore.FieldValue={serverTimestamp:()=>({seconds:1})};
  const state={mode:'standard',playType:'single',day:1,cash:1000,started:true,savedAt:100};
- const ctx={window:{PROFITLANDS_FIREBASE_CONFIG:{apiKey:'qa'},addEventListener:(k,fn)=>events[k]=fn,dispatchEvent(){},ProfitLandsMoney:{attach(){}},ProfitLandsBalance:{migrate(){}}},firebase,state,document:{getElementById:()=>null,querySelector:()=>({textContent:''}),head:{appendChild(){}},createElement:()=>({})},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},console:{warn(){},error(){}},Event:class{},setTimeout,clearTimeout,render(){},netWorth:()=>1000};
+ const ctx={window:{PROFITLANDS_FIREBASE_CONFIG:{apiKey:'qa'},addEventListener:(k,fn)=>events[k]=fn,dispatchEvent(){},ProfitLandsMoney:{attach(){}},ProfitLandsBalance:{migrate(){}}},firebase,state,document:{getElementById:()=>null,querySelector:()=>null,head:{appendChild(){}},createElement:()=>({})},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},console:{warn(){},error(){}},Event:class{},setTimeout,clearTimeout,render(){},netWorth:()=>1000};
  vm.createContext(ctx);vm.runInContext(code,ctx);events.load();
  return {ctx,state,login:()=>callback(user),save:()=>ctx.window.profitlandsFirebase.cloudSave(true)};
 }
