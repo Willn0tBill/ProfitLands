@@ -390,13 +390,17 @@
       c.financialBalance=(Number(c.financialBalance)||0)+amount;
     });
     realized+=((state.property||0)*12)*multiplier;
-    // Solo arcade boost applies to positive operating profit only, never losses or multiplayer.
-    const boost=state.playType!=='multi'&&Number(state.arcade?.boostUntil)>now&&Number(state.arcade?.boostUntil)<=now+60000;
-    if(boost&&realized>0){
-      // Keep accounting and branch balances consistent with the bonus cash credited.
-      const bonus=realized;
-      realized+=bonus;
-      state.arcade.boostEarned=(Number(state.arcade.boostEarned)||0)+bonus;
+    // Solo-only, bounded arcade perks. Never applied to multiplayer or PvP.
+    const arcade=state.arcade,kind=arcade?.boostType;
+    const durations={rush:60000,dispatch:120000,desk:90000};
+    const valid=state.playType!=='multi'&&Object.prototype.hasOwnProperty.call(durations,kind)&&
+      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind];
+    if(valid){
+      const before=realized;
+      if(kind==='rush'&&realized>0)realized*=2;
+      if(kind==='dispatch'&&realized>0)realized*=1.5;
+      if(kind==='desk'&&realized<0)realized=0;
+      arcade.boostEarned=(Number(arcade.boostEarned)||0)+Math.max(0,realized-before);
     }
     if(!Number.isFinite(realized))return 0;
     if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}
