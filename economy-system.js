@@ -161,7 +161,9 @@
     const demand=e.demandIndex*loc.demand*f.countryDemand*f.demandEffect*(1+(e.health-60)/250*r.econ);
     const reputation=Number.isFinite(b.reputation)?Math.max(0,Math.min(100,b.reputation)):50;
     const reputationDemand=state.playType==='multi'?1:1+(reputation-50)*.0016; // bounded 0.92–1.08
-    const revenue=t.baseRevenue*lvl*demand*reputationDemand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
+    const satisfaction=Number.isFinite(b.satisfaction)?Math.max(0,Math.min(100,b.satisfaction)):70;
+    const satisfactionDemand=state.playType==='multi'?1:1+(satisfaction-70)*.0015; // bounded 0.895–1.045
+    const revenue=t.baseRevenue*lvl*demand*reputationDemand*satisfactionDemand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
     const runningCost=t.baseExpense*lvl*loc.rent*f.countryCost*f.difficultyExpenses*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*f.supplyEffect*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
     const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
     let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
