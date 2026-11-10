@@ -39,3 +39,55 @@ test('unmet contracts cannot be claimed and multiplayer is excluded',()=>{
  assert.equal(h.api.claim('starter',now),false);
  assert.equal(h.gained(),0);
 });
+
+test('daily rotation selects exactly one bonus contract and one business decision',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ const today=h.api.status(day),tomorrow=h.api.status(day+86400000);
+ assert.equal(today.contracts.length,4);
+ assert.notEqual(today.contracts[3].id,tomorrow.contracts[3].id);
+ assert.notEqual(today.event.id,tomorrow.event.id);
+});
+test('business choice pays once, rejects repeats and resets on the next day',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ assert.equal(h.api.decide(0,day),true);
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.challengeCenter.eventChoice,0);
+ assert.equal(h.api.decide(1,day+86400000),true);
+});
+test('business choice cannot spend more cash than available',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ h.state.cash=0;
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.api.decide(1,day),true);
+});
+
+test('business decisions charge upfront without guaranteed cash payouts',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ const startingCash=h.state.cash;
+ assert.equal(h.api.decide(0,day),true);
+ const event=h.api.dailyEvent(day),choice=event.options[0];
+ assert.equal(h.state.cash,startingCash-choice.cost);
+ assert.equal(h.gained(),0);
+ assert.equal(h.api.decisionEffect(day+1000).id,event.id);
+ assert.equal(h.api.decisionEffect(day+450001),null);
+});
+test('daily decision is disabled in multiplayer and after expiry',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ assert.equal(h.api.decide(0,day),true);
+ h.state.playType='multi';
+ assert.equal(h.api.decisionEffect(day+1000),null);
+ assert.equal(h.api.decide(1,day),false);
+});
+
+test('wealth tiers scale duration and lock it at activation',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ assert.equal(h.api.wealthDuration(9999),450000);
+ assert.equal(h.api.wealthDuration(10000),375000);
+ assert.equal(h.api.wealthDuration(100000),300000);
+ assert.equal(h.api.wealthDuration(1000000),255000);
+ assert.equal(h.api.wealthDuration(100000000),225000);
+ assert.equal(h.api.decide(0,day),true);
+ assert.equal(h.state.challengeCenter.eventDuration,450000);
+ h.state.cash=1000000000;
+ assert.equal(h.api.decisionEffect(day+300000).remainingMs,150000);
+});

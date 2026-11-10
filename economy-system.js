@@ -394,7 +394,7 @@
     const arcade=state.arcade,kind=arcade?.boostType;
     const durations={rush:60000,rush_pro:30000,dispatch:120000,dispatch_pro:90000,desk:90000,desk_pro:180000};
     const valid=state.playType!=='multi'&&Object.prototype.hasOwnProperty.call(durations,kind)&&
-      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind];
+      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind]*1.5;
     if(valid){
       const before=realized;
       if(kind==='rush'&&realized>0)realized*=2;
@@ -403,6 +403,16 @@
       if(kind==='dispatch_pro'&&realized>0)realized*=1.75;
       if((kind==='desk'||kind==='desk_pro')&&realized<0)realized=0;
       arcade.boostEarned=(Number(arcade.boostEarned)||0)+Math.max(0,realized-before);
+    }
+    // Daily business decisions affect actual solo operating cash flow.
+    // Apply after Arcade rewards so both systems share one settled wallet amount.
+    const decision=state.playType!=='multi'?window.ProfitLandsChallengeCenter?.decisionEffect?.(now):null;
+    if(decision&&Number.isFinite(decision.multiplier)){
+      if((decision.id==='supplier'||decision.id==='marketing')&&realized>0){
+        realized*=decision.multiplier;
+      }else if(decision.id==='maintenance'&&realized<0){
+        realized*=decision.multiplier;
+      }
     }
     if(!Number.isFinite(realized))return 0;
     if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}

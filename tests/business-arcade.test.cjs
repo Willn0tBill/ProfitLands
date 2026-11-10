@@ -146,14 +146,14 @@ test('successful arcade round grants one bounded solo earnings boost',()=>{
  assert.equal(api.start('rush',now),true);
  api.press('serve',undefined,now+1);
  assert.equal(api.complete(now+1000),true);
- assert.equal(h.state.arcade.boostUntil,now+61000);
+ assert.equal(h.state.arcade.boostUntil,now+91000);
  assert.equal(h.state.arcade.boostType,'rush');
  assert.equal(h.state.arcade.lastBoostAt,now+1000);
  api.stop();
  assert.equal(api.start('rush',now+2000),true);
  api.press('serve',undefined,now+2001);
  api.complete(now+3000);
- assert.equal(h.state.arcade.boostUntil,now+61000,'cannot stack or extend boost');
+ assert.equal(h.state.arcade.boostUntil,now+91000,'cannot stack or extend boost');
 });
 test('multiplayer arcade rounds never grant client-controlled boosts',()=>{
  const h=harness(),api=h.api;
@@ -175,9 +175,9 @@ test('each mini-game grants a distinct nonstacking power-up',()=>{
   if(id==='desk')api.press('choose',0,now+1);
   api.complete(now+1000);
   assert.equal(h.state.arcade.boostType,id);
-  assert.equal(h.state.arcade.boostUntil,now+1000+duration);
+  assert.equal(h.state.arcade.boostUntil,now+1000+Math.round(duration*1.5));
   assert.equal(api.activePowerup(now+2000).name,name);
-  assert.equal(api.activePowerup(now+1001+duration),null);
+  assert.equal(api.activePowerup(now+1001+Math.round(duration*1.5)),null);
  }
 });
 
@@ -190,4 +190,20 @@ test('high scores unlock advanced power-up variants',()=>{
  assert.equal(api.powerupFor('desk',4),'desk');
  assert.equal(api.powerupFor('desk',5),'desk_pro');
  assert.equal(Object.keys(api.POWERUPS).length,6);
+});
+
+test('Arcade boosts scale with wealth and lock their duration',()=>{
+ const h=harness(),api=h.api,now=Date.now();
+ assert.equal(api.wealthDuration(60000,9999),90000);
+ assert.equal(api.wealthDuration(60000,10000),75000);
+ assert.equal(api.wealthDuration(60000,100000),60000);
+ assert.equal(api.wealthDuration(60000,1000000),51000);
+ assert.equal(api.wealthDuration(60000,100000000),45000);
+ h.state.cash=100000000;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ api.start('rush',now);api.press('serve',undefined,now+1);api.complete(now+1000);
+ assert.equal(h.state.arcade.boostDuration,45000);
+ assert.equal(h.state.arcade.boostUntil,now+46000);
+ h.state.cash=100;
+ assert.equal(api.activePowerup(now+2000).remainingMs,44000);
 });
