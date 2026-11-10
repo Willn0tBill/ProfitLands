@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const path=require('node:path');
 const code=fs.readFileSync(path.join(__dirname,'../challenge-center.js'),'utf8');
 function harness(){
- const state={started:true,playType:'single',cash:1000,businesses:[{locations:[{workers:3},{workers:0}]}],news:[]};
+ const state={started:true,playType:'single',cash:1000,businesses:[{locationManagementVersion:1,locations:[{workers:3},{workers:0}]}],news:[]};
  const root={innerHTML:'',addEventListener(){}};
  let saved=0,gained=0;
  const window={state,ProfitLandsMoney:{gain:n=>{gained+=n;state.cash+=n},format:n=>'$'+n},save(){saved++},render(){},addEventListener(){}};
