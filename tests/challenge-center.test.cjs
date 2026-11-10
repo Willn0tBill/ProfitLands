@@ -91,3 +91,20 @@ test('wealth tiers scale duration and lock it at activation',()=>{
  h.state.cash=1000000000;
  assert.equal(h.api.decisionEffect(day+300000).remainingMs,150000);
 });
+
+test('balanced strategy decisions persist bounded business reputation without duplicate rewards',()=>{
+ const h=harness(),day=Date.parse('2026-11-11T12:00:00Z');
+ const event=h.api.dailyEvent(day),change=event.options[0].reputation||0;
+ h.state.businesses[0].reputation=99;
+ assert.equal(h.api.decide(0,day),true);
+ assert.equal(h.state.businesses[0].reputation,Math.min(100,99+change));
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.businesses[0].reputation,Math.min(100,99+change));
+});
+test('reputation choices cannot mutate businesses in multiplayer',()=>{
+ const h=harness(),day=Date.parse('2026-11-11T12:00:00Z');
+ h.state.businesses[0].reputation=50;
+ h.state.playType='multi';
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.businesses[0].reputation,50);
+});
