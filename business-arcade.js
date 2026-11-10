@@ -92,7 +92,9 @@ function awardBoost(id,now=Date.now(),score=0){
  const st=window.state,p=ensure(),type=powerupFor(id,score),effect=POWERUPS[type];
  if(!st||st.playType==='multi'||!p||!effect||!Array.isArray(st.businesses)||!st.businesses.length)return null;
  if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return null;
- const cash=Number(window.ProfitLandsMoney?.balance?.()??st.cash);
+ const ledger=window.ProfitLandsMoney,rawBalance=ledger?.balance?.();
+ // The canonical idle-game balance uses {m,e}; do not coerce it to NaN.
+ const cash=Number(ledger?.number?ledger.number(rawBalance):rawBalance??st.cash);
  p.boostDuration=wealthDuration(effect.duration,cash);
  p.boostType=type;
  p.boostUntil=now+p.boostDuration;
