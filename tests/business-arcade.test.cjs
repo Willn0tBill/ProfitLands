@@ -219,3 +219,17 @@ test('completed Arcade rounds update daily missions without waiting for a timer'
  assert.equal(api.complete(100002),false);
  assert.equal(h.missionRefreshes(),1,'duplicate completions cannot refresh or pay again');
 });
+
+test('power-up length uses the real large-number wallet wealth tier',()=>{
+ const h=harness(),money=fs.readFileSync(path.join(root,'huge-money.js'),'utf8');
+ h.state.cash=1000000;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ vm.runInNewContext(money,{window:h.window,Math,Number,console});
+ h.window.ProfitLandsMoney.attach(h.state);
+ const now=Date.now();
+ assert.equal(h.api.start('desk',now),true);
+ for(const answer of [0,1,0,0,2])assert.equal(h.api.press('choose',answer,now+20),true);
+ assert.equal(h.state.arcade.boostType,'desk_pro');
+ assert.equal(h.state.arcade.boostDuration,153000,'millionaire tier gets 85% of 180-second base');
+ assert.ok(h.api.activePowerup(now+1000)?.remainingMs>0);
+});
