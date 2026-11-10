@@ -3,6 +3,7 @@
   const CONFIG=window.PROFITLANDS_FIREBASE_CONFIG||{};
   const configured=CONFIG.apiKey && !String(CONFIG.apiKey).includes('PASTE_');
   let auth=null,db=null,currentUser=null,saveTimer=null,loadingCloud=false;
+  let cloudRevision=0,cloudConflict=false,cloudWriteQueue=Promise.resolve();
   // Authentication can hydrate after a new page loads. Expose the first
   // confirmed Auth result so World 1 does not mistake loading for sign-out.
   let resolveInitialAuth=null,initialAuthResolved=false;
@@ -61,19 +62,29 @@
       const lastSnap=await lastRef.get();
       const cloudDoc=lastSnap.exists?lastSnap.data():null;
       const cloudState=cloudDoc?.state||null;
+      cloudRevision=Number.isSafeInteger(cloudDoc?.revision)&&cloudDoc.revision>=0?cloudDoc.revision:0;
+      cloudConflict=false;
+      window.profitlandsCloudConflict=false;
       // Do not upload the last signed-in person's device save into a different account.
       const deviceOwner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
       const local=(deviceOwner&&deviceOwner!==currentUser.uid)?null:localSave();
+      const pendingConflict=localStorage.getItem('profitlands-cloud-conflict-owner')===currentUser.uid;
+      if(pendingConflict&&local){
+        // Keep the diverged device progress as a recovery copy, never overwrite it.
+        localStorage.setItem('profitlands-conflict-backup-'+currentUser.uid,JSON.stringify(local));
+      }
 
       let chosen=null;
       let source='none';
       if(local&&cloudState){
-        if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
+        if(pendingConflict){chosen=cloudState;source='cloud'}
+        else if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
         else{chosen=cloudState;source='cloud'}
       }else if(local){chosen=local;source='local'}
       else if(cloudState){chosen=cloudState;source='cloud'}
 
       if(chosen){
+        if(pendingConflict) localStorage.removeItem('profitlands-cloud-conflict-owner');
         const resumeState=JSON.parse(JSON.stringify(chosen));
         const preserveOnlineWorld=onlineWorldActive();
         state.actionCapacityVersion=0;
@@ -93,7 +104,17 @@
           const payload={state:resumeState,...saveLastGameMeta(resumeState),saveVersion:4};
           window.profitlandsLastCloudSave={...payload,hasSave:true,localOnly:!cloudState};
           if(!cloudState||savedAt(resumeState)>savedAt(cloudState)){
-            await lastRef.set(payload,{merge:true});
+            await db.runTransaction(async tx=>{
+              const latest=await tx.get(lastRef);
+              const latestData=latest.exists?latest.data():null;
+              const latestRev=Number.isSafeInteger(latestData?.revision)?latestData.revision:0;
+              if(latestRev!==cloudRevision||savedAt(latestData?.state)>savedAt(resumeState)){
+                cloudConflict=true;
+                throw Error('Cloud save changed on another device. Local progress was preserved; reload to reconcile.');
+              }
+              tx.set(lastRef,{...payload,revision:latestRev+1},{merge:true});
+            });
+            cloudRevision+=1;
           }
         }
       }else{
@@ -101,7 +122,7 @@
       }
     }catch(e){
       console.warn('Cloud load failed',e);
-      window.profitlandsLastCloudSave={hasSave:false,error:true};
+      window.profitlandsLastCloudSave={hasSave:false,error:true,conflict:cloudConflict};
     }
     loadingCloud=false;
     try{localStorage.setItem('profitlands-local-owner',currentUser.uid)}catch(e){}
@@ -118,31 +139,55 @@
     }catch(e){return ''}
   }
   async function cloudSave(force=false){
-    if(!currentUser||!db||loadingCloud)return false;
+    if(!currentUser||!db||loadingCloud||cloudConflict)return false;
+    const owner=currentUser.uid;
     const signature=cloudSignature();
-    if(!force && signature && signature===lastCloudSignature)return true;
-    try{
-      const snapshotState=JSON.parse(JSON.stringify(state));
-      const saveId=state.mode+'-'+state.playType;
-      const payload={
-        state:snapshotState,
-        mode:state.mode,
-        playType:state.playType,
-        day:state.day,
-        playerName:state.playerName||(window.profitlandsProfile?.playerName||''),
-        companyName:state.companyName||(window.profitlandsProfile?.companyName||''),
-        saveVersion:4,
-        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
-      };
-      await db.collection('users').doc(currentUser.uid).collection('saves').doc(saveId).set(payload,{merge:true});
-      await db.collection('users').doc(currentUser.uid).collection('saves').doc('last-game').set({...payload,started:snapshotState.started!==false},{merge:true});
-      window.profitlandsLastCloudSave={...payload,hasSave:true};
-      lastCloudSignature=signature;
-      return true;
-    }catch(e){
-      console.error('Cloud save failed:',e);
-      return false;
-    }
+    if(!force&&signature&&signature===lastCloudSignature)return true;
+    const snapshotState=JSON.parse(JSON.stringify(state));
+    if(snapshotState.playType==='multi')return false;
+    const saveId=snapshotState.mode+'-'+snapshotState.playType;
+    const payload={
+      state:snapshotState,mode:snapshotState.mode,playType:snapshotState.playType,
+      day:snapshotState.day,playerName:snapshotState.playerName||(window.profitlandsProfile?.playerName||''),
+      companyName:snapshotState.companyName||(window.profitlandsProfile?.companyName||''),
+      saveVersion:4,updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const task=async()=>{
+      if(cloudConflict||currentUser?.uid!==owner)return false;
+      const base=db.collection('users').doc(owner).collection('saves');
+      const lastRef=base.doc('last-game');
+      try{
+        // Read and write atomically: a second device must not silently replace this snapshot.
+        await db.runTransaction(async tx=>{
+          const existing=await tx.get(lastRef);
+          const current=existing.exists?existing.data():null;
+          const revision=Number.isSafeInteger(current?.revision)?current.revision:0;
+          if(revision!==cloudRevision){
+            cloudConflict=true;
+            throw Error('Cloud save conflict: another device has newer progress. Your device save remains intact. Reload to reconcile.');
+          }
+          tx.set(lastRef,{...payload,started:snapshotState.started!==false,revision:revision+1},{merge:true});
+        });
+        cloudRevision+=1;
+        // A mode-specific copy is supplementary; the guarded last-game is authoritative.
+        try{await base.doc(saveId).set(payload,{merge:true})}catch(e){console.warn('Supplementary cloud save failed',e)}
+        window.profitlandsLastCloudSave={...payload,hasSave:true};
+        lastCloudSignature=signature;
+        return true;
+      }catch(e){
+        console.error('Cloud save failed:',e);
+        if(cloudConflict){
+          window.profitlandsCloudConflict=true;
+          try{localStorage.setItem('profitlands-cloud-conflict-owner',owner)}catch(e){}
+          const note=document.querySelector('.local-note');
+          if(note)note.textContent='Cloud save conflict detected. Local progress is preserved. Reload to reconcile before playing on another device.';
+        }
+        return false;
+      }
+    };
+    const result=cloudWriteQueue.then(task,task);
+    cloudWriteQueue=result.catch(()=>false);
+    return result;
   }
   const cloudSaveLater=()=>{
     clearTimeout(saveTimer);
