@@ -48,6 +48,8 @@ test('mobile console supports safe area, touch targets, readable stats and respo
  assert.match(css,/max-width:430px/);
  assert.match(css,/max-width:350px/);
  assert.match(css,/max-height:500px/);
+ assert.match(css,/pointer:coarse/);
+ assert.match(script,/pointer: coarse/);
  assert.match(css,/min-height:49px/);
  assert.match(css,/min-height:53px/);
  assert.match(css,/font-size:max\(16px,1em\)!important/);
