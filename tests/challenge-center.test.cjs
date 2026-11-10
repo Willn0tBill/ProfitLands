@@ -14,7 +14,7 @@ function harness(){
  const window={state,ProfitLandsWorkspace:{active:()=> 'arcade'},ProfitLandsMoney:{gain:n=>{gained+=n;state.cash+=n},format:n=>'$'+n},save(){saved++},render(){},addEventListener(){}};
  const document={readyState:'loading',visibilityState:'visible',getElementById:id=>id==='challengeCenter'?root:id==='challengeSummaryStatus'?summary:id==='challengePowerupStatus'?statusBox:null,addEventListener(){}};
  vm.runInNewContext(code,{window,document,Date,Math,Number,console});
- return {api:window.ProfitLandsChallengeCenter,state,gained:()=>gained,saved:()=>saved,root,summary,title,detail};
+ return {api:window.ProfitLandsChallengeCenter,window,state,gained:()=>gained,saved:()=>saved,root,summary,title,detail};
 }
 test('daily contracts pay exactly once each and persist claims',()=>{
  const h=harness(),now=Date.parse('2026-11-10T12:00:00Z');
@@ -156,4 +156,19 @@ test('ten-second mission tick refreshes text without replacing clickable contrac
  h.api.tick(day+2500);
  assert.equal(h.root.innerHTML,afterClaim,'claim buttons stay attached between ticks');
  assert.equal(h.summary.textContent,'1 / 4 claimed');
+});
+
+test('real huge-money wallet permits priced business decisions and debits exact cost',()=>{
+ const h=harness(),realMoney=fs.readFileSync(path.join(__dirname,'../huge-money.js'),'utf8');
+ vm.runInNewContext(realMoney,{window:h.window,Math,Number,console});
+ const ledger=h.window.ProfitLandsMoney;
+ ledger.attach(h.state);
+ const day=Date.parse('2026-11-10T12:00:00Z');
+ const starting=ledger.number(ledger.balance());
+ const option=h.api.dailyEvent(day).options[0];
+ assert.ok(option.cost>0);
+ assert.equal(h.api.decide(0,day),true,'{m,e} wallet balance is not a NaN rejection');
+ assert.equal(h.state.challengeCenter.eventChoice,0);
+ assert.ok(Math.abs(ledger.number(ledger.balance())-(starting-option.cost))<0.001);
+ assert.equal(h.api.decide(0,day),false,'paid option cannot be replayed');
 });
