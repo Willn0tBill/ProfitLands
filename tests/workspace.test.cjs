@@ -272,6 +272,7 @@ test('saved multiplayer-only screen does not reopen in singleplayer',()=>{
 test('new game progressively unlocks features without blocking the starter shop',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
  x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
  x.window.state.businesses=[];
  api.syncMode();
  assert.equal(api.onboardingStage(),1);
@@ -312,4 +313,28 @@ test('returning players with completed tutorial keep all existing navigation',()
  api.syncMode();
  assert.equal(api.onboardingStage(),5);
  assert.equal(api.show('markets'),true);
+});
+
+test('fresh guided empire remains guided even if previous tutorial was completed',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.savedData.set('profitlands-tutorial-complete','1');
+ x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),1);
+ assert.equal(api.show('markets'),false);
+});
+test('legacy saves without an onboarding marker retain full access',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
+test('new empire creation marks onboarding while existing saves remain untouched',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.ok(app.includes("state.onboardingVersion=type==='multi'?0:1"));
+ assert.ok(source.includes('s.onboardingVersion!==1'));
 });
