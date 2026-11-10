@@ -390,6 +390,14 @@
       c.financialBalance=(Number(c.financialBalance)||0)+amount;
     });
     realized+=((state.property||0)*12)*multiplier;
+    // Solo arcade boost applies to positive operating profit only, never losses or multiplayer.
+    const boost=state.playType!=='multi'&&Number(state.arcade?.boostUntil)>now&&Number(state.arcade?.boostUntil)<=now+60000;
+    if(boost&&realized>0){
+      // Keep accounting and branch balances consistent with the bonus cash credited.
+      const bonus=realized;
+      realized+=bonus;
+      state.arcade.boostEarned=(Number(state.arcade.boostEarned)||0)+bonus;
+    }
     if(!Number.isFinite(realized))return 0;
     if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}
     else state.cash=Math.max(-1e15,(Number(state.cash)||0)+realized);
