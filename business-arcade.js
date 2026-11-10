@@ -101,7 +101,7 @@ function awardBoost(id,now=Date.now(),score=0){
 }
 function activePowerup(now=Date.now()){
  const st=window.state,p=st?.arcade;
- if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+(Number.isFinite(p.boostDuration)?p.boostDuration:POWERUPS[p.boostType].duration*1.5))return null;
+ if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+POWERUPS[p.boostType].duration*1.5)return null;
  return {...POWERUPS[p.boostType],duration:p.boostDuration||POWERUPS[p.boostType].duration,type:p.boostType,remainingMs:p.boostUntil-now};
 }
 function boostActive(now=Date.now()){return Boolean(activePowerup(now))}
