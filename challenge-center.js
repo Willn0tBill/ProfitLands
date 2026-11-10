@@ -22,14 +22,14 @@ function wealthDuration(cash){
 }
 const EVENTS=[
  {id:'supplier',title:'Supplier Negotiation',description:'Bulk supplies cost cash upfront but reduce operating pressure for a wealth-adjusted duration.',options:[
-  {name:'Negotiate bulk supplies',cost:80,multiplier:1.12,description:'Pay $80 now; positive operating income +12% for a wealth-adjusted duration.'},
+  {name:'Negotiate bulk supplies',cost:80,reputation:1,multiplier:1.12,description:'Pay $80 now; positive operating income +12% for a wealth-adjusted duration.'},
   {name:'Preserve liquidity',cost:0,multiplier:1,description:'No upfront cost or operating modifier.'}]},
  {id:'marketing',title:'Neighborhood Campaign',description:'Advertising can lift earnings, but it only pays off if your empire is profitable.',options:[
-  {name:'Run local campaign',cost:100,multiplier:1.18,description:'Pay $100 now; positive operating income +18% for 5 minutes.'},
+  {name:'Run local campaign',cost:100,reputation:3,multiplier:1.18,description:'Pay $100 now; positive operating income +18% for a wealth-adjusted duration.'},
   {name:'Keep marketing lean',cost:0,multiplier:1,description:'Save cash; no demand campaign bonus.'}]},
  {id:'maintenance',title:'Equipment Maintenance',description:'Maintenance protects your operating cash flow during difficult market conditions.',options:[
-  {name:'Service equipment',cost:60,multiplier:0.65,description:'Pay $60 now; operating losses reduced by 35% for 5 minutes.'},
-  {name:'Defer maintenance',cost:0,multiplier:1,description:'No upfront cost or loss protection.'}]}
+  {name:'Service equipment',cost:60,reputation:2,multiplier:0.65,description:'Pay $60 now; operating losses reduced by 35% for a wealth-adjusted duration.'},
+  {name:'Defer maintenance',cost:0,reputation:-1,multiplier:1,description:'No upfront cost or loss protection.'}]}
 ];
 function dailyIndex(now,length){return Math.floor(now/86400000)%length}
 function activeContracts(now){return [...CONTRACTS,ROTATING[dailyIndex(now,ROTATING.length)]]}
@@ -76,6 +76,13 @@ function decide(option,now=Date.now()){
  if(!Number.isFinite(cash)||cash<choice.cost)return false;
  // A single deterministic choice per day. No random chance, wagering or repeat farming.
  if(choice.cost){if(window.ProfitLandsMoney?.spend)window.ProfitLandsMoney.spend(choice.cost);else s.cash-=choice.cost}
+ // Reputation persists beyond the temporary boost, capped to avoid runaway compounding.
+ if(Number.isFinite(choice.reputation)&&choice.reputation!==0){
+  for(const business of s.businesses||[]){
+   const old=Number.isFinite(business.reputation)?business.reputation:50;
+   business.reputation=Math.max(0,Math.min(100,old+choice.reputation));
+  }
+ }
  c.eventChoice=option;
  c.eventId=e.id;
  c.eventDuration=wealthDuration(cash);
@@ -93,7 +100,7 @@ function render(now=Date.now()){
  root.innerHTML='<header class="pl-center-head"><div><small>YOUR DAILY MISSIONS</small><h3>Challenge Center</h3><p>Complete contracts, claim rewards, and master mini-games to earn temporary advantages.</p></div><span>'+data.claimed.length+' / '+data.contracts.length+' claimed today</span></header>'+
  '<div class="pl-center-status">'+(p?'<strong>⚡ '+p.name+'</strong><span>'+p.description+' · '+Math.ceil(p.remainingMs/1000)+'s remaining</span>':'<strong>No active power-up</strong><span>Complete a rewarding Arcade round to unlock one.</span>')+'</div>'+
  '<div class="pl-center-contracts">'+data.contracts.map(q=>'<article><div><strong>'+q.title+'</strong><p>'+q.description+'</p><small>'+q.value+' / '+q.target+' · Reward '+fmt(q.reward)+'</small></div><button type="button" data-center-claim="'+q.id+'" '+(q.claimed||q.value<q.target?'disabled':'')+'>'+(q.claimed?'Claimed':q.value>=q.target?'Claim reward':'In progress')+'</button></article>').join('')+'</div>'+
- '<section class="pl-center-decision"><strong>Today’s Business Decision · '+data.event.title+'</strong><p>'+data.event.description+'</p><div class="pl-center-options">'+data.event.options.map((o,i)=>'<button type="button" data-center-decision="'+i+'" '+(data.eventChoice!==null?'disabled':'')+'>'+o.name+' · '+o.description+'</button>').join('')+'</div>'+(data.eventChoice!==null?'<small>Decision completed. '+(data.decisionEffect?'Effect active · '+Math.ceil(data.decisionEffect.remainingMs/1000)+'s left.':'Effect expired or no modifier selected.')+'</small>':'<small>One decision per day. Duration scales with available cash at activation (3m 45s–7m 30s); upfront costs may not pay off.</small>')+'</section>'+ 
+ '<section class="pl-center-decision"><strong>Today’s Business Decision · '+data.event.title+'</strong><p>'+data.event.description+'</p><div class="pl-center-options">'+data.event.options.map((o,i)=>'<button type="button" data-center-decision="'+i+'" '+(data.eventChoice!==null?'disabled':'')+'>'+o.name+' · '+o.description+(o.reputation?' · Reputation '+(o.reputation>0?'+':'')+o.reputation:'')+'</button>').join('')+'</div>'+(data.eventChoice!==null?'<small>Decision completed. '+(data.decisionEffect?'Effect active · '+Math.ceil(data.decisionEffect.remainingMs/1000)+'s left.':'Effect expired or no modifier selected.')+'</small>':'<small>One decision per day. Duration scales with available cash at activation (3m 45s–7m 30s); upfront costs may not pay off.</small>')+'</section>'+ 
  '<p class="pl-center-history">Arcade record: '+Math.max(0,Number(history.played)||0)+' rounds · '+fmt(Math.max(0,Number(history.earned)||0))+' earned. Daily contracts reset at 00:00 UTC. Rewards are one-time per contract per day.</p>';
 }
 function init(){
