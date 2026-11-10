@@ -374,3 +374,28 @@ test('customer service advances slowly and does not modify unrelated game state'
  assert.equal(b.customerService.waiting,before.waiting);
  assert.equal(b.reputation,50);
 });
+
+test('customer representatives persist visits and loyalty without unbounded save growth',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'coffee',popularity:65,workers:2,satisfaction:70,reputation:50};
+ model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.some(c=>c.visits===1));
+ const first=b.customerPanel.map(c=>c.visits);
+ for(let i=0;i<150;i++)model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.some((c,i)=>c.visits>first[i]));
+ assert.ok(b.customerPanel.every(c=>c.loyalty>=0&&c.loyalty<=100));
+ assert.ok(b.customerPanel.every(c=>Object.keys(c).sort().join(',')==='id,loyalty,visits'));
+});
+test('customer panel migrates malformed old saves and does not reset existing loyalty',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'hotel',customerPanel:[{id:0,loyalty:10,visits:7},null,{id:2,loyalty:999,visits:-5}],customerCycle:0,satisfaction:70};
+ const old=model.seedPanel(b);
+ assert.equal(old.length,12);
+ assert.equal(old[0].visits,7);
+ assert.equal(old[2].loyalty,100);
+ model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.every(c=>Number.isFinite(c.loyalty)));
+});
