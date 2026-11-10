@@ -71,18 +71,33 @@ function rewardFor(id,score){
  if(id==='desk')return Math.min(90,s*18);
  return 0;
 }
-function awardBoost(now=Date.now()){
- const st=window.state,p=ensure();
- if(!st||st.playType==='multi'||!p||!Array.isArray(st.businesses)||!st.businesses.length)return false;
- if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return false;
- p.boostUntil=now+BOOST_MS;
+const POWERUPS=Object.freeze({
+ rush:{name:'Profit Surge',description:'2× positive operating earnings',duration:60000},
+ rush_pro:{name:'Flash Sale Frenzy',description:'3× positive operating earnings',duration:30000},
+ dispatch:{name:'Efficiency Drive',description:'1.5× positive operating earnings',duration:120000},
+ dispatch_pro:{name:'Logistics Mastery',description:'1.75× positive operating earnings',duration:90000},
+ desk:{name:'Safety Net',description:'Prevents negative operating cash flow',duration:90000},
+ desk_pro:{name:'Crisis Shield',description:'Prevents negative operating cash flow',duration:180000}
+});
+function powerupFor(id,score){
+ const perfect=(id==='rush'&&score>=20)||(id==='dispatch'&&score===8)||(id==='desk'&&score===5);
+ return perfect?id+'_pro':id;
+}
+function awardBoost(id,now=Date.now(),score=0){
+ const st=window.state,p=ensure(),type=powerupFor(id,score),effect=POWERUPS[type];
+ if(!st||st.playType==='multi'||!p||!effect||!Array.isArray(st.businesses)||!st.businesses.length)return null;
+ if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return null;
+ p.boostType=type;
+ p.boostUntil=now+effect.duration;
  p.lastBoostAt=now;
- return true;
+ return effect;
 }
-function boostActive(now=Date.now()){
- const p=window.state?.arcade;
- return window.state?.playType!=='multi'&&Number(p?.boostUntil)>now&&Number(p?.boostUntil)<=now+BOOST_MS;
+function activePowerup(now=Date.now()){
+ const st=window.state,p=st?.arcade;
+ if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+POWERUPS[p.boostType].duration)return null;
+ return {...POWERUPS[p.boostType],type:p.boostType,remainingMs:p.boostUntil-now};
 }
+function boostActive(now=Date.now()){return Boolean(activePowerup(now))}
 function complete(now=Date.now()){
  if(!session||session.finished)return false;
  session.finished=true;
@@ -101,10 +116,11 @@ function complete(now=Date.now()){
   p.earned+=award;
   p.rewards.push(now);
  }
- current.boost=canReward&&current.score>0&&awardBoost(now);
+ current.powerup=canReward&&current.score>0?awardBoost(current.id,now,current.score):null;
+ current.boost=Boolean(current.powerup);
  current.award=canReward?award:0;
  current.practice=!canReward;
- if(current.boost)window.toast?.('Arcade bonus: 2× positive operating earnings for 60 seconds!');
+ if(current.powerup)window.toast?.('Power-up unlocked: '+current.powerup.name+' — '+current.powerup.description+'!');
  view='result';
  window.save?.();
  window.render?.();
@@ -163,7 +179,8 @@ function tile(g){
 }
 function info(){
  const p=ensure(),left=available();
- const boost=boostActive()?'<div class="pl-arcade-boost" role="status">⚡ 2× positive operating earnings active · '+Math.ceil((ensure().boostUntil-Date.now())/1000)+'s left</div>':'';
+ const active=activePowerup();
+ const boost=active?'<div class="pl-arcade-boost" role="status">⚡ '+active.name+': '+active.description+' · '+Math.ceil(active.remainingMs/1000)+'s left</div>':'';
  return boost+'<div class="pl-arcade-meta"><div><span>REWARD PLAYS AVAILABLE</span><strong>'+left+' / '+LIMIT+'</strong></div>'+
  '<div><span>TOTAL ARCADE EARNINGS</span><strong>'+fmt(p?.earned||0)+'</strong></div>'+
  '<div><span>GAMES COMPLETED</span><strong>'+Number(p?.played||0)+'</strong></div></div>';
@@ -205,7 +222,7 @@ function resultScreen(){
  '<p>You finished with <b>'+s.score+'</b> point'+(s.score===1?'':'s')+'.</p>'+
  '<div class="pl-arcade-result-amount">'+(earned?'+'+fmt(earned):'Practice round')+'</div>'+
  '<p>'+(earned?'The cash reward was added to your existing empire and saved.':'No reward paid for this round (low score or reward limit reached).')+'</p>'+ 
- (s.boost?'<p class="pl-arcade-boost" role="status">⚡ Bonus unlocked: 2× positive operating income for 60 seconds!</p>':'')+
+ (s.powerup?'<p class="pl-arcade-boost" role="status">⚡ '+s.powerup.name+' unlocked: '+s.powerup.description+'!</p>':'')+
  '<div class="pl-arcade-result-buttons"><button type="button" data-arcade-back>Return to arcade</button>'+
  '<button type="button" data-arcade-retry="'+s.id+'">Play again</button></div></section>';
 }
@@ -225,7 +242,7 @@ function maybeInvite(now=Date.now()){
  if(window.ProfitLandsWorkspace?.active?.()==='arcade'||available(now)===0)return false;
  if(Number(p.lastInviteAt)>now-5*60*1000)return false;
  p.lastInviteAt=now;
- window.toast?.('Arcade challenge available! Visit Business Arcade for a chance to earn a 60-second 2× income boost.');
+ window.toast?.('Arcade challenge available! Visit Business Arcade for a chance to unlock a temporary business power-up.');
  return true;
 }
 function init(){
@@ -257,6 +274,6 @@ function init(){
  // Optional invitation; never interrupts the current action or opens a modal.
  window.setInterval?.(()=>maybeInvite(),90000);
 }
-window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,maybeInvite,getSession:()=>session,GAMES};
+window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,powerupFor,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
