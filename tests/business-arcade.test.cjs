@@ -180,3 +180,14 @@ test('each mini-game grants a distinct nonstacking power-up',()=>{
   assert.equal(api.activePowerup(now+1001+duration),null);
  }
 });
+
+test('high scores unlock advanced power-up variants',()=>{
+ const h=harness(),api=h.api;
+ assert.equal(api.powerupFor('rush',19),'rush');
+ assert.equal(api.powerupFor('rush',20),'rush_pro');
+ assert.equal(api.powerupFor('dispatch',7),'dispatch');
+ assert.equal(api.powerupFor('dispatch',8),'dispatch_pro');
+ assert.equal(api.powerupFor('desk',4),'desk');
+ assert.equal(api.powerupFor('desk',5),'desk_pro');
+ assert.equal(Object.keys(api.POWERUPS).length,6);
+});
