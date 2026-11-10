@@ -60,3 +60,21 @@ test('business choice cannot spend more cash than available',()=>{
  assert.equal(h.api.decide(0,day),false);
  assert.equal(h.api.decide(1,day),true);
 });
+
+test('business decisions charge upfront without guaranteed cash payouts',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ const startingCash=h.state.cash;
+ assert.equal(h.api.decide(0,day),true);
+ const event=h.api.dailyEvent(day),choice=event.options[0];
+ assert.equal(h.state.cash,startingCash-choice.cost);
+ assert.equal(h.gained(),0);
+ assert.equal(h.api.decisionEffect(day+1000).id,event.id);
+ assert.equal(h.api.decisionEffect(day+300001),null);
+});
+test('daily decision is disabled in multiplayer and after expiry',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ assert.equal(h.api.decide(0,day),true);
+ h.state.playType='multi';
+ assert.equal(h.api.decisionEffect(day+1000),null);
+ assert.equal(h.api.decide(1,day),false);
+});
