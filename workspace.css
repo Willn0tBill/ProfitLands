@@ -476,3 +476,13 @@ body.pl-workspace-enabled:has(#gameScreen.active) #floatingHud{display:none!impo
  #gameScreen .pl-game-step{transition:none!important}
  #gameScreen .pl-game-step:hover{transform:none!important}
 }
+
+/* Keep long group labels legible rather than widening a narrow desktop sidebar. */
+@media(min-width:761px){
+ #gameScreen .pl-workspace-disclosure{width:100%;max-width:100%;box-sizing:border-box}
+ #gameScreen .pl-workspace-disclosure-summary{
+  min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.3;
+  letter-spacing:0;font-size:9px;
+ }
+ #gameScreen .pl-workspace-disclosure-summary::after{flex:0 0 auto}
+}
