@@ -22,7 +22,7 @@ const VIEWS=[
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
-let guideTitle=null,guideText=null,guideButton=null,advancedDisclosure=null,socialHeading=null;
+let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,questSteps=[],advancedDisclosure=null,socialHeading=null;
 const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
 const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
@@ -47,12 +47,36 @@ function viewFromHash(hash){
  const panel=target.closest?.('#gameScreen .panel');
  return panel?.id?viewForPanel(panel.id):null;
 }
+function starterProgress(s){
+ const businesses=Array.isArray(s?.businesses)?s.businesses:[];
+ const locations=businesses.flatMap(b=>Array.isArray(b.locations)?b.locations:[]);
+ const owned=businesses.length>0;
+ const improved=locations.some(l=>Number(l.level)>1||Number(l.workers)>0)||businesses.some(b=>Number(b.level)>1||Number(b.workers)>0);
+ const expanded=businesses.length>1||locations.length>1;
+ const goals=[
+  {done:owned,title:'Open your first shop',detail:'Buy a business to unlock your first income stream.',action:'Open marketplace',view:'businesses'},
+  {done:improved,title:'Make your shop stronger',detail:'Hire staff or upgrade a location to grow your earnings.',action:'Manage my shop',view:'businesses'},
+  {done:expanded,title:'Build a small chain',detail:'Open another business or branch and watch your city grow.',action:'Expand empire',view:'businesses'}
+ ];
+ return {goals,completed:goals.filter(g=>g.done).length,next:goals.find(g=>!g.done)||{title:'Take on a new challenge',detail:'Try the Arcade, unlock achievements, and grow your empire.',action:'Play mini-games',view:'arcade'}};
+}
 function updateGuide(){
- if(!guideTitle)return;
- const count=window.state?.businesses?.length||0;
- guideTitle.textContent=count?'Your empire is growing!':'Your first mission: open a business';
- guideText.textContent=count?'You own '+count+' business'+(count===1?'':'es')+'. Upgrade your shops, explore districts, or play a mini-game.':'Start small. Open a shop, make your first earnings, then upgrade it. You can explore the other menus later.';
- guideButton.textContent=count?'Manage my shops':'Open my first shop';
+ if(!guideTitle||!window.state)return;
+ const progress=starterProgress(window.state),next=progress.next;
+ guideTitle.textContent=progress.completed===3?'Starter challenges complete!':next.title;
+ guideText.textContent=next.detail;
+ guideButton.textContent=next.action;
+ guideButton.dataset.destination=next.view;
+ if(guideProgress){
+  guideProgress.textContent=progress.completed+' of 3 starter challenges complete';
+  guideProgress.setAttribute('aria-label',guideProgress.textContent);
+ }
+ questSteps.forEach((button,i)=>{
+  const done=progress.goals[i].done;
+  button.classList.toggle('pl-quest-done',done);
+  button.setAttribute('aria-label',(done?'Completed: ':'Next: ')+progress.goals[i].title);
+  button.querySelector('.pl-game-step-icon').textContent=done?'✓':['🏪','⬆️','🏙️'][i];
+ });
 }
 function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
@@ -163,27 +187,29 @@ function makeViews(game){
    introCopy.appendChild(element('span','pl-workspace-eyebrow','🎯 YOUR NEXT QUEST'));
    guideTitle=element('h3','','Your first mission: open a business');
    guideText=element('p','','Start small. Open a shop, make your first earnings, then upgrade it.');
-   introCopy.append(guideTitle,guideText);
+   guideProgress=element('span','pl-quest-progress','0 of 3 starter challenges complete');
+   introCopy.append(guideTitle,guideText,guideProgress);
    welcome.appendChild(introCopy);
    guideButton=element('button','pl-workspace-intro-button','Open my first shop');
    guideButton.type='button';
    guideButton.addEventListener('click',()=>{
-     const hasShop=Boolean(window.state?.businesses?.length);
-     show('businesses');
-     if(!hasShop)$('openBusinessShop')?.click();
+     const next=starterProgress(window.state).next;
+     show(next.view);
+     if(next.view==='businesses'&&!window.state?.businesses?.length)$('openBusinessShop')?.click();
    });
    welcome.appendChild(guideButton);region.appendChild(welcome);
    const steps=element('div','pl-game-steps');
    for(const [icon,title,description,action] of [
      ['🏪','1. Buy a shop','Your first business starts earning cash.','businesses'],
      ['⬆️','2. Upgrade it','Add staff and improve locations.','businesses'],
-     ['🎮','3. Have fun','Try mini-games and unlock trophies.','arcade']
+     ['🏙️','3. Expand your empire','Open another shop or branch to grow your city.','businesses']
    ]){
      const button=element('button','pl-game-step');button.type='button';
      button.append(element('span','pl-game-step-icon',icon));
      const copy=element('span','pl-game-step-copy');
      copy.append(element('strong','',title),element('small','',description));button.appendChild(copy);
      button.addEventListener('click',()=>{show(action);if(action==='businesses'&&title.startsWith('1.'))$('openBusinessShop')?.click()});
+     questSteps.push(button);
      steps.appendChild(button);
    }
    region.appendChild(steps);
