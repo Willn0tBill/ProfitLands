@@ -120,7 +120,8 @@ function customerSummary(b){
  if(!m)return '';
  return '<div class="mini-stat"><small>CUSTOMERS</small><b>'+m.served+'/'+m.arrivals+'</b></div>'+
  '<div class="mini-stat"><small>WAITING</small><b>'+m.waiting+'</b></div>'+
- '<div class="mini-stat"><small>SERVICE</small><b>'+m.quality+'/100</b></div>';
+ '<div class="mini-stat"><small>SERVICE</small><b>'+m.quality+'/100</b></div>'+ 
+ '<div class="mini-stat"><small>LOYALTY</small><b>'+Math.round(Number.isFinite(b.customerService?.loyalty)?b.customerService.loyalty:65)+'/100</b></div>';
 }
 function renderBusinesses(){
 if(!state.businesses.length){$('businessList').innerHTML='<div class="empty">No businesses yet. Buy one to start building your empire.</div>';return}
