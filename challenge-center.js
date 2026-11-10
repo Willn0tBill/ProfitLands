@@ -89,7 +89,7 @@ function decide(option,now=Date.now()){
  c.eventUntil=now+c.eventDuration;
  if(!Array.isArray(s.news))s.news=[];
  s.news.push('BUSINESS DECISION — '+e.title+': '+choice.name+'. '+choice.description+' Duration: '+Math.round(c.eventDuration/1000)+' seconds.');
- window.save?.();window.render?.();render();
+ window.save?.();window.render?.();render(now);
  return true;
 }
 function render(now=Date.now()){
