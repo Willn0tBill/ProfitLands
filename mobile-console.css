@@ -224,3 +224,26 @@
  body.pl-mobile-console-playing .pl-mobile-dock *,
  body.pl-mobile-console-playing .pl-mobile-drawer *{animation:none!important;transition:none!important}
 }
+
+/* Multiplayer's floating World Chat must never intercept the Clans/World tabs. */
+@media(max-width:760px), (max-height:500px) and (max-width:1024px) and (pointer:coarse){
+ body.pl-mobile-console-playing.pl-online-world .pl-world-chat-dock{
+  bottom:calc(84px + env(safe-area-inset-bottom,0px))!important;
+  right:max(9px,env(safe-area-inset-right,0px))!important;
+  z-index:490!important;
+ }
+ body.pl-mobile-console-playing.pl-online-world .pl-world-chat-panel{
+  max-height:min(390px,calc(100dvh - 195px))!important;
+ }
+ body.pl-mobile-console-playing:has(.modal:not(.hidden)) .pl-world-chat-dock{
+  display:none!important;
+ }
+}
+@media(max-height:500px) and (max-width:1024px) and (pointer:coarse){
+ body.pl-mobile-console-playing.pl-online-world .pl-world-chat-dock{
+  bottom:calc(61px + env(safe-area-inset-bottom,0px))!important;
+ }
+ body.pl-mobile-console-playing.pl-online-world .pl-world-chat-panel{
+  max-height:calc(100dvh - 145px)!important;
+ }
+}
