@@ -73,9 +73,10 @@ function updateGuide(){
  }
  questSteps.forEach((button,i)=>{
   const done=progress.goals[i].done;
-  button.classList.toggle('pl-quest-done',done);
-  button.setAttribute('aria-label',(done?'Completed: ':'Next: ')+progress.goals[i].title);
-  button.querySelector('.pl-game-step-icon').textContent=done?'✓':['🏪','⬆️','🏙️'][i];
+  button.classList?.toggle?.('pl-quest-done',done);
+  button.setAttribute?.('aria-label',(done?'Completed: ':'Next: ')+progress.goals[i].title);
+  const icon=button.querySelector?.('.pl-game-step-icon');
+  if(icon)icon.textContent=done?'✓':['🏪','⬆️','🏙️'][i];
  });
 }
 function save(){
