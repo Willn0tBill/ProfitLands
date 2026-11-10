@@ -68,16 +68,23 @@
       // Do not upload the last signed-in person's device save into a different account.
       const deviceOwner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
       const local=(deviceOwner&&deviceOwner!==currentUser.uid)?null:localSave();
+      const pendingConflict=localStorage.getItem('profitlands-cloud-conflict-owner')===currentUser.uid;
+      if(pendingConflict&&local){
+        // Keep the diverged device progress as a recovery copy, never overwrite it.
+        localStorage.setItem('profitlands-conflict-backup-'+currentUser.uid,JSON.stringify(local));
+      }
 
       let chosen=null;
       let source='none';
       if(local&&cloudState){
-        if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
+        if(pendingConflict){chosen=cloudState;source='cloud'}
+        else if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
         else{chosen=cloudState;source='cloud'}
       }else if(local){chosen=local;source='local'}
       else if(cloudState){chosen=cloudState;source='cloud'}
 
       if(chosen){
+        if(pendingConflict) localStorage.removeItem('profitlands-cloud-conflict-owner');
         const resumeState=JSON.parse(JSON.stringify(chosen));
         const preserveOnlineWorld=onlineWorldActive();
         state.actionCapacityVersion=0;
@@ -171,6 +178,7 @@
         console.error('Cloud save failed:',e);
         if(cloudConflict){
           window.profitlandsCloudConflict=true;
+          try{localStorage.setItem('profitlands-cloud-conflict-owner',owner)}catch(e){}
           const note=document.querySelector('.local-note');
           if(note)note.textContent='Cloud save conflict detected. Local progress is preserved. Reload to reconcile before playing on another device.';
         }
