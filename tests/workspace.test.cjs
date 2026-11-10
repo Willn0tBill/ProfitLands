@@ -339,3 +339,17 @@ test('new empire creation marks onboarding while existing saves remain untouched
  assert.ok(app.includes("state.onboardingVersion=type==='multi'?0:1"));
  assert.ok(source.includes('s.onboardingVersion!==1'));
 });
+
+test('customer satisfaction updates gradually and remains single-player only',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.ok(app.includes("if(state.playType==='multi')return;"));
+ assert.ok(app.includes('Math.max(-3,Math.min(3,target-current))'));
+ assert.ok(app.includes('updateCustomerSatisfaction();const profit=businessUpdate()'));
+ assert.ok(app.includes('satisfaction:70,reputation:50'));
+ assert.ok(app.includes('<small>SATISFACTION</small>'));
+});
+test('customer satisfaction demand is bounded and excludes multiplayer',()=>{
+ const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+ assert.ok(economy.includes("const satisfactionDemand=state.playType==='multi'?1:1+(satisfaction-70)*.0015"));
+ assert.ok(economy.includes('lvl*demand*reputationDemand*satisfactionDemand'));
+});
