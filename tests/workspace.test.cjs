@@ -268,3 +268,48 @@ test('saved multiplayer-only screen does not reopen in singleplayer',()=>{
  const m=setup('world','multi');
  assert.equal(m.window.ProfitLandsWorkspace.active(),'world');
 });
+
+test('new game progressively unlocks features without blocking the starter shop',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),1);
+ assert.equal(api.show('businesses'),true);
+ assert.equal(api.show('markets'),false);
+ assert.equal(api.show('arcade'),false);
+ x.window.state.businesses=[{type:'cafe',level:1,workers:0,locations:[]}];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),2);
+ assert.equal(api.show('operations'),true);
+ assert.equal(api.show('markets'),false);
+ x.window.state.businesses[0].workers=1;
+ api.syncMode();
+ assert.equal(api.onboardingStage(),3);
+ assert.equal(api.show('arcade'),true);
+ x.window.state.businesses.push({type:'shop',level:1});
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
+test('guided onboarding can be skipped and never limits multiplayer access',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.show('markets'),false);
+ api.skipGuidance();
+ assert.equal(api.show('markets'),true);
+ x.window.state.playType='multi';
+ api.syncMode();
+ assert.equal(api.show('world'),true);
+});
+test('returning players with completed tutorial keep all existing navigation',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ x.savedData.set('profitlands-tutorial-complete','1');
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
