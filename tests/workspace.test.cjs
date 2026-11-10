@@ -268,3 +268,70 @@ test('saved multiplayer-only screen does not reopen in singleplayer',()=>{
  const m=setup('world','multi');
  assert.equal(m.window.ProfitLandsWorkspace.active(),'world');
 });
+
+test('streamlined navigation keeps core actions visible and advanced destinations discoverable',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ const nav=x.game.find(n=>n.classList.contains('pl-workspace-nav'));
+ const items=nav.findAll(n=>n.dataset.workspaceView);
+ assert.equal(items.length,12,'all existing workspaces still have navigation');
+ for(const id of ['overview','businesses','operations','arcade']){
+  const button=items.find(n=>n.dataset.workspaceView===id);
+  assert.equal(button.parent,nav,id+' is one-tap accessible');
+ }
+ const grow=nav.find(n=>n.classList.contains('pl-workspace-grow-nav'));
+ const tools=nav.find(n=>n.classList.contains('pl-workspace-advanced-nav'));
+ assert.ok(grow&&tools,'nonessential features are grouped rather than removed');
+ assert.equal(grow.open,false);
+ assert.equal(tools.open,false);
+ for(const id of ['corporate','advances','trophies'])assert.equal(items.find(n=>n.dataset.workspaceView===id).parent,grow);
+ for(const id of ['markets','analytics','finance'])assert.equal(items.find(n=>n.dataset.workspaceView===id).parent,tools);
+ assert.equal(api.show('finance'),true);
+ assert.equal(tools.open,true,'deep links reveal their parent group');
+ assert.equal(api.show('trophies'),true);
+ assert.equal(grow.open,true);
+});
+
+test('sidebar next move follows actual starter progress and never changes the economy',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ const next=x.game.find(n=>n.classList.contains('pl-workspace-next-action'));
+ const card=x.game.find(n=>n.classList.contains('pl-workspace-next-card'));
+ const headline=x.game.find(n=>n.classList.contains('pl-workspace-next-title'));
+ const progress=x.game.find(n=>n.classList.contains('pl-workspace-next-meta'));
+ const bar=x.game.find(n=>n.classList.contains('pl-quest-meter'));
+ assert.ok(next&&headline&&bar);
+ assert.equal(bar.getAttribute('aria-valuenow'),'0');
+ assert.equal(card.hidden,true,'Overview does not duplicate the full mission card');
+ api.show('operations');
+ assert.equal(card.hidden,false,'other screens retain contextual guidance');
+ next.click();
+ assert.equal(api.active(),'businesses');
+ assert.equal(x.savedData.has('profitlands-v2'),false,'navigation never changes player cash or saves');
+ x.window.state.businesses=[{type:'coffee',level:1,workers:0,locations:[{level:1,workers:0}]}];
+ api.show('overview');
+ assert.equal(headline.textContent,'Make your shop stronger');
+ assert.equal(progress.textContent,'1 / 3 goals complete');
+ assert.equal(bar.getAttribute('aria-valuenow'),'1');
+ x.window.state.businesses[0].locations[0].level=2;
+ api.show('operations');
+ assert.equal(headline.textContent,'Build a small chain');
+ assert.equal(bar.getAttribute('aria-valuenow'),'2');
+ x.window.state.businesses.push({type:'restaurant',locations:[{level:1,workers:0}]});
+ api.show('overview');
+ assert.equal(headline.textContent,'Take on a new challenge');
+ assert.equal(bar.getAttribute('aria-valuenow'),'3');
+ assert.ok(bar.getAttribute('style').includes('100%'));
+ api.show('operations');
+ next.click();
+ assert.equal(api.active(),'arcade','completed players get a fun next action');
+});
+
+test('redesign preserves accessibility and narrow layout design contracts',()=>{
+ const css=fs.readFileSync(path.join(root,'workspace.css'),'utf8');
+ assert.match(css,/pl-workspace-disclosure-summary:focus-visible/);
+ assert.match(css,/pl-quest-meter-fill/);
+ assert.match(css,/@media\(max-width:760px\)/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ const js=fs.readFileSync(path.join(root,'workspace.js'),'utf8');
+ assert.ok(js.includes("guideMeter.setAttribute('role','progressbar')"));
+ assert.ok(js.includes("sidebarNextButton.addEventListener('click'"));
+});

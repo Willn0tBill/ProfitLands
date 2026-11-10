@@ -22,7 +22,8 @@ const VIEWS=[
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
-let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,questSteps=[],advancedDisclosure=null,socialHeading=null;
+let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,guideMeter=null,questSteps=[],advancedDisclosure=null,growDisclosure=null;
+let sidebarNextCard=null,sidebarNextTitle=null,sidebarNextMeta=null,sidebarNextButton=null;
 const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
 const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
@@ -61,9 +62,16 @@ function starterProgress(s){
  return {goals,completed:goals.filter(g=>g.done).length,next:goals.find(g=>!g.done)||{title:'Take on a new challenge',detail:'Try the Arcade, unlock achievements, and grow your empire.',action:'Play mini-games',view:'arcade'}};
 }
 function updateGuide(){
- if(!guideTitle||!window.state)return;
+ if(!window.state)return;
  const progress=starterProgress(window.state),next=progress.next;
- guideTitle.textContent=progress.completed===3?'Starter challenges complete!':next.title;
+ if(sidebarNextTitle)sidebarNextTitle.textContent=next.title;
+ if(sidebarNextMeta)sidebarNextMeta.textContent=progress.completed+' / 3 goals complete';
+ if(sidebarNextButton){
+  sidebarNextButton.textContent=next.action+' →';
+  sidebarNextButton.dataset.destination=next.view;
+ }
+ if(!guideTitle)return;
+ guideTitle.textContent=progress.completed===3?'First chapter complete!':next.title;
  guideText.textContent=next.detail;
  guideButton.textContent=next.action;
  guideButton.dataset.destination=next.view;
@@ -71,14 +79,21 @@ function updateGuide(){
   guideProgress.textContent=progress.completed+' of 3 starter challenges complete';
   guideProgress.setAttribute('aria-label',guideProgress.textContent);
  }
+ if(guideMeter){
+  guideMeter.setAttribute('aria-valuenow',String(progress.completed));
+  guideMeter.setAttribute('style','--pl-quest-progress:'+Math.round(progress.completed/3*100)+'%');
+ }
  questSteps.forEach((button,i)=>{
   const done=progress.goals[i].done;
+  const current=!done&&progress.goals.findIndex(g=>!g.done)===i;
   button.classList?.toggle?.('pl-quest-done',done);
-  button.setAttribute?.('aria-label',(done?'Completed: ':'Next: ')+progress.goals[i].title);
+  button.classList?.toggle?.('pl-quest-current',current);
+  button.setAttribute?.('aria-label',(done?'Completed: ':current?'Next mission: ':'Upcoming: ')+progress.goals[i].title);
   const icon=button.querySelector?.('.pl-game-step-icon');
   if(icon)icon.textContent=done?'✓':['🏪','⬆️','🏙️'][i];
  });
 }
+
 function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
 }
@@ -87,7 +102,10 @@ function show(id,{focus=false,remember=true}={}){
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
+ // Overview already contains the full mission card; avoid duplicate guidance in the sidebar.
+ if(sidebarNextCard)sidebarNextCard.hidden=id==='overview';
  if(view.group==='ADVANCED'&&advancedDisclosure)advancedDisclosure.open=true;
+ if(view.group==='GROW'&&growDisclosure)growDisclosure.open=true;
  for(const [key,section]of viewMap){
   const active=key===id;
   section.hidden=!active;
@@ -115,7 +133,8 @@ function show(id,{focus=false,remember=true}={}){
  if(id==='businesses')window.renderBusinesses?.();
  if(id==='finance')window.renderFinance?.();
  if(id==='markets')window.renderHoldings?.();
- if(id==='overview'){updateGuide();window.ProfitLandsExecutive?.render?.()}
+ if(!isMultiplayer())updateGuide();
+ if(id==='overview')window.ProfitLandsExecutive?.render?.()
  if(id==='analytics')window.ProfitLandsGrowth?.render?.();
  if(id==='operations')window.ProfitLandsEmpire?.render?.();
  if(id==='arcade')window.ProfitLandsArcade?.render?.();
@@ -128,44 +147,67 @@ function show(id,{focus=false,remember=true}={}){
 }
 function makeNav(){
  nav=element('nav','pl-workspace-nav');nav.setAttribute('aria-label','Tycoon game menu');
- const title=element('div','pl-workspace-nav-title','🎮 GAME MENU');nav.appendChild(title);
- let lastGroup='',groupTarget=nav;
- for(const view of VIEWS){
-  if(view.group!==lastGroup){
-   lastGroup=view.group;groupTarget=nav;
-   if(view.group==='ADVANCED'){
-     advancedDisclosure=element('details','pl-workspace-advanced-nav');
-     advancedDisclosure.open=VIEWS.find(v=>v.id===current)?.group==='ADVANCED';
-     advancedDisclosure.appendChild(element('summary','','⚙ MORE TOOLS'));
-     nav.appendChild(advancedDisclosure);
-     groupTarget=advancedDisclosure;
-   }else{
-     const groupHeading=element('div','pl-workspace-nav-group',lastGroup);
-     if(view.group==='SOCIAL')socialHeading=groupHeading;
-     groupHeading.dataset.workspaceGroup=view.group;
-     groupHeadings.set(view.group,groupHeading);
-     nav.appendChild(groupHeading);
-   }
+ const title=element('div','pl-workspace-nav-title','PROFITLANDS / PLAY');nav.appendChild(title);
+ const icons={overview:'⌂',businesses:'🏪',operations:'⚙',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️',world:'🌎'};
+ const sections=[
+  {group:'PLAY',label:'YOUR EMPIRE',ids:['overview','businesses','operations']},
+  {group:'FUN',label:'TAKE A BREAK',ids:['arcade']},
+  {group:'GROW',label:'✦ GROW & COLLECT',ids:['corporate','advances','trophies'],collapsed:true},
+  {group:'ADVANCED',label:'⚙ STRATEGY & FINANCE',ids:['markets','analytics','finance'],collapsed:true},
+  {group:'SOCIAL',label:'MULTIPLAYER',ids:['world','clans']}
+ ];
+ for(const section of sections){
+  let target=nav;
+  if(section.collapsed){
+   const details=element('details','pl-workspace-disclosure '+(section.group==='GROW'?'pl-workspace-grow-nav':'pl-workspace-advanced-nav'));
+   details.dataset.workspaceGroup=section.group;
+   details.open=section.ids.includes(current);
+   const summary=element('summary','pl-workspace-disclosure-summary',section.label);
+   details.appendChild(summary);
+   nav.appendChild(details);
+   target=details;
+   if(section.group==='GROW')growDisclosure=details;
+   if(section.group==='ADVANCED')advancedDisclosure=details;
+  }else{
+   const groupHeading=element('div','pl-workspace-nav-group',section.label);
+   groupHeading.dataset.workspaceGroup=section.group;
+   groupHeadings.set(section.group,groupHeading);
+   nav.appendChild(groupHeading);
   }
-  const btn=element('button','pl-workspace-nav-item');
-  btn.type='button';btn.dataset.workspaceView=view.id;
-   if(view.id==='clans'||view.id==='world')btn.hidden=!isMultiplayer();
-  btn.setAttribute('aria-label','Open '+view.name);
-  const icons={overview:'🏠',businesses:'🏪',operations:'🚚',markets:'📈',analytics:'📊',finance:'🏦',corporate:'🏙️',arcade:'🕹️',advances:'⚡',trophies:'🏆',clans:'🛡️',world:'🌎'};
-  const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
-  const name=element('span','pl-workspace-nav-label',view.name);
-  const indicator=element('span','pl-workspace-nav-indicator','›');
-  btn.append(index,name,indicator);
-  btn.addEventListener('click',()=>show(view.id,{focus:false}));
-  groupTarget.appendChild(btn);
-  buttonMap.set(view.id,btn);
+  for(const id of section.ids){
+   const view=VIEWS.find(v=>v.id===id);
+   if(!view)continue;
+   const btn=element('button','pl-workspace-nav-item'+(id==='arcade'?' pl-workspace-nav-play':''));
+   btn.type='button';btn.dataset.workspaceView=view.id;
+   btn.hidden=!available(view.id);
+   btn.setAttribute('aria-label','Open '+view.name);
+   const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
+   const name=element('span','pl-workspace-nav-label',view.name);
+   const indicator=element('span','pl-workspace-nav-indicator','›');
+   btn.append(index,name,indicator);
+   btn.addEventListener('click',()=>show(view.id,{focus:false}));
+   target.appendChild(btn);
+   buttonMap.set(view.id,btn);
+  }
  }
  const actions=element('div','pl-workspace-sidebar-actions');
- const toolsHeading=element('span','pl-workspace-nav-group','QUICK PLAY');
- actions.appendChild(toolsHeading);
+ const card=element('div','pl-workspace-next-card');
+ sidebarNextCard=card;
+ card.appendChild(element('span','pl-workspace-next-eyebrow','✦ NEXT MOVE'));
+ sidebarNextTitle=element('strong','pl-workspace-next-title','Open your first shop');
+ sidebarNextMeta=element('span','pl-workspace-next-meta','0 / 3 goals complete');
+ sidebarNextButton=element('button','pl-workspace-next-action','Open marketplace →');
+ sidebarNextButton.type='button';
+ sidebarNextButton.addEventListener('click',()=>{
+  const next=starterProgress(window.state).next;
+  if(!show(next.view))return;
+  if(next.view==='businesses'&&!window.state?.businesses?.length)$('openBusinessShop')?.click();
+ });
+ card.append(sidebarNextTitle,sidebarNextMeta,sidebarNextButton);
+ actions.appendChild(card);
  const buy=element('button','pl-workspace-quick-button','+ New business');
  buy.type='button';buy.addEventListener('click',()=>{
-  show('businesses');$('openBusinessShop')?.click();
+  if(show('businesses'))$('openBusinessShop')?.click();
  });
  actions.appendChild(buy);
  toolbar=actions;
@@ -189,7 +231,13 @@ function makeViews(game){
    guideTitle=element('h3','','Your first mission: open a business');
    guideText=element('p','','Start small. Open a shop, make your first earnings, then upgrade it.');
    guideProgress=element('span','pl-quest-progress','0 of 3 starter challenges complete');
-   introCopy.append(guideTitle,guideText,guideProgress);
+   guideMeter=element('div','pl-quest-meter');
+   guideMeter.setAttribute('role','progressbar');
+   guideMeter.setAttribute('aria-label','Starter mission progress');
+   guideMeter.setAttribute('aria-valuemin','0');
+   guideMeter.setAttribute('aria-valuemax','3');
+   guideMeter.appendChild(element('span','pl-quest-meter-fill'));
+   introCopy.append(guideTitle,guideText,guideProgress,guideMeter);
    welcome.appendChild(introCopy);
    guideButton=element('button','pl-workspace-intro-button','Open my first shop');
    guideButton.type='button';
@@ -239,6 +287,7 @@ function syncMode(){
  for(const [id,button] of buttonMap)button.hidden=!available(id);
  for(const [group,heading] of groupHeadings)heading.hidden=active?group!=='SOCIAL':group==='SOCIAL';
  if(advancedDisclosure)advancedDisclosure.hidden=active;
+ if(growDisclosure)growDisclosure.hidden=active;
  if(toolbar)toolbar.hidden=active;
  document.body.classList.toggle('pl-online-world',active);
  if(initialized&&!available(current))show(active?'world':'overview',{remember:false});

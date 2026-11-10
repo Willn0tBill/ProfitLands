@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,'..');
 const script=fs.readFileSync(path.join(root,'living-city.js'),'utf8');
 const css=fs.readFileSync(path.join(root,'living-city.css'),'utf8');
 
-function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
+function fakeDOM(initialState={playType:'single',day:1,businesses:[]},withMission=false){
  const ids=new Map(),windowEvents={},documentEvents={},timers=[];
  let showBusinessCalls=0,openShopCalls=0,openManageIndex=null;
  function makeNode(tag='div'){
@@ -60,6 +60,19 @@ function fakeDOM(initialState={playType:'single',day:1,businesses:[]}){
  game.id='gameScreen';game.classList.add('active');ids.set(game.id,game);
  const overview=makeNode('section');
  overview.hidden=false;
+ if(withMission){
+  const path=makeNode('div');
+  path.className='pl-game-steps';
+  overview.appendChild(path);
+  overview.querySelector=selector=>selector==='.pl-game-steps'?path:null;
+  path.insertAdjacentElement=(position,child)=>{
+   if(position!=='afterend')throw Error('Unexpected city placement');
+   const i=overview.children.indexOf(path);
+   overview.children.splice(i+1,0,child);
+   return child;
+  };
+ }
+
  const heading=makeNode('header');
  const income=makeNode('strong');income.id='dailyIncome';income.textContent='$4.25 / sec';ids.set(income.id,income);
  const store=makeNode('button');store.id='openBusinessShop';store.addEventListener('click',()=>{openShopCalls++});ids.set(store.id,store);
@@ -102,6 +115,13 @@ test('the animated city mounts at the TOP of the real Overview',()=>{
  assert.equal(h.ids.get('plCityBusinessCount').textContent,'0');
  assert.equal(h.ids.get('plCityHint').textContent,'Your first shop will fill an empty lot.');
  assert.equal(h.ids.get('plCityTickerCount').textContent,'0 ACTIVE BUSINESSES');
+});
+
+test('animated city follows the starter action path when it exists',()=>{
+ const h=fakeDOM({playType:'single',day:1,businesses:[]},true);
+ assert.equal(h.overview.children[0].className,'pl-game-steps');
+ assert.equal(h.overview.children[1].id,'plLivingCity');
+ assert.equal(h.window.ProfitLandsLivingCity.diagnostics().mounted,true);
 });
 
 test('city skyline reflects actual business type and level without changing game state',()=>{
