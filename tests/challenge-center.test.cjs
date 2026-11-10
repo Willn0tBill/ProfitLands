@@ -7,11 +7,12 @@ const code=fs.readFileSync(path.join(__dirname,'../challenge-center.js'),'utf8')
 function harness(){
  const state={started:true,playType:'single',cash:1000,businesses:[{locationManagementVersion:1,locations:[{workers:3},{workers:0}]}],news:[]};
  const root={innerHTML:'',addEventListener(){}};
+ const summary={textContent:''};
  let saved=0,gained=0;
  const window={state,ProfitLandsMoney:{gain:n=>{gained+=n;state.cash+=n},format:n=>'$'+n},save(){saved++},render(){},addEventListener(){}};
- const document={readyState:'loading',getElementById:id=>id==='challengeCenter'?root:null,addEventListener(){}};
+ const document={readyState:'loading',getElementById:id=>id==='challengeCenter'?root:id==='challengeSummaryStatus'?summary:null,addEventListener(){}};
  vm.runInNewContext(code,{window,document,Date,Math,Number,console});
- return {api:window.ProfitLandsChallengeCenter,state,gained:()=>gained,saved:()=>saved,root};
+ return {api:window.ProfitLandsChallengeCenter,state,gained:()=>gained,saved:()=>saved,root,summary};
 }
 test('daily contracts pay exactly once each and persist claims',()=>{
  const h=harness(),now=Date.parse('2026-11-10T12:00:00Z');
@@ -120,4 +121,21 @@ test('Challenge Center script and styles use valid separate HTML lines',()=>{
  assert.ok(html.includes('challenge-center.js'));
  assert.ok(html.includes('challenge-center.css'));
  assert.equal(html.includes('\\\\n  <script src="../challenge-center.js'),false);
+});
+
+test('Challenge Center stays discoverable without burying Arcade gameplay',()=>{
+ const h=harness(),now=Date.parse('2026-11-10T12:00:00Z');
+ h.api.render(now);
+ assert.equal(h.summary.textContent,'0 / 4 claimed');
+ const html=fs.readFileSync(path.join(__dirname,'../play/index.html'),'utf8');
+ assert.ok(html.includes('<details id="challengeDrawer"'));
+ assert.ok(html.includes('id="challengeSummaryStatus"'));
+ assert.ok(html.indexOf('id="challengeCenter"')<html.indexOf('id="arcadeContent"'));
+ assert.equal(h.api.claim('starter',now),true);
+ assert.equal(h.summary.textContent,'1 / 4 claimed');
+ assert.equal(h.api.claim('starter',now),false);
+ assert.equal(h.gained(),100);
+ const css=fs.readFileSync(path.join(__dirname,'../challenge-center.css'),'utf8');
+ assert.match(css,/pl-challenge-drawer>summary:focus-visible/);
+ assert.match(css,/max-width:430px/);
 });
