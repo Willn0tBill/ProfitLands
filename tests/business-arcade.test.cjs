@@ -138,3 +138,27 @@ test('workspace navigation and new game reset are wired without replacing existi
  assert.ok(app.includes('state.arcade=null'));
  assert.ok(economy.includes('state.arcade=null'));
 });
+
+test('successful arcade round grants one bounded solo earnings boost',()=>{
+ const h=harness(),api=h.api;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ const now=Date.now();
+ assert.equal(api.start('rush',now),true);
+ api.press('serve',undefined,now+1);
+ assert.equal(api.complete(now+1000),true);
+ assert.equal(h.state.arcade.boostUntil,now+61000);
+ assert.equal(h.state.arcade.lastBoostAt,now+1000);
+ api.stop();
+ assert.equal(api.start('rush',now+2000),true);
+ api.press('serve',undefined,now+2001);
+ api.complete(now+3000);
+ assert.equal(h.state.arcade.boostUntil,now+61000,'cannot stack or extend boost');
+});
+test('multiplayer arcade rounds never grant client-controlled boosts',()=>{
+ const h=harness(),api=h.api;
+ h.state.playType='multi';
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ const now=Date.now();
+ api.start('rush',now);api.press('serve',undefined,now+1);api.complete(now+1000);
+ assert.equal(h.state.arcade.boostUntil,undefined);
+});
