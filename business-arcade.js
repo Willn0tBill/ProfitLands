@@ -131,6 +131,8 @@ function complete(now=Date.now()){
  view='result';
  window.save?.();
  window.render?.();
+ // Refresh daily missions immediately when the Arcade round awards its result.
+ window.ProfitLandsChallengeCenter?.render?.();
  render();
  return true;
 }
