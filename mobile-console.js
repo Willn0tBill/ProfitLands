@@ -2,7 +2,7 @@
    The existing desktop workspace remains the fallback when JavaScript is unavailable. */
 (function(){
 'use strict';
-const WIDTH_QUERY='(max-width: 760px)';
+const WIDTH_QUERY='(max-width: 760px), (max-height: 500px) and (max-width: 1024px) and (pointer: coarse)';
 const $=id=>document.getElementById(id);
 const primarySolo=[
  {id:'overview',icon:'⌂',label:'Home'},
