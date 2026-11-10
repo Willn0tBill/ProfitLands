@@ -294,11 +294,15 @@ test('streamlined navigation keeps core actions visible and advanced destination
 test('sidebar next move follows actual starter progress and never changes the economy',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
  const next=x.game.find(n=>n.classList.contains('pl-workspace-next-action'));
+ const card=x.game.find(n=>n.classList.contains('pl-workspace-next-card'));
  const headline=x.game.find(n=>n.classList.contains('pl-workspace-next-title'));
  const progress=x.game.find(n=>n.classList.contains('pl-workspace-next-meta'));
  const bar=x.game.find(n=>n.classList.contains('pl-quest-meter'));
  assert.ok(next&&headline&&bar);
  assert.equal(bar.getAttribute('aria-valuenow'),'0');
+ assert.equal(card.hidden,true,'Overview does not duplicate the full mission card');
+ api.show('operations');
+ assert.equal(card.hidden,false,'other screens retain contextual guidance');
  next.click();
  assert.equal(api.active(),'businesses');
  assert.equal(x.savedData.has('profitlands-v2'),false,'navigation never changes player cash or saves');
@@ -316,6 +320,7 @@ test('sidebar next move follows actual starter progress and never changes the ec
  assert.equal(headline.textContent,'Take on a new challenge');
  assert.equal(bar.getAttribute('aria-valuenow'),'3');
  assert.ok(bar.getAttribute('style').includes('100%'));
+ api.show('operations');
  next.click();
  assert.equal(api.active(),'arcade','completed players get a fun next action');
 });
