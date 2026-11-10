@@ -205,7 +205,7 @@ test('Overview contains original executive briefing alongside economy and news p
  assert.ok(html.includes('executive-briefing.js')&&html.includes('executive-briefing.css'));
 });
 
-test('new-player overview uses a three-step quest hub and keeps market reports accessible',()=>{
+test('new-player overview guides business expansion and keeps market reports accessible',()=>{
  const x=setup();
  const root=x.game.find(n=>n.dataset.workspaceContent==='overview');
  const quests=root.findAll(n=>n.classList.contains('pl-game-step'));
@@ -214,7 +214,7 @@ test('new-player overview uses a three-step quest hub and keeps market reports a
  assert.ok(advanced,'world economy and news are available but collapsed');
  for(const id of ['executivePanel','economyPanel','newsPanel'])assert.equal(advanced.findAll(n=>n.id===id).length,1);
  assert.equal(quests[2].click(),undefined);
- assert.equal(x.window.ProfitLandsWorkspace.active(),'arcade');
+ assert.equal(x.window.ProfitLandsWorkspace.active(),'businesses');
 });
 test('Clans is a multiplayer-only workspace using its existing panel',()=>{
  const x=setup(null,'multi'),api=x.window.ProfitLandsWorkspace;

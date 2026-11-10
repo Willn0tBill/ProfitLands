@@ -313,3 +313,10 @@ body.pl-workspace-enabled:has(#gameScreen.active) #floatingHud{display:none!impo
 @media(prefers-reduced-motion:reduce){
  #gameScreen .pl-workspace-nav-item{transition:none!important}
 }
+
+/* Starter quests: progress without cluttering the main HUD. */
+.pl-quest-progress{display:inline-flex;margin-top:9px;padding:5px 11px;border:1px solid rgba(173,244,95,.35);border-radius:999px;color:#bdf783;font-size:12px;font-weight:750;letter-spacing:.01em}
+.pl-game-step.pl-quest-done{border-color:rgba(173,244,95,.4);background:rgba(130,205,73,.09)}
+.pl-game-step.pl-quest-done .pl-game-step-icon{color:#bdf783;font-weight:900}
+.pl-game-step:focus-visible,.pl-workspace-intro-button:focus-visible{outline:3px solid #bdf783;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.pl-game-step,.pl-workspace-intro-button{animation:none!important;transition:none!important}}
