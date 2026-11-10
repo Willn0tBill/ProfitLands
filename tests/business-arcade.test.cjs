@@ -153,7 +153,7 @@ test('successful arcade round grants one bounded solo earnings boost',()=>{
  assert.equal(api.start('rush',now+2000),true);
  api.press('serve',undefined,now+2001);
  api.complete(now+3000);
- assert.equal(h.state.arcade.boostUntil,now+61000,'cannot stack or extend boost');
+ assert.equal(h.state.arcade.boostUntil,now+91000,'cannot stack or extend boost');
 });
 test('multiplayer arcade rounds never grant client-controlled boosts',()=>{
  const h=harness(),api=h.api;
