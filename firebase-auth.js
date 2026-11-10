@@ -105,8 +105,8 @@
                 throw Error('Cloud save changed on another device. Local progress was preserved; reload to reconcile.');
               }
               tx.set(lastRef,{...payload,revision:latestRev+1},{merge:true});
-              cloudRevision=latestRev+1;
             });
+            cloudRevision+=1;
           }
         }
       }else{
@@ -159,8 +159,8 @@
             throw Error('Cloud save conflict: another device has newer progress. Your device save remains intact. Reload to reconcile.');
           }
           tx.set(lastRef,{...payload,started:snapshotState.started!==false,revision:revision+1},{merge:true});
-          cloudRevision=revision+1;
         });
+        cloudRevision+=1;
         // A mode-specific copy is supplementary; the guarded last-game is authoritative.
         try{await base.doc(saveId).set(payload,{merge:true})}catch(e){console.warn('Supplementary cloud save failed',e)}
         window.profitlandsLastCloudSave={...payload,hasSave:true};
