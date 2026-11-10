@@ -7,7 +7,7 @@ const root=path.join(__dirname,'..');
 const code=fs.readFileSync(path.join(root,'business-arcade.js'),'utf8');
 function harness(){
   const state={started:true,cash:1000,actions:60,day:3,businesses:[],news:[]};
-  let saved=0,rendered=0,gains=0,intervalFn=null;
+  let saved=0,rendered=0,gains=0,missionRefreshes=0,intervalFn=null;
   let visible=true,view='arcade',gameActive=true;
   const elements=new Map();
   elements.set('arcadeContent',{innerHTML:'',addEventListener(){}});
@@ -21,6 +21,7 @@ function harness(){
     state,
     ProfitLandsMoney:{gain:amount=>{assert.ok(Number.isFinite(amount));state.cash+=amount;gains+=amount},format:n=>'$'+Number(n).toLocaleString()},
     ProfitLandsWorkspace:{active:()=>view},
+    ProfitLandsChallengeCenter:{render(){missionRefreshes++}},
     save(){saved++},
     render(){rendered++},
     addEventListener(){}
@@ -29,7 +30,7 @@ function harness(){
     setInterval:fn=>{intervalFn=fn;return 42},clearInterval:()=>{intervalFn=null}});
   new vm.Script(code,{filename:'business-arcade.js'}).runInContext(context);
   return {api:window.ProfitLandsArcade,state,window,elements,
-    saved:()=>saved,rendered:()=>rendered,gains:()=>gains,
+    saved:()=>saved,rendered:()=>rendered,gains:()=>gains,missionRefreshes:()=>missionRefreshes,
     setVisible:value=>visible=value,setView:value=>view=value,
     setGameActive:value=>gameActive=value,interval:()=>intervalFn};
 }
@@ -206,4 +207,15 @@ test('Arcade boosts scale with wealth and lock their duration',()=>{
  assert.equal(h.state.arcade.boostUntil,now+46000);
  h.state.cash=100;
  assert.equal(api.activePowerup(now+2000).remainingMs,44000);
+});
+
+test('completed Arcade rounds update daily missions without waiting for a timer',()=>{
+ const h=harness(),api=h.api;
+ assert.equal(h.missionRefreshes(),0);
+ assert.equal(api.start('desk',100000),true);
+ for(const answer of [0,1,0,0,2])assert.equal(api.press('choose',answer,100001),true);
+ assert.equal(h.missionRefreshes(),1);
+ assert.equal(h.state.arcade.played,1);
+ assert.equal(api.complete(100002),false);
+ assert.equal(h.missionRefreshes(),1,'duplicate completions cannot refresh or pay again');
 });
