@@ -18,7 +18,7 @@
       const exponent=Math.max(4,positive.e+1);
       const target=big.parse('1e'+exponent);
       const lower=big.parse('1e'+(exponent-1));
-      let percent=positive.e<3?Math.max(0,Math.min(99.999999,big.number(positive)/10000*100)):(positive.e<exponent-1?0:Math.max(0,Math.min(99.999999,(positive.m-1)/9*100)));
+      let percent=exponent===4?Math.max(0,Math.min(99.999999,big.number(positive)/10000*100)):(positive.e<exponent-1?0:Math.max(0,Math.min(99.999999,(positive.m-1)/9*100)));
       if(positive.e>=exponent)percent=99.999;
       return {
         current:big.number(positive),currentRaw:big.raw(positive),
