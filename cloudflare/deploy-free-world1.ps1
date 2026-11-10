@@ -16,6 +16,26 @@ $npx=if($null -ne $npxCommand){$npxCommand.Source}else{''}
 if(-not $npx -and (Test-Path 'C:\Program Files\nodejs\npx.cmd')){$npx='C:\Program Files\nodejs\npx.cmd'}
 if(-not $npx){throw 'Node.js / npx was not found. Install Node.js 22+.'}
 if(-not (Test-Path $config) -or -not (Test-Path $schema)){throw 'Missing World 1 files.'}
+# Fail closed before logging in, touching D1 or uploading the Worker.
+# The live API may be newer than main while feature work is still unmerged.
+$source=Join-Path $here 'src\index.mjs'
+if(-not (Test-Path $source)){throw 'Missing Worker source for release preflight.'}
+$versionMatch=[regex]::Match([IO.File]::ReadAllText($source),'(?m)^\s*const API_VERSION\s*=\s*(\d+)\s*;')
+if(-not $versionMatch.Success){throw 'Local Worker API_VERSION is missing. Deployment stopped.'}
+$localVersion=[int]$versionMatch.Groups[1].Value
+try {
+  $live=Invoke-RestMethod -Uri ($workerUrl+'/health') -TimeoutSec 12 -ErrorAction Stop
+} catch {
+  throw 'Cannot verify live Worker API version. Deployment stopped before any D1 changes.'
+}
+$liveVersion=0
+if($live.ok -ne $true -or -not [int]::TryParse([string]$live.version,[ref]$liveVersion)){
+  throw 'Live Worker health/version is invalid. Deployment stopped.'
+}
+if($liveVersion -gt $localVersion){
+  throw ("Refusing Worker API rollback: live v{0} is newer than local v{1}. Reconcile the deployed source first." -f $liveVersion,$localVersion)
+}
+Write-Host ("Worker preflight passed: live v{0}, local v{1}." -f $liveVersion,$localVersion)
 Push-Location $here
 try {
   Write-Host 'Checking Cloudflare sign-in...'
