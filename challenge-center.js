@@ -73,10 +73,16 @@ function decisionEffect(now=Date.now()){
 function decide(option,now=Date.now()){
  const c=ensure(now),s=window.state,e=dailyEvent(now),choice=e.options[option];
  if(!c||c.eventChoice!==null||!Number.isInteger(option)||!choice)return false;
- const cash=Number(window.ProfitLandsMoney?.balance?.()??s.cash);
- if(!Number.isFinite(cash)||cash<choice.cost)return false;
- // A single deterministic choice per day. No random chance, wagering or repeat farming.
- if(choice.cost){if(window.ProfitLandsMoney?.spend)window.ProfitLandsMoney.spend(choice.cost);else s.cash-=choice.cost}
+ const ledger=window.ProfitLandsMoney,rawBalance=ledger?.balance?.();
+ // Large-number wallet balance() returns {m,e}, not a Number.
+ const cash=Number(ledger?.number?ledger.number(rawBalance):rawBalance??s.cash);
+ if(!Number.isFinite(cash))return false;
+ if(ledger?.canAfford?!ledger.canAfford(choice.cost):cash<choice.cost)return false;
+ // Charge atomically through the canonical wallet; do not mark decisions on failed spend.
+ if(choice.cost){
+  if(ledger?.spend){if(ledger.spend(choice.cost)===false)return false}
+  else s.cash-=choice.cost;
+ }
  // Reputation persists beyond the temporary boost, capped to avoid runaway compounding.
  if(Number.isFinite(choice.reputation)&&choice.reputation!==0){
   for(const business of s.businesses||[]){
