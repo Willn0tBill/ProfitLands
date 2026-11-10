@@ -93,15 +93,16 @@ function decide(option,now=Date.now()){
  return true;
 }
 function render(now=Date.now()){
- const root=$('challengeCenter'),data=status(now);
+ const root=$('challengeCenter'),data=status(now),summary=$('challengeSummaryStatus');
  if(!root)return;
- if(!data){root.innerHTML='<p>Daily contracts and Arcade power-ups are available in single-player mode.</p>';return}
+ if(!data){root.innerHTML='<p>Daily contracts and Arcade power-ups are available in single-player mode.</p>';if(summary)summary.textContent='Single-player only';return}
  const p=data.powerup,history=data.history||{};
  root.innerHTML='<header class="pl-center-head"><div><small>YOUR DAILY MISSIONS</small><h3>Challenge Center</h3><p>Complete contracts, claim rewards, and master mini-games to earn temporary advantages.</p></div><span>'+data.claimed.length+' / '+data.contracts.length+' claimed today</span></header>'+
  '<div class="pl-center-status">'+(p?'<strong>⚡ '+p.name+'</strong><span>'+p.description+' · '+Math.ceil(p.remainingMs/1000)+'s remaining</span>':'<strong>No active power-up</strong><span>Complete a rewarding Arcade round to unlock one.</span>')+'</div>'+
  '<div class="pl-center-contracts">'+data.contracts.map(q=>'<article><div><strong>'+q.title+'</strong><p>'+q.description+'</p><small>'+q.value+' / '+q.target+' · Reward '+fmt(q.reward)+'</small></div><button type="button" data-center-claim="'+q.id+'" '+(q.claimed||q.value<q.target?'disabled':'')+'>'+(q.claimed?'Claimed':q.value>=q.target?'Claim reward':'In progress')+'</button></article>').join('')+'</div>'+
  '<section class="pl-center-decision"><strong>Today’s Business Decision · '+data.event.title+'</strong><p>'+data.event.description+'</p><div class="pl-center-options">'+data.event.options.map((o,i)=>'<button type="button" data-center-decision="'+i+'" '+(data.eventChoice!==null?'disabled':'')+'>'+o.name+' · '+o.description+(o.reputation?' · Reputation '+(o.reputation>0?'+':'')+o.reputation:'')+'</button>').join('')+'</div>'+(data.eventChoice!==null?'<small>Decision completed. '+(data.decisionEffect?'Effect active · '+Math.ceil(data.decisionEffect.remainingMs/1000)+'s left.':'Effect expired or no modifier selected.')+'</small>':'<small>One decision per day. Duration scales with available cash at activation (3m 45s–7m 30s); upfront costs may not pay off.</small>')+'</section>'+ 
  '<p class="pl-center-history">Arcade record: '+Math.max(0,Number(history.played)||0)+' rounds · '+fmt(Math.max(0,Number(history.earned)||0))+' earned. Daily contracts reset at 00:00 UTC. Rewards are one-time per contract per day.</p>';
+ if(summary)summary.textContent=data.claimed.length+' / '+data.contracts.length+' claimed'+(p?' · ⚡ '+p.name:'');
 }
 function init(){
  const root=$('challengeCenter');if(!root)return;
