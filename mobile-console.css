@@ -1,0 +1,226 @@
+/* Mobile-only ProfitLands play console.
+   Loaded last so compact touch controls win over the desktop experience layers.
+   It never changes an empire or the singleplayer/multiplayer save structure. */
+.pl-mobile-dock,.pl-mobile-drawer-overlay{display:none!important}
+.pl-mobile-drawer-overlay[hidden]{display:none!important}
+@media(max-width:760px){
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-sidebar{
+  display:none!important;
+ }
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-shell{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+ }
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-main{
+  min-width:0!important;min-height:0!important;
+  padding:5px 8px calc(73px + env(safe-area-inset-bottom,0px))!important;
+  gap:7px!important;
+ }
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-body,
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-view{
+  min-height:0;min-width:0;overscroll-behavior-y:contain;
+ }
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-view.active:not([hidden]){
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+ }
+ body.pl-mobile-console-ready:has(#gameScreen.active) #gameScreen .pl-workspace-context{
+  display:none!important;
+ }
+ body.pl-mobile-console-playing .pl-mobile-dock{
+  position:fixed;inset:auto 0 0;
+  z-index:480;display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  align-items:stretch;gap:4px;
+  padding:7px max(7px,env(safe-area-inset-right,0px))
+   calc(7px + env(safe-area-inset-bottom,0px))
+   max(7px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,#15283a,#101d2d);
+  border-top:1px solid #5b7291;
+  box-shadow:0 -8px 25px #071022bf;
+  box-sizing:border-box;
+ }
+ body.pl-mobile-console-playing .pl-mobile-dock[data-mode="online"]{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:2px;padding:5px 2px;min-width:0;min-height:49px;
+  border:1px solid transparent;border-radius:10px;
+  background:transparent;color:#b8cddd;
+  appearance:none;font:750 10px/1.2 inherit;
+  text-align:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab-icon{
+  font-size:20px;line-height:1.15;height:23px;
+  display:grid;place-items:center;
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab-label{
+  font-size:10px;font-weight:800;letter-spacing:.01em;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab.active{
+  background:#284636;border-color:#739d6c;color:#dfffb7;
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab.active .pl-mobile-tab-icon{
+  filter:drop-shadow(0 0 5px #93da6370);
+ }
+ body.pl-mobile-console-playing .pl-mobile-more{border-color:#425770}
+ body.pl-mobile-console-playing .pl-mobile-drawer-overlay:not([hidden]){
+  position:fixed;inset:0;z-index:950;
+  display:flex!important;flex-direction:column;justify-content:flex-end;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-backdrop{
+  position:absolute;inset:0;width:100%;height:100%;border:0;
+  background:#050a14d9;backdrop-filter:blur(3px);cursor:pointer;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer{
+  position:relative;z-index:1;
+  max-height:min(78dvh,650px);
+  overflow-y:auto;overscroll-behavior:contain;
+  background:linear-gradient(160deg,#202f42,#111c2a);
+  border:1px solid #526b87;border-bottom:0;
+  border-radius:20px 20px 0 0;
+  padding:15px 15px calc(18px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -15px 45px #000b;
+  -webkit-overflow-scrolling:touch;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:14px;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-head h2{
+  margin:0;font-size:20px;line-height:1.25;color:#f1f7fc;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-close{
+  padding:9px 14px;min-height:43px;border-radius:10px;
+  border:1px solid #59734a;background:#314a34;color:#d6f5c3;
+  font:800 13px/1.2 inherit;cursor:pointer;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-content{
+  display:grid;gap:17px;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-group h3{
+  margin:0 0 9px;color:#b8d4e5;font-size:11px;letter-spacing:.11em;font-weight:900;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-options{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-item{
+  display:flex;flex-direction:row;justify-content:flex-start;align-items:center;
+  gap:9px;min-height:53px;min-width:0;padding:10px 12px;text-align:left;
+  border:1px solid #4b617a;border-radius:11px;background:#1c2b3c;
+  color:#e4f0f8;cursor:pointer;font:inherit;touch-action:manipulation;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-item .pl-mobile-tab-icon{
+  font-size:21px;flex:0 0 25px;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-item .pl-mobile-tab-label{
+  font-size:13px;white-space:normal;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer-item.active{
+  border-color:#8bc76b;background:#264333;color:#e6ffcb;
+ }
+ body.pl-mobile-console-playing .pl-mobile-tab:focus-visible,
+ body.pl-mobile-console-playing .pl-mobile-drawer-item:focus-visible,
+ body.pl-mobile-console-playing .pl-mobile-drawer-close:focus-visible{
+  outline:3px solid #c5f98b;outline-offset:2px;
+ }
+ body.pl-mobile-console-playing.pl-mobile-menu-open .pl-mobile-dock{
+  display:none!important;
+ }
+ body.pl-mobile-console-playing:has(.modal:not(.hidden)) .pl-mobile-dock,
+ body.pl-mobile-console-playing:has(.pl-switch-overlay:not([hidden])) .pl-mobile-dock,
+ body.pl-mobile-console-playing:has(.pl-focus-prompt.open) .pl-mobile-dock{
+  display:none!important;
+ }
+ body.pl-mobile-console-playing .toast{
+  bottom:calc(82px + env(safe-area-inset-bottom,0px))!important;
+  z-index:400!important;pointer-events:none;
+ }
+ body.pl-mobile-console-playing .modal .modal-card,
+ body.pl-mobile-console-playing .modal .modal-card.wide{
+  max-height:calc(100dvh - 18px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+ }
+ body.pl-mobile-console-playing .modal :is(button,input,select,textarea),
+ body.pl-mobile-console-playing #gameScreen :is(input,select,textarea){
+  touch-action:manipulation;
+ }
+ body.pl-mobile-console-playing #gameScreen :is(input:not([type="checkbox"]),select,textarea),
+ body.pl-mobile-console-playing .modal :is(input:not([type="checkbox"]),select,textarea){
+  font-size:max(16px,1em)!important;
+ }
+ body.pl-mobile-console-playing .modal :is(button,.upgrade-button,.location-card){
+  min-height:44px;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-section-head{
+  padding:5px 3px!important;min-height:40px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-section-title{
+  font-size:clamp(17px,4.4vw,21px)!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-intro{
+  padding:12px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-intro p{
+  font-size:12px;line-height:1.45;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-intro-button{
+  min-height:44px;line-height:1.3;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-view[data-workspace-content="overview"] .pl-game-step{
+  min-height:66px;touch-action:manipulation;
+ }
+}
+@media(max-width:430px){
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .stats-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:5px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .stat,
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .stat:nth-child(3){
+  display:block!important;min-width:0;min-height:43px!important;padding:6px 9px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .stat small{
+  font-size:9px!important;letter-spacing:.015em!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .stat strong{
+  font-size:14px!important;white-space:nowrap;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .day-row h2{
+  font-size:16px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-hud .game-hud .timer-box strong{
+  font-size:15px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-city-stage{
+  height:185px!important;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-city-head{
+  gap:8px;
+ }
+ body.pl-mobile-console-playing #gameScreen .pl-city-head h3{
+  font-size:17px!important;
+ }
+}
+@media(max-width:350px){
+ body.pl-mobile-console-playing .pl-mobile-dock{gap:2px;padding-left:4px;padding-right:4px}
+ body.pl-mobile-console-playing .pl-mobile-tab{padding:4px 0}
+ body.pl-mobile-console-playing .pl-mobile-tab-label{font-size:9px}
+ body.pl-mobile-console-playing .pl-mobile-drawer-options{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-height:500px) and (max-width:760px){
+ body.pl-mobile-console-playing .pl-mobile-tab{min-height:39px;gap:0;padding:2px}
+ body.pl-mobile-console-playing .pl-mobile-tab-icon{font-size:17px;height:19px}
+ body.pl-mobile-console-playing #gameScreen .pl-workspace-main{
+  padding-bottom:calc(57px + env(safe-area-inset-bottom,0px))!important;
+ }
+ body.pl-mobile-console-playing .pl-mobile-drawer{max-height:92dvh}
+}
+@media(prefers-reduced-motion:reduce){
+ body.pl-mobile-console-playing .pl-mobile-dock *,
+ body.pl-mobile-console-playing .pl-mobile-drawer *{animation:none!important;transition:none!important}
+}
