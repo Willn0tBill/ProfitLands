@@ -268,3 +268,134 @@ test('saved multiplayer-only screen does not reopen in singleplayer',()=>{
  const m=setup('world','multi');
  assert.equal(m.window.ProfitLandsWorkspace.active(),'world');
 });
+
+test('new game progressively unlocks features without blocking the starter shop',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),1);
+ assert.equal(api.show('businesses'),true);
+ assert.equal(api.show('markets'),false);
+ assert.equal(api.show('arcade'),false);
+ x.window.state.businesses=[{type:'cafe',level:1,workers:0,locations:[]}];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),2);
+ assert.equal(api.show('operations'),true);
+ assert.equal(api.show('markets'),false);
+ x.window.state.businesses[0].workers=1;
+ api.syncMode();
+ assert.equal(api.onboardingStage(),3);
+ assert.equal(api.show('arcade'),true);
+ x.window.state.businesses.push({type:'shop',level:1});
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
+test('guided onboarding can be skipped and never limits multiplayer access',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.show('markets'),false);
+ api.skipGuidance();
+ assert.equal(api.show('markets'),true);
+ x.window.state.playType='multi';
+ api.syncMode();
+ assert.equal(api.show('world'),true);
+});
+test('returning players with completed tutorial keep all existing navigation',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ x.savedData.set('profitlands-tutorial-complete','1');
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
+
+test('fresh guided empire remains guided even if previous tutorial was completed',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.savedData.set('profitlands-tutorial-complete','1');
+ x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),1);
+ assert.equal(api.show('markets'),false);
+});
+test('legacy saves without an onboarding marker retain full access',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state.started=true;
+ x.window.state.businesses=[];
+ api.syncMode();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.show('markets'),true);
+});
+test('new empire creation marks onboarding while existing saves remain untouched',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.ok(app.includes("state.onboardingVersion=type==='multi'?0:1"));
+ assert.ok(source.includes('s.onboardingVersion!==1'));
+});
+
+test('customer satisfaction updates gradually and remains single-player only',()=>{
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.ok(app.includes("if(state.playType==='multi')return;"));
+ assert.ok(app.includes('ProfitLandsCustomers?.advance?.(b)'));
+ assert.ok(app.includes('updateCustomerSatisfaction();const profit=businessUpdate()'));
+ assert.ok(app.includes('satisfaction:70,reputation:50'));
+ assert.ok(app.includes('<small>SATISFACTION</small>'));
+});
+test('customer satisfaction demand is bounded and excludes multiplayer',()=>{
+ const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
+ assert.ok(economy.includes("const satisfactionDemand=state.playType==='multi'?1:1+(satisfaction-70)*.0015"));
+ assert.ok(economy.includes('lvl*demand*reputationDemand*satisfactionDemand'));
+});
+
+test('customer queue simulation responds to staffing and varies by industry',()=>{
+ const model=require('../customer-service.js');
+ const coffee={type:'coffee',popularity:60,workers:0,efficiency:0,marketing:0,chainCount:0,satisfaction:70,reputation:50};
+ const baseline=model.snapshot(coffee);
+ assert.ok(baseline.waiting>0);
+ const improved=model.snapshot({...coffee,workers:3,efficiency:2});
+ assert.ok(improved.waiting<baseline.waiting);
+ assert.ok(improved.target>baseline.target);
+ assert.notEqual(model.snapshot({...coffee,type:'hotel'}).label,baseline.label);
+});
+test('customer service advances slowly and does not modify unrelated game state',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'restaurant',popularity:80,workers:0,satisfaction:70,reputation:50};
+ const before=model.snapshot(b);
+ model.advance(b);
+ assert.ok(Math.abs(b.satisfaction-70)<=3);
+ assert.equal(b.customerService.arrivals,before.arrivals);
+ assert.equal(b.customerService.waiting,before.waiting);
+ assert.equal(b.reputation,50);
+});
+
+test('customer representatives persist visits and loyalty without unbounded save growth',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'coffee',popularity:65,workers:2,satisfaction:70,reputation:50};
+ model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.some(c=>c.visits===1));
+ const first=b.customerPanel.map(c=>c.visits);
+ for(let i=0;i<150;i++)model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.some((c,i)=>c.visits>first[i]));
+ assert.ok(b.customerPanel.every(c=>c.loyalty>=0&&c.loyalty<=100));
+ assert.ok(b.customerPanel.every(c=>Object.keys(c).sort().join(',')==='id,loyalty,visits'));
+});
+test('customer panel migrates malformed old saves and does not reset existing loyalty',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'hotel',customerPanel:[{id:0,loyalty:10,visits:7},null,{id:2,loyalty:999,visits:-5}],customerCycle:0,satisfaction:70};
+ const old=model.seedPanel(b);
+ assert.equal(old.length,12);
+ assert.equal(old[0].visits,7);
+ assert.equal(old[2].loyalty,100);
+ model.advance(b);
+ assert.equal(b.customerPanel.length,12);
+ assert.ok(b.customerPanel.every(c=>Number.isFinite(c.loyalty)));
+});

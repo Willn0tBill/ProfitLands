@@ -161,7 +161,9 @@
     const demand=e.demandIndex*loc.demand*f.countryDemand*f.demandEffect*(1+(e.health-60)/250*r.econ);
     const reputation=Number.isFinite(b.reputation)?Math.max(0,Math.min(100,b.reputation)):50;
     const reputationDemand=state.playType==='multi'?1:1+(reputation-50)*.0016; // bounded 0.92–1.08
-    const revenue=t.baseRevenue*lvl*demand*reputationDemand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
+    const satisfaction=Number.isFinite(b.satisfaction)?Math.max(0,Math.min(100,b.satisfaction)):70;
+    const satisfactionDemand=state.playType==='multi'?1:1+(satisfaction-70)*.0015; // bounded 0.895–1.045
+    const revenue=t.baseRevenue*lvl*demand*reputationDemand*satisfactionDemand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
     const runningCost=t.baseExpense*lvl*loc.rent*f.countryCost*f.difficultyExpenses*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*f.supplyEffect*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
     const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
     let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
@@ -543,7 +545,7 @@
     const chosenCountry=state.country||'us',chosenDifficulty=state.difficulty||'executive';
     const difficulty=window.ProfitLandsDifficulty?.byId?.(chosenDifficulty)||{startCash:1000};
     window.resetProfitLandsMarket?.();
-    state.mode=mode;state.playType=type;state.country=chosenCountry;state.difficulty=chosenDifficulty;state.day=1;state.cash=Number(difficulty.startCash)||1000;state.cashHuge=String(state.cash);window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.cityContract=null;state.cityContractLastRewardAt=0;state.arcade=null;/* Account Trophy Room persists. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;const countryProfile=window.ProfitLandsCountry?.byId?.(chosenCountry)||{loanRate:.08};state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:Number(countryProfile.loanRate)||.08,activeEvents:[],lastEventId:''};window.ProfitLandsCountry?.resetFiscal?.();state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — Your '+(window.ProfitLandsDifficulty?.current?.()?.name||'Executive')+' empire begins in '+(window.ProfitLandsCountry?.current?.()?.name||'the selected market')+' with '+money(state.cash)+' in starting capital.');save();
+    state.mode=mode;state.playType=type;state.country=chosenCountry;state.difficulty=chosenDifficulty;state.day=1;state.cash=Number(difficulty.startCash)||1000;state.cashHuge=String(state.cash);window.ProfitLandsMoney?.attach?.(state);state.stocks=Object.fromEntries(STOCKS.map(s=>[s.id,{shares:0}]));state.businesses=[];state.cityContract=null;state.cityContractLastRewardAt=0;state.arcade=null;/* Account Trophy Room persists. */state.property=0;state.actions=MODES[mode].actions;state.actionCapacityVersion=2;state.timeLeft=MODES[mode].daySeconds;state.dayEndsAt=Date.now()+MODES[mode].daySeconds*1000;state.news=[];state.trend=null;state.started=true;state.onboardingVersion=type==='multi'?0:1;state.lastDayProfit=0;state.liveDayProfit=0;state.liveTotalProfit=0;state.realtimeEconomyVersion=1;state.bankrupt=false;const countryProfile=window.ProfitLandsCountry?.byId?.(chosenCountry)||{loanRate:.08};state.economy={health:60,history:[60],trend:0,rentIndex:1,wageIndex:1,demandIndex:1,supplyIndex:1,loanRate:Number(countryProfile.loanRate)||.08,activeEvents:[],lastEventId:''};window.ProfitLandsCountry?.resetFiscal?.();state.loans=[];state.penaltyDays=0;state.bankruptcyCount=0;state.majorCompanies=[];state.empireLab=null;state.growth={history:[],milestones:[],lastSample:0};state.actionRegenAt=Date.now();state.news.push('MARKET OPEN — Your '+(window.ProfitLandsDifficulty?.current?.()?.name||'Executive')+' empire begins in '+(window.ProfitLandsCountry?.current?.()?.name||'the selected market')+' with '+money(state.cash)+' in starting capital.');save();
   }
   function doEndDay(auto){
     if(!state.started)return;
@@ -664,6 +666,8 @@
         return originalStart();
       }
       reset(state.mode,state.playType);
+      // The real-time startup owns new-game state; keep workspace unlocks in sync.
+      window.ProfitLandsWorkspace?.syncMode?.();
       document.getElementById('homeScreen')?.classList.remove('active');
       document.getElementById('gameScreen')?.classList.add('active');
       render();startTimer2();window.profitLandsPlatform?.gameplayStart();
