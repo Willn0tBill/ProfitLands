@@ -8,11 +8,13 @@ function harness(){
  const state={started:true,playType:'single',cash:1000,businesses:[{locationManagementVersion:1,locations:[{workers:3},{workers:0}]}],news:[]};
  const root={innerHTML:'',addEventListener(){}};
  const summary={textContent:''};
+ const title={textContent:''},detail={textContent:''};
+ const statusBox={querySelector:tag=>tag==='strong'?title:tag==='span'?detail:null};
  let saved=0,gained=0;
- const window={state,ProfitLandsMoney:{gain:n=>{gained+=n;state.cash+=n},format:n=>'$'+n},save(){saved++},render(){},addEventListener(){}};
- const document={readyState:'loading',getElementById:id=>id==='challengeCenter'?root:id==='challengeSummaryStatus'?summary:null,addEventListener(){}};
+ const window={state,ProfitLandsWorkspace:{active:()=> 'arcade'},ProfitLandsMoney:{gain:n=>{gained+=n;state.cash+=n},format:n=>'$'+n},save(){saved++},render(){},addEventListener(){}};
+ const document={readyState:'loading',visibilityState:'visible',getElementById:id=>id==='challengeCenter'?root:id==='challengeSummaryStatus'?summary:id==='challengePowerupStatus'?statusBox:null,addEventListener(){}};
  vm.runInNewContext(code,{window,document,Date,Math,Number,console});
- return {api:window.ProfitLandsChallengeCenter,state,gained:()=>gained,saved:()=>saved,root,summary};
+ return {api:window.ProfitLandsChallengeCenter,state,gained:()=>gained,saved:()=>saved,root,summary,title,detail};
 }
 test('daily contracts pay exactly once each and persist claims',()=>{
  const h=harness(),now=Date.parse('2026-11-10T12:00:00Z');
@@ -138,4 +140,20 @@ test('Challenge Center stays discoverable without burying Arcade gameplay',()=>{
  const css=fs.readFileSync(path.join(__dirname,'../challenge-center.css'),'utf8');
  assert.match(css,/pl-challenge-drawer>summary:focus-visible/);
  assert.match(css,/max-width:430px/);
+});
+
+test('ten-second mission tick refreshes text without replacing clickable contracts',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ h.api.render(day);
+ const html=h.root.innerHTML;
+ h.api.tick(day+1000);
+ assert.equal(h.root.innerHTML,html,'contract and choice buttons remain in DOM');
+ assert.equal(h.title.textContent,'No active power-up');
+ assert.equal(h.summary.textContent,'0 / 4 claimed');
+ assert.match(h.detail.textContent,/Arcade round/);
+ assert.equal(h.api.claim('starter',day+1500),true);
+ const afterClaim=h.root.innerHTML;
+ h.api.tick(day+2500);
+ assert.equal(h.root.innerHTML,afterClaim,'claim buttons stay attached between ticks');
+ assert.equal(h.summary.textContent,'1 / 4 claimed');
 });
