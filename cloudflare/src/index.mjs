@@ -11,6 +11,8 @@ const GOOGLE_JWKS='https://www.googleapis.com/service_accounts/v1/jwk/securetoke
 const ORIGINS=new Set(['https://willn0tbill.github.io','https://profitlands.winotbill.workers.dev']);
 // World 1 remains Americas, preserving the existing production ledger.
 const WORLD_ID=core.WORLD_ID;
+// Monotonic public API schema version; the deployment preflight blocks downgrades.
+const API_VERSION=4;
 const WORLDS=Object.freeze([
  {id:'world1',region:'Americas',label:'World 1 · Americas'},
  {id:'world-europe',region:'Europe',label:'World 2 · Europe'},
@@ -258,7 +260,7 @@ async function dispatch(action,uid,body,db,worldId=WORLD_ID,env=null){
   try{await rawWorld(db,false,worldId)}
   catch(e){err('unavailable','World 1 database schema is not ready.',503)}
   return {ok:true,worldId,region:worldById(worldId).region,
-    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:4,catalog:core.BUSINESS_TYPES};
+    worlds:WORLDS,maxPlayers:core.MAX_PLAYERS,chatEnabled:chatAvailable(env),version:API_VERSION,catalog:core.BUSINESS_TYPES};
  }
  if(action==='getChat'||action==='getBlockedChatUsers'){
   const {state}=await rawWorld(db,false,worldId);
