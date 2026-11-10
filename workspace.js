@@ -31,9 +31,8 @@ function guidedMode(){
  if(!s?.started||isMultiplayer())return false;
  try{
   if(localStorage.getItem(ONBOARDING_KEY)==='skip')return false;
-  // Existing players must never lose access to features they already used.
-  if(localStorage.getItem('profitlands-tutorial-complete')==='1'&&
-    !localStorage.getItem(ONBOARDING_KEY))return false;
+  // The game save identifies new guided empires; legacy saves stay fully unlocked.
+  if(s.onboardingVersion!==1)return false;
  }catch(e){return false}
  return true;
 }
