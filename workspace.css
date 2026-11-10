@@ -486,3 +486,19 @@ body.pl-workspace-enabled:has(#gameScreen.active) #floatingHud{display:none!impo
  }
  #gameScreen .pl-workspace-disclosure-summary::after{flex:0 0 auto}
 }
+
+/* Native block layout stops expanded tools from forcing a horizontal scrollbar
+   inside the 178px tablet sidebar. Mobile retains its compact horizontal chips. */
+@media(min-width:761px){
+ #gameScreen .pl-workspace-nav>.pl-workspace-disclosure{
+  display:block!important;min-width:0!important;width:100%!important;
+  max-width:100%!important;box-sizing:border-box;overflow:hidden;
+ }
+ #gameScreen .pl-workspace-disclosure>.pl-workspace-disclosure-summary{
+  box-sizing:border-box;width:100%;min-width:0;white-space:normal;
+ }
+ #gameScreen .pl-workspace-disclosure>.pl-workspace-nav-item{
+  display:flex;width:calc(100% - 8px);box-sizing:border-box;
+  margin:4px 0 0 8px;
+ }
+}
