@@ -296,6 +296,7 @@ test('new game progressively unlocks features without blocking the starter shop'
 test('guided onboarding can be skipped and never limits multiplayer access',()=>{
  const x=setup(),api=x.window.ProfitLandsWorkspace;
  x.window.state.started=true;
+ x.window.state.onboardingVersion=1;
  x.window.state.businesses=[];
  api.syncMode();
  assert.equal(api.show('markets'),false);
