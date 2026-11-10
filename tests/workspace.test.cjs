@@ -343,7 +343,7 @@ test('new empire creation marks onboarding while existing saves remain untouched
 test('customer satisfaction updates gradually and remains single-player only',()=>{
  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
  assert.ok(app.includes("if(state.playType==='multi')return;"));
- assert.ok(app.includes('Math.max(-3,Math.min(3,target-current))'));
+ assert.ok(app.includes('ProfitLandsCustomers?.advance?.(b)'));
  assert.ok(app.includes('updateCustomerSatisfaction();const profit=businessUpdate()'));
  assert.ok(app.includes('satisfaction:70,reputation:50'));
  assert.ok(app.includes('<small>SATISFACTION</small>'));
@@ -352,4 +352,25 @@ test('customer satisfaction demand is bounded and excludes multiplayer',()=>{
  const economy=fs.readFileSync(path.join(root,'economy-system.js'),'utf8');
  assert.ok(economy.includes("const satisfactionDemand=state.playType==='multi'?1:1+(satisfaction-70)*.0015"));
  assert.ok(economy.includes('lvl*demand*reputationDemand*satisfactionDemand'));
+});
+
+test('customer queue simulation responds to staffing and varies by industry',()=>{
+ const model=require('../customer-service.js');
+ const coffee={type:'coffee',popularity:60,workers:0,efficiency:0,marketing:0,chainCount:0,satisfaction:70,reputation:50};
+ const baseline=model.snapshot(coffee);
+ assert.ok(baseline.waiting>0);
+ const improved=model.snapshot({...coffee,workers:3,efficiency:2});
+ assert.ok(improved.waiting<baseline.waiting);
+ assert.ok(improved.target>baseline.target);
+ assert.notEqual(model.snapshot({...coffee,type:'hotel'}).label,baseline.label);
+});
+test('customer service advances slowly and does not modify unrelated game state',()=>{
+ const model=require('../customer-service.js');
+ const b={type:'restaurant',popularity:80,workers:0,satisfaction:70,reputation:50};
+ const before=model.snapshot(b);
+ model.advance(b);
+ assert.ok(Math.abs(b.satisfaction-70)<=3);
+ assert.equal(b.customerService.arrivals,before.arrivals);
+ assert.equal(b.customerService.waiting,before.waiting);
+ assert.equal(b.reputation,50);
 });
