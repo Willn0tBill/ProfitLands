@@ -54,6 +54,8 @@ test('mobile console supports safe area, touch targets, readable stats and respo
  assert.match(css,/min-height:53px/);
  assert.match(css,/font-size:max\(16px,1em\)!important/);
  assert.match(css,/stat:nth-child\(3\)/);
+ assert.match(css,/pl-online-world \.pl-world-chat-dock/);
+ assert.match(css,/z-index:490!important/);
  assert.match(css,/pl-mobile-drawer-overlay\[hidden\]/);
  assert.match(css,/:has\(\.modal:not\(\.hidden\)\)/);
 });
