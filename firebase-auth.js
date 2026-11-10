@@ -64,6 +64,7 @@
       const cloudState=cloudDoc?.state||null;
       cloudRevision=Number.isSafeInteger(cloudDoc?.revision)&&cloudDoc.revision>=0?cloudDoc.revision:0;
       cloudConflict=false;
+      window.profitlandsCloudConflict=false;
       // Do not upload the last signed-in person's device save into a different account.
       const deviceOwner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
       const local=(deviceOwner&&deviceOwner!==currentUser.uid)?null:localSave();
@@ -114,7 +115,7 @@
       }
     }catch(e){
       console.warn('Cloud load failed',e);
-      window.profitlandsLastCloudSave={hasSave:false,error:true};
+      window.profitlandsLastCloudSave={hasSave:false,error:true,conflict:cloudConflict};
     }
     loadingCloud=false;
     try{localStorage.setItem('profitlands-local-owner',currentUser.uid)}catch(e){}
