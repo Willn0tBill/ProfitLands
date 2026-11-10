@@ -73,14 +73,21 @@ function rewardFor(id,score){
 }
 const POWERUPS=Object.freeze({
  rush:{name:'Profit Surge',description:'2× positive operating earnings',duration:60000},
+ rush_pro:{name:'Flash Sale Frenzy',description:'3× positive operating earnings',duration:30000},
  dispatch:{name:'Efficiency Drive',description:'1.5× positive operating earnings',duration:120000},
- desk:{name:'Safety Net',description:'Prevents negative operating cash flow',duration:90000}
+ dispatch_pro:{name:'Logistics Mastery',description:'1.75× positive operating earnings',duration:90000},
+ desk:{name:'Safety Net',description:'Prevents negative operating cash flow',duration:90000},
+ desk_pro:{name:'Crisis Shield',description:'Prevents negative operating cash flow',duration:180000}
 });
-function awardBoost(id,now=Date.now()){
- const st=window.state,p=ensure(),effect=POWERUPS[id];
+function powerupFor(id,score){
+ const perfect=(id==='rush'&&score>=20)||(id==='dispatch'&&score===8)||(id==='desk'&&score===5);
+ return perfect?id+'_pro':id;
+}
+function awardBoost(id,now=Date.now(),score=0){
+ const st=window.state,p=ensure(),type=powerupFor(id,score),effect=POWERUPS[type];
  if(!st||st.playType==='multi'||!p||!effect||!Array.isArray(st.businesses)||!st.businesses.length)return null;
  if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return null;
- p.boostType=id;
+ p.boostType=type;
  p.boostUntil=now+effect.duration;
  p.lastBoostAt=now;
  return effect;
@@ -109,7 +116,7 @@ function complete(now=Date.now()){
   p.earned+=award;
   p.rewards.push(now);
  }
- current.powerup=canReward&&current.score>0?awardBoost(current.id,now):null;
+ current.powerup=canReward&&current.score>0?awardBoost(current.id,now,current.score):null;
  current.boost=Boolean(current.powerup);
  current.award=canReward?award:0;
  current.practice=!canReward;
@@ -267,6 +274,6 @@ function init(){
  // Optional invitation; never interrupts the current action or opens a modal.
  window.setInterval?.(()=>maybeInvite(),90000);
 }
-window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
+window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,powerupFor,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
