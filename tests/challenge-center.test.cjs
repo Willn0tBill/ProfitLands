@@ -112,7 +112,7 @@ test('reputation choices cannot mutate businesses in multiplayer',()=>{
 test('reputation demand is capped, solo-only and integrated into location revenue',()=>{
  const economy=fs.readFileSync(path.join(__dirname,'../economy-system.js'),'utf8');
  assert.ok(economy.includes("state.playType==='multi'?1:1+(reputation-50)*.0016"));
- assert.ok(economy.includes('demand*reputationDemand*f.countryRevenue'));
+ assert.ok(economy.includes('demand*reputationDemand*satisfactionDemand*f.countryRevenue'));
  assert.ok(economy.includes('Math.max(0,Math.min(100,b.reputation))'));
 });
 test('Challenge Center script and styles use valid separate HTML lines',()=>{
