@@ -404,6 +404,16 @@
       if((kind==='desk'||kind==='desk_pro')&&realized<0)realized=0;
       arcade.boostEarned=(Number(arcade.boostEarned)||0)+Math.max(0,realized-before);
     }
+    // Daily business decisions affect actual solo operating cash flow.
+    // Apply after Arcade rewards so both systems share one settled wallet amount.
+    const decision=state.playType!=='multi'?window.ProfitLandsChallengeCenter?.decisionEffect?.(now):null;
+    if(decision&&Number.isFinite(decision.multiplier)){
+      if((decision.id==='supplier'||decision.id==='marketing')&&realized>0){
+        realized*=decision.multiplier;
+      }else if(decision.id==='maintenance'&&realized<0){
+        realized*=decision.multiplier;
+      }
+    }
     if(!Number.isFinite(realized))return 0;
     if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}
     else state.cash=Math.max(-1e15,(Number(state.cash)||0)+realized);
