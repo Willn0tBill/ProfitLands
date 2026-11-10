@@ -39,3 +39,24 @@ test('unmet contracts cannot be claimed and multiplayer is excluded',()=>{
  assert.equal(h.api.claim('starter',now),false);
  assert.equal(h.gained(),0);
 });
+
+test('daily rotation selects exactly one bonus contract and one business decision',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ const today=h.api.status(day),tomorrow=h.api.status(day+86400000);
+ assert.equal(today.contracts.length,4);
+ assert.notEqual(today.contracts[3].id,tomorrow.contracts[3].id);
+ assert.notEqual(today.event.id,tomorrow.event.id);
+});
+test('business choice pays once, rejects repeats and resets on the next day',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ assert.equal(h.api.decide(0,day),true);
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.state.challengeCenter.eventChoice,0);
+ assert.equal(h.api.decide(1,day+86400000),true);
+});
+test('business choice cannot spend more cash than available',()=>{
+ const h=harness(),day=Date.parse('2026-11-10T12:00:00Z');
+ h.state.cash=0;
+ assert.equal(h.api.decide(0,day),false);
+ assert.equal(h.api.decide(1,day),true);
+});
