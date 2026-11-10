@@ -5,6 +5,7 @@
 (function(){
 'use strict';
 const KEY='profitlands-workspace-view-v2';
+const ONBOARDING_KEY='profitlands-guided-unlocks-v1';
 const VIEWS=[
  {id:'overview',number:'01',name:'Overview',title:'Your Tycoon World',description:'Pick your next move and build your empire.',group:'PLAY',panels:['executivePanel','economyPanel','newsPanel']},
  {id:'businesses',number:'02',name:'Businesses',title:'Build & Upgrade',description:'Buy shops, improve locations and grow your chain.',group:'PLAY',panels:['businessPanel']},
@@ -22,9 +23,41 @@ const VIEWS=[
 const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
-let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,questSteps=[],advancedDisclosure=null,socialHeading=null;
+let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,questSteps=[],advancedDisclosure=null,socialHeading=null,unlockButton=null;
 const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
+function guidedMode(){
+ const s=window.state;
+ if(!s?.started||isMultiplayer())return false;
+ try{
+  if(localStorage.getItem(ONBOARDING_KEY)==='skip')return false;
+  // Existing players must never lose access to features they already used.
+  if(localStorage.getItem('profitlands-tutorial-complete')==='1'&&
+    !localStorage.getItem(ONBOARDING_KEY))return false;
+ }catch(e){return false}
+ return true;
+}
+function onboardingStage(){
+ if(!guidedMode())return 5;
+ const s=window.state, businesses=Array.isArray(s.businesses)?s.businesses:[];
+ if(!businesses.length)return 1;
+ const locations=businesses.flatMap(b=>Array.isArray(b.locations)?b.locations:[]);
+ const improved=locations.some(l=>Number(l.level)>1||Number(l.workers)>0)||
+  businesses.some(b=>Number(b.level)>1||Number(b.workers)>0);
+ if(!improved)return 2;
+ if(businesses.length<2&&locations.length<2)return 3;
+ return 5;
+}
+const STAGE_BY_VIEW={overview:1,businesses:1,operations:2,finance:2,analytics:3,arcade:3,advances:3,trophies:3,markets:5,corporate:5};
+function unlocked(id){
+ if(isMultiplayer())return true; // Multiplayer eligibility is enforced by existing server rules.
+ return onboardingStage()>=(STAGE_BY_VIEW[id]||1);
+}
+function skipGuidance(){
+ try{localStorage.setItem(ONBOARDING_KEY,'skip')}catch(e){}
+ syncMode();
+}
+
 const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
@@ -62,6 +95,7 @@ function starterProgress(s){
 }
 function updateGuide(){
  if(!guideTitle||!window.state)return;
+ syncUnlocks();
  const progress=starterProgress(window.state),next=progress.next;
  guideTitle.textContent=progress.completed===3?'Starter challenges complete!':next.title;
  guideText.textContent=next.detail;
@@ -83,7 +117,7 @@ function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
 }
 function show(id,{focus=false,remember=true}={}){
- if(!initialized||!available(id))return false;
+ if(!initialized||!available(id)||!unlocked(id))return false;
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
@@ -161,6 +195,10 @@ function makeNav(){
   buttonMap.set(view.id,btn);
  }
  const actions=element('div','pl-workspace-sidebar-actions');
+ unlockButton=element('button','pl-workspace-quick-button','Show all features');
+ unlockButton.type='button';
+ unlockButton.addEventListener('click',skipGuidance);
+ actions.appendChild(unlockButton);
  const toolsHeading=element('span','pl-workspace-nav-group','QUICK PLAY');
  actions.appendChild(toolsHeading);
  const buy=element('button','pl-workspace-quick-button','+ New business');
@@ -234,9 +272,20 @@ function makeViews(game){
  }
  return body;
 }
+function syncUnlocks(){
+ for(const [id,button] of buttonMap){
+  const locked=available(id)&&!unlocked(id);
+  button.hidden=!available(id)||locked;
+  button.disabled=locked;
+  if(locked)button.title='Complete your starter missions to unlock';
+  else button.removeAttribute('title');
+ }
+ if(unlockButton)unlockButton.hidden=!guidedMode();
+ if(initialized&&available(current)&&!unlocked(current))show('overview',{remember:false});
+}
 function syncMode(){
  const active=isMultiplayer();
- for(const [id,button] of buttonMap)button.hidden=!available(id);
+ syncUnlocks();
  for(const [group,heading] of groupHeadings)heading.hidden=active?group!=='SOCIAL':group==='SOCIAL';
  if(advancedDisclosure)advancedDisclosure.hidden=active;
  if(toolbar)toolbar.hidden=active;
@@ -278,7 +327,7 @@ function build(){
  const fromHash=viewFromHash(location.hash);
  syncMode();
  const requested=fromHash||current;
- show(available(requested)?requested:(isMultiplayer()?'world':'overview'),{remember:false});
+ show(available(requested)&&unlocked(requested)?requested:(isMultiplayer()?'world':'overview'),{remember:false});
  const oldLinks=document.querySelectorAll('#gameScreen .growth-quicknav a[href^="#"]');
  for(const a of oldLinks)a.addEventListener('click',()=>{
   const v=viewFromHash(a.getAttribute('href'));
@@ -299,7 +348,7 @@ function build(){
  });
 }
 window.ProfitLandsWorkspace={
- show,active:()=>current,viewForPanel,available,syncMode,
+ show,active:()=>current,viewForPanel,available,syncMode,onboardingStage,unlocked,skipGuidance,
  views:VIEWS.map(v=>({id:v.id,name:v.name,panels:v.panels.slice()})),
  ready:()=>initialized
 };
