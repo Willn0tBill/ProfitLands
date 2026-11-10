@@ -58,7 +58,7 @@ function claim(id,now=Date.now()){
  else s.cash=(Number(s.cash)||0)+q.reward;
  if(!Array.isArray(s.news))s.news=[];
  s.news.push('DAILY CONTRACT — '+q.title+' completed. Reward: '+fmt(q.reward)+'.');
- window.save?.();window.render?.();render();
+ window.save?.();window.render?.();render(now);
  window.toast?.('Contract complete: +'+fmt(q.reward));
  return true;
 }
