@@ -108,3 +108,5 @@
  .pl-arcade-result{padding:20px 14px}
 }
 @media(prefers-reduced-motion:reduce){.pl-arcade-track span,.pl-arcade-tap{transition:none!important}}
+
+.pl-arcade-boost{padding:11px 14px;margin:12px 0;border:1px solid #8acb69;border-radius:10px;background:rgba(103,168,71,.13);color:#d9ffbd;font-weight:800;font-size:13px}
