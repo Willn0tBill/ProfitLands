@@ -212,7 +212,7 @@
  body.pl-mobile-console-playing .pl-mobile-tab-label{font-size:9px}
  body.pl-mobile-console-playing .pl-mobile-drawer-options{grid-template-columns:minmax(0,1fr)}
 }
-@media(max-height:500px) and (max-width:760px){
+@media(max-height:500px) and (max-width:1024px) and (pointer:coarse){
  body.pl-mobile-console-playing .pl-mobile-tab{min-height:39px;gap:0;padding:2px}
  body.pl-mobile-console-playing .pl-mobile-tab-icon{font-size:17px;height:19px}
  body.pl-mobile-console-playing #gameScreen .pl-workspace-main{
