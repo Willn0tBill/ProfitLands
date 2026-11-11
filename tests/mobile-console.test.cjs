@@ -59,3 +59,9 @@ test('mobile console supports safe area, touch targets, readable stats and respo
  assert.match(css,/pl-mobile-drawer-overlay\[hidden\]/);
  assert.match(css,/:has\(\.modal:not\(\.hidden\)\)/);
 });
+
+test('stage-one More drawer focuses its skip action and completed players see no tutorial helper',()=>{
+ assert.ok(script.includes("drawer.querySelector('.pl-mobile-skip-guide')"),'drawer keyboard focus does not escape behind overlay');
+ assert.ok(script.includes("workspace()?.onboardingStage?.()<5"),'completed stages hide beginner-only helper');
+ assert.ok(script.includes('grid.appendChild(intro)'), 'skip stays reachable at every unfinished guided stage');
+});
