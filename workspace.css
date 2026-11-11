@@ -534,3 +534,20 @@ body.pl-workspace-enabled:has(#gameScreen.active) #floatingHud{display:none!impo
  }
  #gameScreen .pl-workspace-view[data-workspace-content="overview"] .pl-game-step small{display:none!important}
 }
+
+/* A low-pressure bypass for brand-new players; does not overwrite legacy saves. */
+#gameScreen .pl-onboarding-skip{
+ display:inline-flex;align-items:center;align-self:flex-start;justify-content:center;
+ margin-top:11px;padding:6px 0;min-height:36px;
+ border:0;background:transparent;color:#bdddac;
+ font:750 12px/1.3 inherit;text-decoration:underline;
+ text-underline-offset:3px;cursor:pointer;
+}
+#gameScreen .pl-onboarding-skip[hidden]{display:none!important}
+#gameScreen .pl-onboarding-skip:hover{color:#e7ffc8}
+#gameScreen .pl-onboarding-skip:focus-visible{
+ outline:3px solid #baf38a;outline-offset:3px;border-radius:4px;
+}
+@media(max-width:760px){
+ #gameScreen .pl-onboarding-skip{min-height:44px;font-size:12px}
+}
