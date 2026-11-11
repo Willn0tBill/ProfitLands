@@ -52,7 +52,7 @@ function syncUnlocks(){
  for(const [id,button]of buttonMap)button.hidden=!canOpen(id);
  if(advancedDisclosure)advancedDisclosure.hidden=isMultiplayer()||!['markets','analytics','finance'].some(canOpen);
  if(growDisclosure)growDisclosure.hidden=isMultiplayer()||!['corporate','advances','trophies'].some(canOpen);
- if(guideSkipButton)guideSkipButton.hidden=!guided;
+ if(guideSkipButton)guideSkipButton.hidden=!guided||stage===5;
  const key=(isMultiplayer()?'online':guided?'guided':'full')+':'+stage;
  if(lastGuidedStage!==key){
   lastGuidedStage=key;
