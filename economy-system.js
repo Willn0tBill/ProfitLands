@@ -585,6 +585,7 @@
     ensure();economyUI();bankPanel();showLiveCash();
     window.ProfitLandsGrowth?.render?.();
     window.ProfitLandsBalance?.status?.();
+    window.ProfitLandsWorkspace?.refreshGuidance?.();
     const banner=document.getElementById('eventBanner');
     if(banner){
       const e=state.economy,ev=e.activeEvents.map(a=>{const x=EVENTS.find(y=>y.id===a.id);return x?x.title+' · '+a.days+'d':''}).filter(Boolean);
@@ -664,6 +665,7 @@
         return originalStart();
       }
       reset(state.mode,state.playType);
+      window.ProfitLandsWorkspace?.syncMode?.();
       document.getElementById('homeScreen')?.classList.remove('active');
       document.getElementById('gameScreen')?.classList.add('active');
       render();startTimer2();window.profitLandsPlatform?.gameplayStart();
