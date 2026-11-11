@@ -294,7 +294,7 @@ function makeViews(game){
    guideSkipButton.type='button';
    guideSkipButton.setAttribute('aria-label','Show all game sections and skip guided unlocks');
    guideSkipButton.addEventListener('click',skipGuidance);
-   welcome.appendChild(guideSkipButton);
+   introCopy.appendChild(guideSkipButton);
    region.appendChild(welcome);
    const steps=element('div','pl-game-steps');
    for(const [icon,title,description,action] of [
