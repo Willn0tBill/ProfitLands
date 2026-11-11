@@ -7,7 +7,7 @@ const root=path.join(__dirname,'..');
 const code=fs.readFileSync(path.join(root,'business-arcade.js'),'utf8');
 function harness(){
   const state={started:true,cash:1000,actions:60,day:3,businesses:[],news:[]};
-  let saved=0,rendered=0,gains=0,intervalFn=null;
+  let saved=0,rendered=0,gains=0,missionRefreshes=0,intervalFn=null;
   let visible=true,view='arcade',gameActive=true;
   const elements=new Map();
   elements.set('arcadeContent',{innerHTML:'',addEventListener(){}});
@@ -21,6 +21,7 @@ function harness(){
     state,
     ProfitLandsMoney:{gain:amount=>{assert.ok(Number.isFinite(amount));state.cash+=amount;gains+=amount},format:n=>'$'+Number(n).toLocaleString()},
     ProfitLandsWorkspace:{active:()=>view},
+    ProfitLandsChallengeCenter:{render(){missionRefreshes++}},
     save(){saved++},
     render(){rendered++},
     addEventListener(){}
@@ -29,7 +30,7 @@ function harness(){
     setInterval:fn=>{intervalFn=fn;return 42},clearInterval:()=>{intervalFn=null}});
   new vm.Script(code,{filename:'business-arcade.js'}).runInContext(context);
   return {api:window.ProfitLandsArcade,state,window,elements,
-    saved:()=>saved,rendered:()=>rendered,gains:()=>gains,
+    saved:()=>saved,rendered:()=>rendered,gains:()=>gains,missionRefreshes:()=>missionRefreshes,
     setVisible:value=>visible=value,setView:value=>view=value,
     setGameActive:value=>gameActive=value,interval:()=>intervalFn};
 }
@@ -137,4 +138,98 @@ test('workspace navigation and new game reset are wired without replacing existi
  assert.ok(html.indexOf('business-arcade.js')>html.indexOf('workspace.js'));
  assert.ok(app.includes('state.arcade=null'));
  assert.ok(economy.includes('state.arcade=null'));
+});
+
+test('successful arcade round grants one bounded solo earnings boost',()=>{
+ const h=harness(),api=h.api;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ const now=Date.now();
+ assert.equal(api.start('rush',now),true);
+ api.press('serve',undefined,now+1);
+ assert.equal(api.complete(now+1000),true);
+ assert.equal(h.state.arcade.boostUntil,now+91000);
+ assert.equal(h.state.arcade.boostType,'rush');
+ assert.equal(h.state.arcade.lastBoostAt,now+1000);
+ api.stop();
+ assert.equal(api.start('rush',now+2000),true);
+ api.press('serve',undefined,now+2001);
+ api.complete(now+3000);
+ assert.equal(h.state.arcade.boostUntil,now+91000,'cannot stack or extend boost');
+});
+test('multiplayer arcade rounds never grant client-controlled boosts',()=>{
+ const h=harness(),api=h.api;
+ h.state.playType='multi';
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ const now=Date.now();
+ api.start('rush',now);api.press('serve',undefined,now+1);api.complete(now+1000);
+ assert.equal(h.state.arcade.boostUntil,undefined);
+});
+
+test('each mini-game grants a distinct nonstacking power-up',()=>{
+ const cases=[['rush','Profit Surge',60000],['dispatch','Efficiency Drive',120000],['desk','Safety Net',90000]];
+ for(const [id,name,duration] of cases){
+  const h=harness(),api=h.api,now=Date.now();
+  h.state.businesses=[{type:'coffee',locations:[{}]}];
+  assert.equal(api.start(id,now),true);
+  if(id==='rush')api.press('serve',undefined,now+1);
+  if(id==='dispatch')api.press('route',api.getSession().destination,now+1);
+  if(id==='desk')api.press('choose',0,now+1);
+  api.complete(now+1000);
+  assert.equal(h.state.arcade.boostType,id);
+  assert.equal(h.state.arcade.boostUntil,now+1000+Math.round(duration*1.5));
+  assert.equal(api.activePowerup(now+2000).name,name);
+  assert.equal(api.activePowerup(now+1001+Math.round(duration*1.5)),null);
+ }
+});
+
+test('high scores unlock advanced power-up variants',()=>{
+ const h=harness(),api=h.api;
+ assert.equal(api.powerupFor('rush',19),'rush');
+ assert.equal(api.powerupFor('rush',20),'rush_pro');
+ assert.equal(api.powerupFor('dispatch',7),'dispatch');
+ assert.equal(api.powerupFor('dispatch',8),'dispatch_pro');
+ assert.equal(api.powerupFor('desk',4),'desk');
+ assert.equal(api.powerupFor('desk',5),'desk_pro');
+ assert.equal(Object.keys(api.POWERUPS).length,6);
+});
+
+test('Arcade boosts scale with wealth and lock their duration',()=>{
+ const h=harness(),api=h.api,now=Date.now();
+ assert.equal(api.wealthDuration(60000,9999),90000);
+ assert.equal(api.wealthDuration(60000,10000),75000);
+ assert.equal(api.wealthDuration(60000,100000),60000);
+ assert.equal(api.wealthDuration(60000,1000000),51000);
+ assert.equal(api.wealthDuration(60000,100000000),45000);
+ h.state.cash=100000000;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ api.start('rush',now);api.press('serve',undefined,now+1);api.complete(now+1000);
+ assert.equal(h.state.arcade.boostDuration,45000);
+ assert.equal(h.state.arcade.boostUntil,now+46000);
+ h.state.cash=100;
+ assert.equal(api.activePowerup(now+2000).remainingMs,44000);
+});
+
+test('completed Arcade rounds update daily missions without waiting for a timer',()=>{
+ const h=harness(),api=h.api;
+ assert.equal(h.missionRefreshes(),0);
+ assert.equal(api.start('desk',100000),true);
+ for(const answer of [0,1,0,0,2])assert.equal(api.press('choose',answer,100001),true);
+ assert.equal(h.missionRefreshes(),1);
+ assert.equal(h.state.arcade.played,1);
+ assert.equal(api.complete(100002),false);
+ assert.equal(h.missionRefreshes(),1,'duplicate completions cannot refresh or pay again');
+});
+
+test('power-up length uses the real large-number wallet wealth tier',()=>{
+ const h=harness(),money=fs.readFileSync(path.join(root,'huge-money.js'),'utf8');
+ h.state.cash=1000000;
+ h.state.businesses=[{type:'coffee',locations:[{}]}];
+ vm.runInNewContext(money,{window:h.window,Math,Number,console});
+ h.window.ProfitLandsMoney.attach(h.state);
+ const now=Date.now();
+ assert.equal(h.api.start('desk',now),true);
+ for(const answer of [0,1,0,0,2])assert.equal(h.api.press('choose',answer,now+20),true);
+ assert.equal(h.state.arcade.boostType,'desk_pro');
+ assert.equal(h.state.arcade.boostDuration,153000,'millionaire tier gets 85% of 180-second base');
+ assert.ok(h.api.activePowerup(now+1000)?.remainingMs>0);
 });

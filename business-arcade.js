@@ -17,7 +17,7 @@ const SCENARIOS=[
  {prompt:'One location earns less than others despite strong sales. What is worth reviewing?',options:['The branch’s rent and operating expenses','The company logo alone','Only total empire value'],answer:0,why:'Profit depends on expenses as well as revenue.'},
  {prompt:'You are expanding into a new city. Which is the safer first step?',options:['Open ten locations without research','Ignore local regulations','Review demand, rent and staffing costs'],answer:2,why:'Researching the local market helps manage expansion risk.'}
 ];
-const LIMIT=3,WINDOW_MS=5*60*1000;
+const LIMIT=3,WINDOW_MS=5*60*1000,BOOST_MS=60*1000,BOOST_COOLDOWN_MS=5*60*1000;
 let session=null,clock=null,view='games';
 const fmt=n=>window.ProfitLandsMoney?.format?.(n)||'$'+Math.round(n).toLocaleString('en-US');
 function ensure(){
@@ -71,6 +71,42 @@ function rewardFor(id,score){
  if(id==='desk')return Math.min(90,s*18);
  return 0;
 }
+const POWERUPS=Object.freeze({
+ rush:{name:'Profit Surge',description:'2× positive operating earnings',duration:60000},
+ rush_pro:{name:'Flash Sale Frenzy',description:'3× positive operating earnings',duration:30000},
+ dispatch:{name:'Efficiency Drive',description:'1.5× positive operating earnings',duration:120000},
+ dispatch_pro:{name:'Logistics Mastery',description:'1.75× positive operating earnings',duration:90000},
+ desk:{name:'Safety Net',description:'Prevents negative operating cash flow',duration:90000},
+ desk_pro:{name:'Crisis Shield',description:'Prevents negative operating cash flow',duration:180000}
+});
+function wealthDuration(base,cash){
+ const amount=Math.max(0,Number(cash)||0);
+ const scale=amount<10000?1.5:amount<100000?1.25:amount<1000000?1:amount<100000000?.85:.75;
+ return Math.round(base*scale);
+}
+function powerupFor(id,score){
+ const perfect=(id==='rush'&&score>=20)||(id==='dispatch'&&score===8)||(id==='desk'&&score===5);
+ return perfect?id+'_pro':id;
+}
+function awardBoost(id,now=Date.now(),score=0){
+ const st=window.state,p=ensure(),type=powerupFor(id,score),effect=POWERUPS[type];
+ if(!st||st.playType==='multi'||!p||!effect||!Array.isArray(st.businesses)||!st.businesses.length)return null;
+ if(Number(p.boostUntil)>now||Number(p.lastBoostAt)>now-BOOST_COOLDOWN_MS)return null;
+ const ledger=window.ProfitLandsMoney,rawBalance=ledger?.balance?.();
+ // The canonical idle-game balance uses {m,e}; do not coerce it to NaN.
+ const cash=Number(ledger?.number?ledger.number(rawBalance):rawBalance??st.cash);
+ p.boostDuration=wealthDuration(effect.duration,cash);
+ p.boostType=type;
+ p.boostUntil=now+p.boostDuration;
+ p.lastBoostAt=now;
+ return {...effect,duration:p.boostDuration};
+}
+function activePowerup(now=Date.now()){
+ const st=window.state,p=st?.arcade;
+ if(st?.playType==='multi'||!p||!POWERUPS[p.boostType]||!Number.isFinite(p.boostUntil)||p.boostUntil<=now||p.boostUntil>now+POWERUPS[p.boostType].duration*1.5)return null;
+ return {...POWERUPS[p.boostType],duration:p.boostDuration||POWERUPS[p.boostType].duration,type:p.boostType,remainingMs:p.boostUntil-now};
+}
+function boostActive(now=Date.now()){return Boolean(activePowerup(now))}
 function complete(now=Date.now()){
  if(!session||session.finished)return false;
  session.finished=true;
@@ -89,11 +125,16 @@ function complete(now=Date.now()){
   p.earned+=award;
   p.rewards.push(now);
  }
+ current.powerup=canReward&&current.score>0?awardBoost(current.id,now,current.score):null;
+ current.boost=Boolean(current.powerup);
  current.award=canReward?award:0;
  current.practice=!canReward;
+ if(current.powerup)window.toast?.('Power-up unlocked: '+current.powerup.name+' — '+current.powerup.description+'!');
  view='result';
  window.save?.();
  window.render?.();
+ // Refresh daily missions immediately when the Arcade round awards its result.
+ window.ProfitLandsChallengeCenter?.render?.();
  render();
  return true;
 }
@@ -149,7 +190,9 @@ function tile(g){
 }
 function info(){
  const p=ensure(),left=available();
- return '<div class="pl-arcade-meta"><div><span>REWARD PLAYS AVAILABLE</span><strong>'+left+' / '+LIMIT+'</strong></div>'+
+ const active=activePowerup();
+ const boost=active?'<div class="pl-arcade-boost" role="status">⚡ '+active.name+': '+active.description+' · '+Math.ceil(active.remainingMs/1000)+'s left</div>':'';
+ return boost+'<div class="pl-arcade-meta"><div><span>REWARD PLAYS AVAILABLE</span><strong>'+left+' / '+LIMIT+'</strong></div>'+
  '<div><span>TOTAL ARCADE EARNINGS</span><strong>'+fmt(p?.earned||0)+'</strong></div>'+
  '<div><span>GAMES COMPLETED</span><strong>'+Number(p?.played||0)+'</strong></div></div>';
 }
@@ -189,7 +232,8 @@ function resultScreen(){
  '<span class="pl-arcade-overline">ROUND COMPLETE</span><h3>'+g.name+'</h3>'+
  '<p>You finished with <b>'+s.score+'</b> point'+(s.score===1?'':'s')+'.</p>'+
  '<div class="pl-arcade-result-amount">'+(earned?'+'+fmt(earned):'Practice round')+'</div>'+
- '<p>'+(earned?'The cash reward was added to your existing empire and saved.':'No reward paid for this round (low score or reward limit reached).')+'</p>'+
+ '<p>'+(earned?'The cash reward was added to your existing empire and saved.':'No reward paid for this round (low score or reward limit reached).')+'</p>'+ 
+ (s.powerup?'<p class="pl-arcade-boost" role="status">⚡ '+s.powerup.name+' unlocked: '+s.powerup.description+'!</p>':'')+
  '<div class="pl-arcade-result-buttons"><button type="button" data-arcade-back>Return to arcade</button>'+
  '<button type="button" data-arcade-retry="'+s.id+'">Play again</button></div></section>';
 }
@@ -202,6 +246,15 @@ function render(){
    '<div class="pl-arcade-help"><strong>Arcade earnings are intentionally modest.</strong> This is an optional way to interact with your empire between management decisions. Your real business income and automatic market cycles continue normally.</div>';
  }else if(view==='playing')root.innerHTML=gameScreen();
  else root.innerHTML=resultScreen();
+}
+function maybeInvite(now=Date.now()){
+ const st=window.state,p=ensure();
+ if(!st?.started||st.playType==='multi'||!st.businesses?.length||document.visibilityState==='hidden'||session||!p)return false;
+ if(window.ProfitLandsWorkspace?.active?.()==='arcade'||available(now)===0)return false;
+ if(Number(p.lastInviteAt)>now-5*60*1000)return false;
+ p.lastInviteAt=now;
+ window.toast?.('Arcade challenge available! Visit Business Arcade for a chance to unlock a temporary business power-up.');
+ return true;
 }
 function init(){
  const root=$('arcadeContent');
@@ -229,7 +282,9 @@ function init(){
   if(e.detail?.view!=='arcade'&&session&&view==='playing')stop();
  });
  render();
+ // Optional invitation; never interrupts the current action or opens a modal.
+ window.setInterval?.(()=>maybeInvite(),90000);
 }
-window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,getSession:()=>session,GAMES};
+window.ProfitLandsArcade={ensure,available,game,rewardFor,start,press,complete,tick,stop,render,boostActive,activePowerup,powerupFor,wealthDuration,maybeInvite,POWERUPS,getSession:()=>session,GAMES};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

@@ -299,10 +299,13 @@ test('three world ledgers preserve Americas data and isolate purchases, leaderbo
  const asia=(await post(db,'me','user-one',{worldId:'world-asia'})).body;
  assert.equal(asia.player.cash,1500);
  assert.equal(asia.player.businesses.length,0);
- const america=(await post(db,'me','user-one')).body;
- assert.equal(america.player.cash,1000);
- assert.equal(america.player.businesses.length,1);
+ // Verify regional isolation BEFORE reading Americas again: an Americas 'me' call
+ // legitimately settles local passive income when 1+ seconds have elapsed.
  assert.deepEqual(db.read('world1'),americasBefore,'joining other regions never changes old Americas state');
+ const america=(await post(db,'me','user-one')).body;
+ assert.ok(america.player.cash>=buyAmerica.body.player.cash,
+  'own-region refresh may legitimately accrue positive passive earnings');
+ assert.equal(america.player.businesses.length,1);
  const euRanks=await post(db,'getLeaderboard','user-one',{worldId:'world-europe',period:'all'});
  const asiaRanks=await post(db,'getLeaderboard','user-one',{worldId:'world-asia',period:'all'});
  assert.equal(euRanks.body[0].score,1500);

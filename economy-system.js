@@ -159,7 +159,9 @@
     const noise=(seeded-Math.floor(seeded))-.5;
     const random=1+noise*(r.vol*f.randomScale+.08);
     const demand=e.demandIndex*loc.demand*f.countryDemand*f.demandEffect*(1+(e.health-60)/250*r.econ);
-    const revenue=t.baseRevenue*lvl*demand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
+    const reputation=Number.isFinite(b.reputation)?Math.max(0,Math.min(100,b.reputation)):50;
+    const reputationDemand=state.playType==='multi'?1:1+(reputation-50)*.0016; // bounded 0.92–1.08
+    const revenue=t.baseRevenue*lvl*demand*reputationDemand*f.countryRevenue*f.industryStrength*f.difficultyRevenue*(.45+pop*.8)*(1+marketing*.08)*Math.max(.55,random)*f.scale;
     const runningCost=t.baseExpense*lvl*loc.rent*f.countryCost*f.difficultyExpenses*e.rentIndex*e.wageIndex*e.supplyIndex*r.cost*f.supplyEffect*(1+(100-e.health)/280*r.econ)*Math.max(.75,1-noise*.15) / (1+efficiency*.1);
     const advancement=window.ProfitLandsAdvancements?.modifiers?.(l);
     let profit=revenue*(advancement?.revenue||1)-runningCost*(advancement?.expenses||1);
@@ -390,6 +392,30 @@
       c.financialBalance=(Number(c.financialBalance)||0)+amount;
     });
     realized+=((state.property||0)*12)*multiplier;
+    // Solo-only, bounded arcade perks. Never applied to multiplayer or PvP.
+    const arcade=state.arcade,kind=arcade?.boostType;
+    const durations={rush:60000,rush_pro:30000,dispatch:120000,dispatch_pro:90000,desk:90000,desk_pro:180000};
+    const valid=state.playType!=='multi'&&Object.prototype.hasOwnProperty.call(durations,kind)&&
+      Number.isFinite(arcade.boostUntil)&&arcade.boostUntil>now&&arcade.boostUntil<=now+durations[kind]*1.5;
+    if(valid){
+      const before=realized;
+      if(kind==='rush'&&realized>0)realized*=2;
+      if(kind==='rush_pro'&&realized>0)realized*=3;
+      if(kind==='dispatch'&&realized>0)realized*=1.5;
+      if(kind==='dispatch_pro'&&realized>0)realized*=1.75;
+      if((kind==='desk'||kind==='desk_pro')&&realized<0)realized=0;
+      arcade.boostEarned=(Number(arcade.boostEarned)||0)+Math.max(0,realized-before);
+    }
+    // Daily business decisions affect actual solo operating cash flow.
+    // Apply after Arcade rewards so both systems share one settled wallet amount.
+    const decision=state.playType!=='multi'?window.ProfitLandsChallengeCenter?.decisionEffect?.(now):null;
+    if(decision&&Number.isFinite(decision.multiplier)){
+      if((decision.id==='supplier'||decision.id==='marketing')&&realized>0){
+        realized*=decision.multiplier;
+      }else if(decision.id==='maintenance'&&realized<0){
+        realized*=decision.multiplier;
+      }
+    }
     if(!Number.isFinite(realized))return 0;
     if(window.ProfitLandsMoney){window.ProfitLandsMoney.gain(realized);if(window.ProfitLandsMoney.cmp(window.ProfitLandsMoney.balance(),-1e15)<0)window.ProfitLandsMoney.set(-1e15)}
     else state.cash=Math.max(-1e15,(Number(state.cash)||0)+realized);
