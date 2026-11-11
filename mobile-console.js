@@ -60,7 +60,7 @@ function open(){
  overlay.hidden=false;
  document.body.classList.add('pl-mobile-menu-open');
  more.setAttribute('aria-expanded','true');
- const first=drawer.querySelector('button[data-mobile-view]');
+ const first=drawer.querySelector('button[data-mobile-view]')||drawer.querySelector('.pl-mobile-skip-guide')||drawer.querySelector('.pl-mobile-drawer-close');
  first?.focus();
  return true;
 }
@@ -101,7 +101,7 @@ function draw(){
    }
    if(options.children.length){section.appendChild(options);grid.appendChild(section)}
   }
-  if(workspace()?.guidedMode?.()){
+  if(workspace()?.guidedMode?.()&&workspace()?.onboardingStage?.()<5){
    const intro=make('section','pl-mobile-guide-helper');
    const stage=workspace().onboardingStage();
    intro.appendChild(make('strong','',stage===1?'First: open a shop':stage===2?'Next: upgrade your shop':'Next: expand your empire'));
