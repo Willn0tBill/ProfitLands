@@ -335,3 +335,81 @@ test('redesign preserves accessibility and narrow layout design contracts',()=>{
  assert.ok(js.includes("guideMeter.setAttribute('role','progressbar')"));
  assert.ok(js.includes("sidebarNextButton.addEventListener('click'"));
 });
+
+
+test('fresh solo empire starts with two essential workspaces and unlocks sections through gameplay',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state={playType:'single',started:true,onboardingVersion:1,onboardingDismissed:false,businesses:[]};
+ api.syncMode();
+ assert.equal(api.guidedMode(),true);
+ assert.equal(api.onboardingStage(),1);
+ assert.equal(api.canOpen('overview'),true);
+ assert.equal(api.canOpen('businesses'),true);
+ for(const id of ['operations','arcade','markets','corporate','finance'])assert.equal(api.canOpen(id),false,id+' stays offscreen until unlocked');
+ assert.equal(api.show('arcade'),false,'no navigating around new-player lock');
+ const skip=x.game.find(n=>n.classList.contains('pl-onboarding-skip'));
+ assert.equal(skip.hidden,false);
+ x.window.state.businesses=[{type:'coffee',level:1,workers:0,locations:[{level:1,workers:0}]}];
+ api.refreshGuidance();
+ assert.equal(api.onboardingStage(),2);
+ assert.equal(api.canOpen('operations'),true);
+ assert.equal(api.canOpen('finance'),true);
+ assert.equal(api.canOpen('arcade'),false);
+ assert.equal(api.show('operations'),true);
+ x.window.state.businesses[0].locations[0].level=2;
+ api.refreshGuidance();
+ assert.equal(api.onboardingStage(),3);
+ assert.equal(api.canOpen('arcade'),true,'mini-games arrive after the first upgrade');
+ assert.equal(api.canOpen('analytics'),true);
+ assert.equal(api.canOpen('markets'),false);
+ x.window.state.businesses.push({type:'restaurant',locations:[{level:1,workers:0}]});
+ api.refreshGuidance();
+ assert.equal(api.onboardingStage(),5);
+ assert.equal(api.canOpen('markets'),true);
+ assert.equal(api.canOpen('corporate'),true);
+ assert.equal(skip.hidden,true,'all features unlocked naturally at expansion milestone');
+});
+
+test('skip guidance is explicit, save-scoped and never touches existing economic values',()=>{
+ const x=setup(),api=x.window.ProfitLandsWorkspace;
+ x.window.state={playType:'single',started:true,onboardingVersion:1,onboardingDismissed:false,day:1,cash:1200,businesses:[]};
+ let saved=0;x.window.save=()=>saved++;
+ api.syncMode();
+ const skip=x.game.find(n=>n.classList.contains('pl-onboarding-skip'));
+ skip.click();
+ assert.equal(saved,1,'player choice persists via existing game save');
+ assert.equal(x.window.state.onboardingDismissed,true);
+ assert.equal(x.window.state.cash,1200);
+ assert.equal(x.window.state.day,1);
+ assert.equal(api.canOpen('markets'),true);
+ assert.equal(api.guidedMode(),false);
+ api.syncMode();
+ assert.equal(api.canOpen('arcade'),true,'bypass survives refresh');
+ assert.equal(x.savedData.has('profitlands-guided-unlocks-v1'),false,'skip is not a global setting for future empires');
+});
+
+test('legacy singleplayer saves and authenticated online views remain unrestricted',()=>{
+ const legacy=setup(),l=legacy.window.ProfitLandsWorkspace;
+ legacy.window.state={playType:'single',started:true,businesses:[]};
+ l.syncMode();
+ assert.equal(l.guidedMode(),false);
+ assert.equal(l.canOpen('markets'),true);
+ assert.equal(l.canOpen('arcade'),true);
+ const online=setup(null,'multi'),o=online.window.ProfitLandsWorkspace;
+ online.window.state={playType:'multi',started:false,onboardingVersion:1,businesses:[]};
+ o.syncMode();
+ assert.equal(o.canOpen('world'),true);
+ assert.equal(o.canOpen('clans'),true);
+ assert.equal(o.canOpen('businesses'),false);
+ assert.equal(o.show('world'),true);
+});
+
+test('progressive unlocks preserve mobile dock and mission bar implementation',()=>{
+ const script=fs.readFileSync(path.join(root,'mobile-console.js'),'utf8');
+ const css=fs.readFileSync(path.join(root,'mobile-console.css'),'utf8');
+ assert.ok(script.includes('primarySolo.filter(tab=>canOpen(tab.id))'));
+ assert.ok(script.includes('profitlands:guidancechange'));
+ assert.ok(script.includes('workspace()?.skipGuidance?.()'));
+ assert.ok(script.includes("dock.style.setProperty('--pl-mobile-tabs'"));
+ assert.match(css,/repeat\(var\(--pl-mobile-tabs,5\)/);
+});
