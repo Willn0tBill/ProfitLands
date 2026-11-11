@@ -28,8 +28,8 @@ test('mobile one-tap navigation preserves Overview, Businesses, Operations and A
 
 test('mobile navigation does not alter save state or duplicate business workflows',()=>{
  assert.doesNotMatch(script,/localStorage|sessionStorage|profitlands-v2|cloudSave|requestAttack|cash\s*[+\-]?=/);
- assert.match(script,/workspace\(\)\?\.available\?\.\(item\.id\)/);
- assert.match(script,/lastMode=multi\?'online':'solo'/);
+ assert.match(script,/if\(!canOpen\(item\.id\)\)return/);
+ assert.match(script,/lastMode=modeKey\(\)/);
  assert.match(script,/dock\.dataset\.mode=lastMode/);
 });
 
