@@ -30,12 +30,13 @@
   function welcome(){const p=window.profitlandsProfile||{};open(`<div class="auth-view welcome-card"><span class="eyebrow">WELCOME BACK</span><h2>Continue as ${esc(p.playerName||'Player')}?</h2><div class="welcome-profile"><strong>${esc(p.playerName||'Player')}</strong><small>${esc(p.companyName||'Your Company')}</small></div><div class="auth-buttons"><button class="primary-button" id="continueAccount">Continue as ${esc(p.playerName||'Player')} <span>→</span></button><button class="secondary-button" id="notYou">Not you?</button></div></div>`);$('continueAccount').onclick=close;$('notYou').onclick=()=>{auth.signOut();signIn()}}
   function settings(){const p=window.profitlandsProfile||{};const badgeCount=window.ProfitLandsBadges?.earnedCount?.()||0;const playing=$('gameScreen')?.classList.contains('active');
   const showcase=(window.ProfitLandsBadges?.showcased?.()||[]).slice(0,5);
+  const resolveConflict=cloudConflict?'<button type="button" id="resolveCloudConflict" class="secondary-button">Resolve cloud-save conflict</button>':'';
   const guestImport=window.ProfitLandsAccountTrophies?.guestAvailable?.()
    ?'<button type="button" id="importGuestTrophies" class="secondary-button" style="margin-top:8px">Import guest trophies from this device</button>':'';
   const showcaseHtml=showcase.length
    ?'<div class="auth-featured" aria-label="Featured player achievements">'+showcase.map(b=>'<span title="'+esc(b.title)+'">'+esc(b.icon)+' '+esc(b.title)+'</span>').join('')+'</div>'
    :'<small style="display:block;margin-top:8px;opacity:.7">No featured badges yet. Choose up to five in the Trophy Room.</small>';
-  open(`<div class="auth-view"><span class="eyebrow">ACCOUNT SETTINGS</span><h2>Your ProfitLands identity</h2><div class="settings-grid"><div><label class="auth-label">PLAYER NAME</label><input id="setPlayer" class="auth-input" maxlength="24" value="${esc(p.playerName||'')}"></div><div><label class="auth-label">COMPANY NAME</label><input id="setCompany" class="auth-input" maxlength="40" value="${esc(p.companyName||'')}"></div></div><div class="auth-trophies" style="padding:12px 0"><strong>${badgeCount.toLocaleString()} / 131,072 badges earned</strong><small style="display:block;opacity:.8">Your Trophy Room belongs to your ProfitLands account, separate from Steam achievements.</small><button type="button" id="openAccountTrophies" class="secondary-button" style="margin-top:8px" ${playing?"":"disabled"}>View my Trophy Room</button>${playing?"":"<small style=\"display:block\">Resume a game to browse your achievements.</small>"}${showcaseHtml}${guestImport}</div><div id="setError" class="auth-error"></div><div class="auth-buttons"><button class="primary-button" id="saveSettings">Save Changes</button><button class="secondary-button" id="signOutButton">Sign Out</button></div></div>`);$('openAccountTrophies').onclick=()=>{close();window.ProfitLandsWorkspace?.show?.('trophies')};if($('importGuestTrophies'))$('importGuestTrophies').onclick=()=>{if(window.ProfitLandsAccountTrophies?.importGuest?.()){close();settings()}};$('saveSettings').onclick=async()=>{const n=clean($('setPlayer').value),c=clean($('setCompany').value),problem=invalidName(n)||validCompany(c);if(problem){$('setError').textContent=problem;return}try{await saveProfile(currentUser.uid,{playerName:n,companyName:c});window.profitlandsProfile={playerName:n,companyName:c};state.playerName=n;state.companyName=c;localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile));if(!onlineWorldActive()){save();render()}close();refresh()}catch(e){$('setError').textContent=errorText(e)}};$('signOutButton').onclick=()=>auth.signOut()}
+  open(`<div class="auth-view"><span class="eyebrow">ACCOUNT SETTINGS</span><h2>Your ProfitLands identity</h2><div class="settings-grid"><div><label class="auth-label">PLAYER NAME</label><input id="setPlayer" class="auth-input" maxlength="24" value="${esc(p.playerName||'')}"></div><div><label class="auth-label">COMPANY NAME</label><input id="setCompany" class="auth-input" maxlength="40" value="${esc(p.companyName||'')}"></div></div><div class="auth-trophies" style="padding:12px 0"><strong>${badgeCount.toLocaleString()} / 131,072 badges earned</strong><small style="display:block;opacity:.8">Your Trophy Room belongs to your ProfitLands account, separate from Steam achievements.</small><button type="button" id="openAccountTrophies" class="secondary-button" style="margin-top:8px" ${playing?"":"disabled"}>View my Trophy Room</button>${playing?"":"<small style=\"display:block\">Resume a game to browse your achievements.</small>"}${showcaseHtml}${guestImport}${resolveConflict}</div><div id="setError" class="auth-error"></div><div class="auth-buttons"><button class="primary-button" id="saveSettings">Save Changes</button><button class="secondary-button" id="signOutButton">Sign Out</button></div></div>`);$('openAccountTrophies').onclick=()=>{close();window.ProfitLandsWorkspace?.show?.('trophies')};if($('resolveCloudConflict'))$('resolveCloudConflict').onclick=()=>{close();loadCloud()};if($('importGuestTrophies'))$('importGuestTrophies').onclick=()=>{if(window.ProfitLandsAccountTrophies?.importGuest?.()){close();settings()}};$('saveSettings').onclick=async()=>{const n=clean($('setPlayer').value),c=clean($('setCompany').value),problem=invalidName(n)||validCompany(c);if(problem){$('setError').textContent=problem;return}try{await saveProfile(currentUser.uid,{playerName:n,companyName:c});window.profitlandsProfile={playerName:n,companyName:c};state.playerName=n;state.companyName=c;localStorage.setItem(PROFILE_KEY,JSON.stringify(window.profitlandsProfile));if(!onlineWorldActive()){save();render()}close();refresh()}catch(e){$('setError').textContent=errorText(e)}};$('signOutButton').onclick=()=>auth.signOut()}
   function saveProfile(uid,data){return db.collection('users').doc(uid).set({...data,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})}
   function localSaveExists(){try{return !!localStorage.getItem('profitlands-v2')}catch(e){return false}}
   function saveLastGameMeta(savedState){return {mode:savedState.mode,playType:savedState.playType,day:savedState.day,cash:savedState.cash,netWorth:typeof netWorth==='function'?netWorth():0,started:savedState.started!==false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}}
@@ -48,6 +49,7 @@
   function savedAt(st){return Number(st?.savedAt||0)}
   async function loadCloud(){
     if(!currentUser||!db)return;
+    const accountUid=currentUser.uid;
     loadingCloud=true;
     try{
       const p=await db.collection('users').doc(currentUser.uid).get();
@@ -68,23 +70,53 @@
       // Do not upload the last signed-in person's device save into a different account.
       const deviceOwner=(()=>{try{return localStorage.getItem('profitlands-local-owner')}catch(e){return null}})();
       const local=(deviceOwner&&deviceOwner!==currentUser.uid)?null:localSave();
-      const pendingConflict=localStorage.getItem('profitlands-cloud-conflict-owner')===currentUser.uid;
-      if(pendingConflict&&local){
-        // Keep the diverged device progress as a recovery copy, never overwrite it.
-        localStorage.setItem('profitlands-conflict-backup-'+currentUser.uid,JSON.stringify(local));
+      const pendingConflict=localStorage.getItem('profitlands-cloud-conflict-owner')===accountUid;
+      let recoveryChoice=null;
+      if(pendingConflict&&local&&cloudState){
+        // A real write-and-read-back is mandatory before either version is replaced.
+        // In particular, a full/blocked localStorage must never cause data loss.
+        const key='profitlands-conflict-backup-'+accountUid;
+        const backup=JSON.stringify(local);
+        try{
+          localStorage.setItem(key,backup);
+          if(localStorage.getItem(key)!==backup)throw Error('Backup verification failed');
+        }catch(e){
+          cloudConflict=true;
+          throw Error('Device recovery backup failed. Neither save was replaced.');
+        }
+        recoveryChoice=await window.ProfitLandsCloudRecovery?.choose?.(local,cloudState)||'later';
+        if(currentUser?.uid!==accountUid){
+          cloudConflict=true;
+          throw Error('Your account changed while resolving a save conflict.');
+        }
+        if(recoveryChoice!=='local'&&recoveryChoice!=='cloud'){
+          cloudConflict=true;
+          throw Error('Cloud save conflict deferred. Automatic sync is paused.');
+        }
+        if(recoveryChoice==='local'){
+          // Retain the previous cloud snapshot before an intentional local override.
+          const key='profitlands-conflict-cloud-backup-'+accountUid;
+          const backup=JSON.stringify(cloudState);
+          try{
+            localStorage.setItem(key,backup);
+            if(localStorage.getItem(key)!==backup)throw Error('Backup verification failed');
+          }catch(e){
+            cloudConflict=true;
+            throw Error('Cloud recovery backup failed. Neither save was replaced.');
+          }
+        }
       }
 
       let chosen=null;
       let source='none';
       if(local&&cloudState){
-        if(pendingConflict){chosen=cloudState;source='cloud'}
+        if(pendingConflict){chosen=recoveryChoice==='local'?local:cloudState;source=recoveryChoice==='local'?'local':'cloud'}
         else if(savedAt(local)>=savedAt(cloudState)){chosen=local;source='local'}
         else{chosen=cloudState;source='cloud'}
       }else if(local){chosen=local;source='local'}
       else if(cloudState){chosen=cloudState;source='cloud'}
 
       if(chosen){
-        if(pendingConflict) localStorage.removeItem('profitlands-cloud-conflict-owner');
         const resumeState=JSON.parse(JSON.stringify(chosen));
         const preserveOnlineWorld=onlineWorldActive();
         state.actionCapacityVersion=0;
@@ -99,16 +131,17 @@
 
         if(source==='cloud'){
           localStorage.setItem('profitlands-v2',JSON.stringify(resumeState));
+          if(pendingConflict)localStorage.removeItem('profitlands-cloud-conflict-owner');
           window.profitlandsLastCloudSave={...cloudDoc,state:resumeState,hasSave:true};
         }else{
           const payload={state:resumeState,...saveLastGameMeta(resumeState),saveVersion:4};
           window.profitlandsLastCloudSave={...payload,hasSave:true,localOnly:!cloudState};
-          if(!cloudState||savedAt(resumeState)>savedAt(cloudState)){
+          if(!cloudState||savedAt(resumeState)>savedAt(cloudState)||recoveryChoice==='local'){
             await db.runTransaction(async tx=>{
               const latest=await tx.get(lastRef);
               const latestData=latest.exists?latest.data():null;
               const latestRev=Number.isSafeInteger(latestData?.revision)?latestData.revision:0;
-              if(latestRev!==cloudRevision||savedAt(latestData?.state)>savedAt(resumeState)){
+              if(latestRev!==cloudRevision||(recoveryChoice!=='local'&&savedAt(latestData?.state)>savedAt(resumeState))){
                 cloudConflict=true;
                 throw Error('Cloud save changed on another device. Local progress was preserved; reload to reconcile.');
               }
@@ -116,12 +149,17 @@
             });
             cloudRevision+=1;
           }
+          if(pendingConflict)localStorage.removeItem('profitlands-cloud-conflict-owner');
         }
       }else{
         window.profitlandsLastCloudSave={hasSave:false};
       }
     }catch(e){
       console.warn('Cloud load failed',e);
+      if(cloudConflict&&currentUser?.uid===accountUid){
+        window.profitlandsCloudConflict=true;
+        try{localStorage.setItem('profitlands-cloud-conflict-owner',accountUid)}catch(x){}
+      }
       window.profitlandsLastCloudSave={hasSave:false,error:true,conflict:cloudConflict};
     }
     loadingCloud=false;
@@ -243,7 +281,7 @@
       const p=window.profitlandsProfile||{};
       box.innerHTML=`<button class="account-chip" id="plAccount">${esc(p.playerName||'Account')}</button>`;
       $('plAccount').onclick=settings;
-      if(note)note.textContent='Your progress will be saved to your ProfitLands account.';
+      if(note)note.textContent=cloudConflict?'Cloud save conflict unresolved. Automatic sync is paused; open your account to choose a save.':'Your progress will be saved to your ProfitLands account.';
     }
     // The actual local/cloud resume card is ready for /play/?resume=1.
     if(typeof window.dispatchEvent==='function'&&typeof Event==='function'){
