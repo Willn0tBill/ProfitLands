@@ -55,7 +55,7 @@ The server must settle income against active debuffs using trusted timestamps, h
 
 ### Chat and safety
 
-Public chat should stay disabled until a production-grade message backend and moderation exist. It needs: server message length enforcement, limits per account and per minute, profanity and privacy-sensitive information filtering, blocking, reporting to human moderators, retention policy, and abuse escalation tools. No public email addresses or private saved-game data should be exposed. For teen players, avoid direct messages by default.
+The automated-first regional chat now applies server-side profanity masking, targeted-harassment and personal-information rejection, rate limits, timed mutes for repeated slurs, blocking, reporting, capped retention and an immediate shutdown switch. Owner review is optional for opening chat but a clear human escalation/appeal process is still necessary for real-world use. No public email addresses, direct messages or saved-game data may be exposed. See `WORLD_CHAT_MODERATION.md`.
 
 ### Production readiness
 
@@ -63,7 +63,7 @@ Firebase is used for player sign-in and private singleplayer saves. The deployed
 
 The worlds are **logical regions in one Cloudflare Worker and one D1 database**, not dedicated servers physically hosted in the Americas, Europe and Asia. The 64-account limit is per region, not a demonstrated limit of simultaneous players.
 
-**Still to verify before a wider launch:** authenticated two-account testing on the deployed worker; refresh, reconnect and purchase persistence with real Firebase accounts; multi-region concurrency and quota measurements; protections against abuse; and account moderation. Chat stays disabled until reporting, blocking and moderation have been implemented and tested. Never expose D1 or Firestore writes directly to clients.
+**Still to verify before a wider launch:** authenticated two-account testing on the deployed worker; refresh, reconnect and purchase persistence with real Firebase accounts; multi-region concurrency and quota measurements; protections against abuse; and account moderation. Automated chat controls are implemented in code; still validate real-account abuse handling, false-positive recovery, reports and shutdown before opening it publicly. Never expose D1 or Firestore writes directly to clients.
 
 ## Test plan
 

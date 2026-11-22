@@ -88,7 +88,7 @@ async function main(){
  assert.equal(getHealth.cors,origin,'GET CORS');
  assert.equal(getHealth.data.ok,true,'D1-backed health');
  assert.ok(Array.isArray(getHealth.data.catalog)&&getHealth.data.catalog.length>=8,'server-owned catalog');
- assert.equal(getHealth.data.chatEnabled,false,'unmoderated chat stays off');
+ assert.equal(getHealth.data.chatEnabled,true,'automatic chat protections permit an unstaffed chat beta');
  const postHealth=await request(base,'/api',{method:'POST',body:{action:'health'}});
  assert.equal(postHealth.status,200,'POST health');
  assert.equal(postHealth.data.worldId,'world1');
