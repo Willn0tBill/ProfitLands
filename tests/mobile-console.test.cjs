@@ -28,8 +28,8 @@ test('mobile one-tap navigation preserves Overview, Businesses, Operations and A
 
 test('mobile navigation does not alter save state or duplicate business workflows',()=>{
  assert.doesNotMatch(script,/localStorage|sessionStorage|profitlands-v2|cloudSave|requestAttack|cash\s*[+\-]?=/);
- assert.match(script,/workspace\(\)\?\.available\?\.\(item\.id\)/);
- assert.match(script,/lastMode=multi\?'online':'solo'/);
+ assert.match(script,/if\(!canOpen\(item\.id\)\)return/);
+ assert.match(script,/lastMode=modeKey\(\)/);
  assert.match(script,/dock\.dataset\.mode=lastMode/);
 });
 
@@ -58,4 +58,10 @@ test('mobile console supports safe area, touch targets, readable stats and respo
  assert.match(css,/z-index:490!important/);
  assert.match(css,/pl-mobile-drawer-overlay\[hidden\]/);
  assert.match(css,/:has\(\.modal:not\(\.hidden\)\)/);
+});
+
+test('stage-one More drawer focuses its skip action and completed players see no tutorial helper',()=>{
+ assert.ok(script.includes("drawer.querySelector('.pl-mobile-skip-guide')"),'drawer keyboard focus does not escape behind overlay');
+ assert.ok(script.includes("workspace()?.onboardingStage?.()<5"),'completed stages hide beginner-only helper');
+ assert.ok(script.includes('grid.appendChild(intro)'), 'skip stays reachable at every unfinished guided stage');
 });

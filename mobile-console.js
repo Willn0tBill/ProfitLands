@@ -23,6 +23,8 @@ let dock,overlay,drawer,more,grid,lastFocus=null,initialized=false,lastMode='';
 const isOnline=()=>window.state?.playType==='multi';
 const isPlaying=()=>!!$('gameScreen')?.classList.contains('active');
 const workspace=()=>window.ProfitLandsWorkspace;
+const canOpen=id=>workspace()?.canOpen?.(id)??workspace()?.available?.(id)??false;
+const modeKey=()=>isOnline()?'online':'solo:'+String(workspace()?.onboardingStage?.()??5)+':'+(workspace()?.guidedMode?.()?'guided':'full');
 function make(tag,className,text){
  const el=document.createElement(tag);
  if(className)el.className=className;
@@ -39,7 +41,7 @@ function navButton(item,className='pl-mobile-tab'){
  const text=make('span','pl-mobile-tab-label',item.label);
  b.append(icon,text);
  b.addEventListener('click',()=>{
-  if(!workspace()?.available?.(item.id))return;
+  if(!canOpen(item.id))return;
   if(workspace().show(item.id,{focus:false}))close(false);
  });
  return b;
@@ -58,17 +60,17 @@ function open(){
  overlay.hidden=false;
  document.body.classList.add('pl-mobile-menu-open');
  more.setAttribute('aria-expanded','true');
- const first=drawer.querySelector('button[data-mobile-view]');
+ const first=drawer.querySelector('button[data-mobile-view]')||drawer.querySelector('.pl-mobile-skip-guide')||drawer.querySelector('.pl-mobile-drawer-close');
  first?.focus();
  return true;
 }
 function draw(){
  if(!dock||!grid)return;
  const multi=isOnline();
- lastMode=multi?'online':'solo';
+ lastMode=modeKey();
  dock.dataset.mode=lastMode;
  dock.replaceChildren();
- const tabs=multi?primaryOnline:primarySolo;
+ const tabs=multi?primaryOnline:primarySolo.filter(tab=>canOpen(tab.id));
  for(const tab of tabs)dock.appendChild(navButton(tab));
  if(!multi){
   more=make('button','pl-mobile-tab pl-mobile-more');
@@ -93,14 +95,26 @@ function draw(){
    const options=make('div','pl-mobile-drawer-options');
    for(const id of group.views){
     const view=views.get(id);
-    if(!view||!workspace().available(id))continue;
+    if(!view||!canOpen(id))continue;
     const button=navButton({id,label:view.name,icon:symbols[id]},'pl-mobile-drawer-item');
     options.appendChild(button);
    }
-   section.appendChild(options);
-   grid.appendChild(section);
+   if(options.children.length){section.appendChild(options);grid.appendChild(section)}
+  }
+  if(workspace()?.guidedMode?.()&&workspace()?.onboardingStage?.()<5){
+   const intro=make('section','pl-mobile-guide-helper');
+   const stage=workspace().onboardingStage();
+   intro.appendChild(make('strong','',stage===1?'First: open a shop':stage===2?'Next: upgrade your shop':'Next: expand your empire'));
+   intro.appendChild(make('p','', 'Sections unlock as you grow. Skip the guide at any time without losing progress.'));
+   const skip=make('button','pl-mobile-skip-guide','Show all features');
+   skip.type='button';skip.addEventListener('click',()=>{
+    if(workspace()?.skipGuidance?.()){close(false);draw()}
+   });
+   intro.appendChild(skip);
+   grid.appendChild(intro);
   }
  }
+ dock.style.setProperty('--pl-mobile-tabs',String(dock.children.length));
  close(false);
  updateActive();
 }
@@ -108,7 +122,7 @@ function updateActive(){
  if(!dock)return;
  const active=workspace()?.active?.();
  const multi=isOnline();
- if(lastMode!==(multi?'online':'solo')){draw();return}
+ if(lastMode!==modeKey()){draw();return}
  dock.querySelectorAll('[data-mobile-view]').forEach(button=>{
   const selected=button.dataset.mobileView===active;
   button.classList.toggle('active',selected);
@@ -134,7 +148,7 @@ function sync(){
  const active=isPlaying();
  if(!active)close(false);
  document.body.classList.toggle('pl-mobile-console-playing',active);
- if(lastMode!==(isOnline()?'online':'solo'))draw();
+ if(lastMode!==modeKey())draw();
  updateActive();
 }
 function init(){
@@ -178,6 +192,7 @@ function init(){
   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
  });
  window.addEventListener('profitlands:viewchange',()=>{close(false);updateActive()});
+ window.addEventListener('profitlands:guidancechange',()=>{if(initialized)draw()});
  document.addEventListener('click',event=>{
   if(event.target?.closest?.('.type-card,#endGame,#startGame,#confirmEndGame'))queueMicrotask(sync);
  });

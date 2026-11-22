@@ -23,10 +23,52 @@ const $=id=>document.getElementById(id);
 let current='overview';
 let shell,body,nav,heading,subtitle,context,toolbar,buttonMap=new Map(),viewMap=new Map(),initialized=false;
 let guideTitle=null,guideText=null,guideButton=null,guideProgress=null,guideMeter=null,questSteps=[],advancedDisclosure=null,growDisclosure=null;
-let sidebarNextCard=null,sidebarNextTitle=null,sidebarNextMeta=null,sidebarNextButton=null;
+let sidebarNextCard=null,sidebarNextTitle=null,sidebarNextMeta=null,sidebarNextButton=null,guideSkipButton=null,lastGuidedStage='';
 const groupHeadings=new Map();
 const isMultiplayer=()=>window.state?.playType==='multi';
 const available=id=>isMultiplayer()?['world','clans'].includes(id):!['world','clans'].includes(id);
+// Progression applies to newly created solo empires only. Legacy saves stay fully unlocked.
+function guidedMode(){
+ const s=window.state;
+ return Boolean(s?.started&&s.playType!=='multi'&&s.onboardingVersion===1&&!s.onboardingDismissed);
+}
+function onboardingStage(){
+ if(!guidedMode())return 5;
+ const businesses=Array.isArray(window.state.businesses)?window.state.businesses:[];
+ if(!businesses.length)return 1;
+ const locations=businesses.flatMap(b=>Array.isArray(b.locations)?b.locations:[]);
+ const improved=locations.some(l=>Number(l.level)>1||Number(l.workers)>0)||
+  businesses.some(b=>Number(b.level)>1||Number(b.workers)>0);
+ if(!improved)return 2;
+ if(businesses.length<2&&locations.length<2)return 3;
+ return 5;
+}
+const STAGE_BY_VIEW={overview:1,businesses:1,operations:2,finance:2,analytics:3,arcade:3,advances:3,trophies:3,markets:5,corporate:5};
+const unlocked=id=>onboardingStage()>=(STAGE_BY_VIEW[id]||1);
+const canOpen=id=>available(id)&&unlocked(id);
+function syncUnlocks(){
+ if(!initialized)return;
+ const guided=guidedMode(),stage=onboardingStage();
+ for(const [id,button]of buttonMap)button.hidden=!canOpen(id);
+ if(advancedDisclosure)advancedDisclosure.hidden=isMultiplayer()||!['markets','analytics','finance'].some(canOpen);
+ if(growDisclosure)growDisclosure.hidden=isMultiplayer()||!['corporate','advances','trophies'].some(canOpen);
+ if(guideSkipButton)guideSkipButton.hidden=!guided||stage===5;
+ const key=(isMultiplayer()?'online':guided?'guided':'full')+':'+stage;
+ if(lastGuidedStage!==key){
+  lastGuidedStage=key;
+  if(typeof CustomEvent==='function'&&typeof window.dispatchEvent==='function')
+   window.dispatchEvent(new CustomEvent('profitlands:guidancechange',{detail:{guided,stage}}));
+ }
+}
+function skipGuidance(){
+ const s=window.state;
+ if(!guidedMode()||!s)return false;
+ s.onboardingDismissed=true;
+ window.save?.();
+ syncMode();updateGuide();
+ return true;
+}
+
 try{const previous=localStorage.getItem(KEY);if(VIEWS.some(v=>v.id===previous))current=previous}catch(e){}
 function element(tag,className,text){
  const e=document.createElement(tag);
@@ -63,6 +105,7 @@ function starterProgress(s){
 }
 function updateGuide(){
  if(!window.state)return;
+ syncUnlocks();
  const progress=starterProgress(window.state),next=progress.next;
  if(sidebarNextTitle)sidebarNextTitle.textContent=next.title;
  if(sidebarNextMeta)sidebarNextMeta.textContent=progress.completed+' / 3 goals complete';
@@ -98,7 +141,7 @@ function save(){
  try{localStorage.setItem(KEY,current)}catch(e){}
 }
 function show(id,{focus=false,remember=true}={}){
- if(!initialized||!available(id))return false;
+ if(!initialized||!canOpen(id))return false;
  const view=VIEWS.find(x=>x.id===id);
  if(!view)return false;
  current=id;
@@ -179,7 +222,7 @@ function makeNav(){
    if(!view)continue;
    const btn=element('button','pl-workspace-nav-item'+(id==='arcade'?' pl-workspace-nav-play':''));
    btn.type='button';btn.dataset.workspaceView=view.id;
-   btn.hidden=!available(view.id);
+   btn.hidden=!canOpen(view.id);
    btn.setAttribute('aria-label','Open '+view.name);
    const index=element('span','pl-workspace-nav-index',icons[view.id]||view.number);
    const name=element('span','pl-workspace-nav-label',view.name);
@@ -246,7 +289,13 @@ function makeViews(game){
      show(next.view);
      if(next.view==='businesses'&&!window.state?.businesses?.length)$('openBusinessShop')?.click();
    });
-   welcome.appendChild(guideButton);region.appendChild(welcome);
+   welcome.appendChild(guideButton);
+   guideSkipButton=element('button','pl-onboarding-skip','Show all features');
+   guideSkipButton.type='button';
+   guideSkipButton.setAttribute('aria-label','Show all game sections and skip guided unlocks');
+   guideSkipButton.addEventListener('click',skipGuidance);
+   introCopy.appendChild(guideSkipButton);
+   region.appendChild(welcome);
    const steps=element('div','pl-game-steps');
    for(const [icon,title,description,action] of [
      ['🏪','1. Buy a shop','Your first business starts earning cash.','businesses'],
@@ -284,13 +333,12 @@ function makeViews(game){
 }
 function syncMode(){
  const active=isMultiplayer();
- for(const [id,button] of buttonMap)button.hidden=!available(id);
+ syncUnlocks();
  for(const [group,heading] of groupHeadings)heading.hidden=active?group!=='SOCIAL':group==='SOCIAL';
- if(advancedDisclosure)advancedDisclosure.hidden=active;
- if(growDisclosure)growDisclosure.hidden=active;
+ // Guided progression controls group visibility.
  if(toolbar)toolbar.hidden=active;
  document.body.classList.toggle('pl-online-world',active);
- if(initialized&&!available(current))show(active?'world':'overview',{remember:false});
+ if(initialized&&!canOpen(current))show(active?'world':'overview',{remember:false});
  window.ProfitLandsWorld?.updateChat?.();
  return active;
 }
@@ -327,7 +375,7 @@ function build(){
  const fromHash=viewFromHash(location.hash);
  syncMode();
  const requested=fromHash||current;
- show(available(requested)?requested:(isMultiplayer()?'world':'overview'),{remember:false});
+ show(canOpen(requested)?requested:(isMultiplayer()?'world':'overview'),{remember:false});
  const oldLinks=document.querySelectorAll('#gameScreen .growth-quicknav a[href^="#"]');
  for(const a of oldLinks)a.addEventListener('click',()=>{
   const v=viewFromHash(a.getAttribute('href'));
@@ -348,7 +396,8 @@ function build(){
  });
 }
 window.ProfitLandsWorkspace={
- show,active:()=>current,viewForPanel,available,syncMode,
+ show,active:()=>current,viewForPanel,available,canOpen,unlocked,guidedMode,onboardingStage,skipGuidance,
+ refreshGuidance:()=>{if(initialized){syncUnlocks();if(!canOpen(current))show('overview',{remember:false});if(!isMultiplayer())updateGuide()}},syncMode,
  views:VIEWS.map(v=>({id:v.id,name:v.name,panels:v.panels.slice()})),
  ready:()=>initialized
 };
